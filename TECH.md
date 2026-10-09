@@ -7,8 +7,8 @@
 | 웹 | Next.js App Router | 16.4.0 도입 |
 | 언어 | TypeScript | 5.9 도입 |
 | 스타일 | Tailwind CSS | 4.3 도입 |
-| 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty |
-| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members` 정의 |
+| 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty, Avatar, Breadcrumb |
+| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
