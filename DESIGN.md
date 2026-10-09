@@ -60,6 +60,12 @@ v0.1 화면 설계는 Figma 파일에서 관리합니다. 제품 이름은 화�
 - 글꼴은 Noto Sans KR 입니다. 본문은 14px, 줄 높이 22px 입니다.
 - 간격은 4px 단위이고, 모서리는 6, 8, 10, 14, 20px 단계입니다.
 
+### 코드 연결
+
+- 토큰은 `src/app/globals.css` 에 있습니다. 의미 색의 CSS 변수 이름은 Figma 변수의 코드 이름과 같고, 글자 단계는 `text-h1`, `text-body-m` 같은 Tailwind 클래스로 씁니다.
+- 컴포넌트 이름은 shadcn/ui 관례를 따릅니다. Button 의 variant 는 `default` 가 Primary, `outline` 이 Secondary, `ghost` 가 Ghost, `destructive` 가 Danger 입니다. size 는 `default` 가 MD, `sm` 이 SM 입니다.
+- 결정 배경은 `docs/adr/0001-design-tokens-as-css-variables.md` 에 있습니다.
+
 ### 화면 규칙
 
 - 한 화면에 Primary 버튼은 하나만 둡니다.

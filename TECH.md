@@ -4,15 +4,36 @@
 
 | 영역 | 선택 | 현재 상태 |
 |---|---|---|
-| 웹 | Next.js App Router | 도입 예정 |
-| 언어 | TypeScript | 도입 예정 |
-| 스타일 | Tailwind CSS | 도입 예정 |
-| 사용자 인터페이스 | shadcn/ui | 도입 예정 |
+| 웹 | Next.js App Router | 16.4.0 도입 |
+| 언어 | TypeScript | 5.9 도입 |
+| 스타일 | Tailwind CSS | 4.3 도입 |
+| 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert 만 추가 |
 | 데이터베이스 | Supabase PostgreSQL | 도입 예정 |
-| 인증 | Supabase Auth와 Google Login | 도입 예정 |
+| 인증 | Supabase Auth와 Google Login | 도입 예정. 로그인 화면만 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
-| 패키지 관리 | npm | 도입 예정 |
+| 패키지 관리 | npm | 도입 |
+
+## 도입한 패키지와 근거
+
+2026-10-08 v0.1 구현 첫 단계에서 아래를 도입했습니다. 뼈대는 `create-next-app` 16.4.0, 컴포넌트는 `shadcn` 4.21 의 기본 설정을 따랐습니다.
+
+| 패키지 | 근거 |
+|---|---|
+| `next` 16.4.0, `react` 19.3.0, `react-dom` 19.3.0 | 뼈대 기본 구성 |
+| `tailwindcss` 4.3, `@tailwindcss/turbopack` | 뼈대 기본 구성. Next.js 16.4 는 PostCSS 대신 Turbopack 로더로 Tailwind 를 붙인다. |
+| `shadcn`, `tw-animate-css` | shadcn/ui 의 Tailwind 설정과 애니메이션 |
+| `@base-ui/react` | shadcn/ui 기본 프리셋(base-nova)의 컴포넌트 기반 |
+| `cn`, `class-variance-authority` | shadcn/ui 컴포넌트의 클래스 병합과 변형 정의 |
+| `lucide-react` | 아이콘. Figma 아이콘과 같은 Lucide 를 쓴다. |
+| `eslint`, `eslint-config-next`, `typescript`, `@types/*` | 뼈대 기본 구성 |
+
+끈 기능은 다음과 같습니다.
+
+- Cache Components 와 React Compiler 는 켜지 않았습니다. 필요한 근거가 생기면 검토합니다.
+- `agentRules` 를 껐습니다. 켜 두면 `next dev` 가 `AGENTS.md` 에 Next.js 안내 문단을 자동으로 넣고 지워도 다시 넣습니다. `AGENTS.md` 는 이 저장소의 단일 지침이라 직접 관리합니다.
+
+알려진 경고가 하나 있습니다. `npm audit` 가 `braces` 의 서비스 거부 취약점으로 high 5건을 보고합니다. 모두 `eslint-config-next` 가 끌어오는 개발 도구 경로이고 배포되는 코드에는 들어가지 않습니다. 자동 수정은 `eslint-config-next` 를 14 로 내리는 방식이라 적용하지 않았습니다.
 
 ## 서버 방향
 
@@ -24,11 +45,9 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 
 ## 아직 정하지 않은 항목
 
-- 정확한 패키지 버전
 - 테스트 도구와 테스트 범위
 - 상태 관리 방식
 - 관측성과 오류 수집 도구
 - AI Provider와 모델
 
 이 항목은 해당 기능을 구현하는 마일스톤에서 필요 근거와 함께 정합니다.
-
