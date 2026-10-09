@@ -1,17 +1,17 @@
+import Link from "next/link"
 import { Users } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 
-import type { ClubRole, MyClub } from "../queries"
-
-const ROLE_LABEL: Record<ClubRole, string> = {
-  admin: "운영자",
-  member: "구성원",
-}
+import type { MyClub } from "../queries"
+import { ROLE_LABEL } from "../roles"
 
 export function ClubCard({ club }: { club: MyClub }) {
   return (
-    <article className="flex h-full flex-col gap-4 rounded-xl border bg-card p-5">
+    <Link
+      href={`/clubs/${club.id}`}
+      className="flex h-full flex-col gap-4 rounded-xl border bg-card p-5 transition-colors hover:border-input focus-visible:outline-2 focus-visible:outline-ring"
+    >
       <div className="flex items-start justify-between">
         <span
           aria-hidden="true"
@@ -39,6 +39,6 @@ export function ClubCard({ club }: { club: MyClub }) {
         />
         Member {club.memberCount}명
       </p>
-    </article>
+    </Link>
   )
 }
