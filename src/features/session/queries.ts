@@ -1,6 +1,7 @@
 import { cache } from "react"
 
 import { createClient } from "@/lib/supabase/server"
+import { isUuid } from "@/lib/uuid"
 
 export type Session = {
   id: string
@@ -33,8 +34,6 @@ type SessionRow = {
 
 const SESSION_COLUMNS =
   "id, club_id, title, description, location, starts_at, ends_at"
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function toSession(row: SessionRow): Session {
   return {
@@ -70,7 +69,7 @@ export const listSessions = cache(
 
 export const getSession = cache(
   async (clubId: string, sessionId: string): Promise<SessionResult> => {
-    if (!UUID_PATTERN.test(sessionId)) {
+    if (!isUuid(sessionId)) {
       return { status: "not-found" }
     }
 

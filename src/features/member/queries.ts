@@ -3,6 +3,8 @@ import { cache } from "react"
 import type { ClubRole } from "@/features/club/roles"
 import { createClient } from "@/lib/supabase/server"
 
+import { memberName } from "./name"
+
 export type Member = {
   id: string
   userId: string
@@ -45,7 +47,7 @@ export const listMembers = cache(
         id: row.id,
         userId: row.user_id,
         role: row.role,
-        name: row.display_name || row.email || "이름 없음",
+        name: memberName(row),
         email: row.email,
       })),
     }
