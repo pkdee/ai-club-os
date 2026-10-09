@@ -50,7 +50,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - 검증 가능한 요구 사항은 `docs/REQUIREMENTS.md`에서 관리한다.
 - 기능 단계는 `docs/FEATURES.md`에서 관리한다.
 - 기술 선택은 `TECH.md`에서 관리한다.
-- 전체 구조는 `Architecture.md`에서 관리한다.
+- 전체 구조는 `ARCHITECTURE.md`에서 관리한다.
 - 화면과 경험 원칙은 `DESIGN.md`에서 관리한다.
 - 데이터 구조는 `docs/DATABASE.md`에서 관리한다.
 - `CLAUDE.md`에는 별도 지침을 추가하지 않고 이 파일만 불러오게 유지한다.

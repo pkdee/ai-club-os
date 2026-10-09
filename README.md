@@ -44,7 +44,7 @@ AI Log는 제품의 핵심 Entity이며, 이후 AI Insight와 Project로 이어�
 - [요구 사항 목록](docs/REQUIREMENTS.md)
 - [기능 단계](docs/FEATURES.md)
 - [기술 선택](TECH.md)
-- [구조 설계](Architecture.md)
+- [구조 설계](ARCHITECTURE.md)
 - [제품 디자인 원칙](DESIGN.md)
 - [데이터 설계](docs/DATABASE.md)
 - [설계 결정 기록](docs/adr/README.md)
