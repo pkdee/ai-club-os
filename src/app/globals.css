@@ -275,6 +275,7 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-body-m text-foreground;
+    /* 한국어는 단어 중간에서 줄이 바뀌지 않게 하고, 너무 긴 단어만 강제로 나눈다. */
+    @apply bg-background text-body-m wrap-break-word break-keep text-foreground;
   }
 }
