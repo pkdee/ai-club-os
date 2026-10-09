@@ -10,7 +10,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, �
 
 ## 현재 단계
 
-v0.1 구현 중입니다. Next.js 뼈대, 디자인 토큰, Google Login, Club 만들기, 내 Club 목록, Club 개요, Session 목록과 만들기, 수정, 상세, Session 별 Attendance 기록이 들어 있습니다. Member 화면과 초대, AI Log 는 아직 없습니다.
+v0.1 구현 중입니다. Next.js 뼈대, 디자인 토큰, Google Login, Club 만들기, 내 Club 목록, Club 개요, Session 목록과 만들기, 수정, 상세, Session 별 Attendance 기록, AI Log 쓰기와 목록, 상세, 수정이 들어 있습니다. Member 화면과 초대, Club 설정, AI Log 검색은 아직 없습니다.
 
 ## 실행
 

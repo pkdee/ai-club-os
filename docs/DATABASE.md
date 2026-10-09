@@ -37,13 +37,14 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
 | `clubs`, `members` | `20261009165228_create_clubs_and_members.sql` | `docs/adr/0003-club-membership-and-rls.md` |
 | `sessions` | `20261009172039_create_sessions.sql` | `docs/adr/0004-session-time-in-korea-standard-time.md` |
 | `attendance`, `members` 의 이름과 이메일 열 | `20261009175244_create_attendance.sql` | `docs/adr/0005-attendance-and-member-display-name.md` |
+| `ai_logs` | `20261009181137_create_ai_logs.sql` | `docs/adr/0006-ai-log-structure-and-authorship.md` |
 
 ```mermaid
 erDiagram
@@ -55,6 +56,9 @@ erDiagram
   sessions ||--o{ attendance : "기록"
   members ||--o{ attendance : "참여"
   auth_users ||--o{ attendance : "기록자"
+  clubs ||--o{ ai_logs : "기록"
+  sessions |o--o{ ai_logs : "회차"
+  members |o--o{ ai_logs : "작성"
 
   clubs {
     uuid id PK
@@ -94,6 +98,21 @@ erDiagram
     uuid member_id FK
     text status
     uuid recorded_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  ai_logs {
+    uuid id PK
+    uuid club_id FK
+    uuid session_id FK
+    uuid author_id FK
+    text title
+    text[] tools
+    text attempt
+    text result
+    text learned
+    text next_action
     timestamptz created_at
     timestamptz updated_at
   }
@@ -155,6 +174,25 @@ erDiagram
 
 한 Session 의 한 Member 에게 행은 하나뿐입니다. 행이 없으면 미기록이고, 미기록으로 되돌릴 때는 행을 지웁니다. 만든 뒤에는 `status` 만 고칠 수 있습니다.
 
+### ai_logs
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다. 만든 뒤에는 바꿀 수 없다 |
+| `session_id` | uuid | 기록이 속한 회차. 비어 있으면 Club 의 기록이다. 같은 Club 의 Session 만 넣을 수 있고, Session 이 삭제되면 비운다 |
+| `author_id` | uuid | 작성자의 사용자 식별자. 만들 때 로그인한 사용자로 정해진다. Member 가 Club 에서 빠지면 비운다 |
+| `title` | text | 제목. 앞뒤 공백을 뺀 길이가 1자 이상 100자 이하 |
+| `tools` | text[] | 사용한 도구 이름. 10개 이하이고 이름마다 1자 이상 30자 이하 |
+| `attempt` | text | 시도한 내용. 앞뒤 공백을 뺀 길이가 1자 이상 5000자 이하 |
+| `result` | text | 결과. 5000자 이하. 기본값은 빈 문자열 |
+| `learned` | text | 배운 점. 5000자 이하. 기본값은 빈 문자열 |
+| `next_action` | text | 다음 행동. 5000자 이하. 기본값은 빈 문자열 |
+| `created_at` | timestamptz | 작성한 시각 |
+| `updated_at` | timestamptz | 마지막으로 고친 시각. 내용이 실제로 바뀌었을 때만 바뀐다 |
+
+사용자가 쓴 원본 기록입니다. 이후에 만들 AI Insight 는 이 테이블에 덮어쓰지 않고 따로 둡니다.
+
 ### 시각 저장 규칙
 
 시각은 모두 timestamptz 로 저장합니다. 화면에서 입력받고 보여 줄 때는 한국 시간으로만 해석합니다. Club 마다 시간대를 따로 두지 않습니다. Session 이 오늘인지, 예정인지, 끝났는지도 한국 시간의 날짜로 나눕니다.
@@ -176,15 +214,20 @@ erDiagram
 | `sessions` | 삭제 | 아직 없음 |
 | `attendance` | 조회 | 그 Club 의 Member |
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |
+| `ai_logs` | 조회 | 그 Club 의 Member |
+| `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
+| `ai_logs` | 수정 | 작성자 본인. Session 연결과 내용만 고칠 수 있다 |
+| `ai_logs` | 삭제 | 아직 없음 |
 
 ## 이후 결정 사항
 
-AI Log 입력 구조는 `docs/REQUIREMENTS.md` 의 잠정 결정을 출발점으로 삼습니다. Attendance 상태 값은 잠정 결정대로 구현했고, 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를 함께 고칩니다.
+Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
 - 역할별 세부 권한. Club 수정과 삭제, Member 관리
 - Member 가 자기 이름을 고치는 방법
-- 탈퇴한 Member 의 Attendance 를 남길지 여부
-- AI Log 입력 구조
+- 탈퇴한 Member 의 Attendance 와 AI Log 를 남길지 여부. 지금은 Attendance 는 함께 삭제되고 AI Log 는 작성자 없이 남는다
+- AI Log 삭제 규칙
+- 도구 이름의 표기를 맞추는 방법
 - 수정 기록과 보존 기간
 - 파일 첨부 범위
 - 나머지 테이블의 행 단위 보안 정책
