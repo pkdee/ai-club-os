@@ -10,7 +10,7 @@ import type { MyClub } from "../queries"
 import { ROLE_LABEL } from "../roles"
 import { ClubNav } from "./club-nav"
 
-// Club 안쪽 화면이 함께 쓰는 틀. 넓은 화면은 Sidebar, 좁은 화면은 상단 막대를 쓴다.
+// Club 안쪽 화면이 함께 쓰는 틀. 넓은 화면은 Sidebar, 좁은 화면은 상단 막대와 아래쪽 메뉴를 쓴다.
 export function ClubShell({
   club,
   user,
@@ -94,6 +94,11 @@ export function ClubShell({
       <main className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-8 lg:px-10 lg:pb-12">
         {children}
       </main>
+      <ClubNav
+        clubId={club.id}
+        variant="tabbar"
+        className="sticky bottom-0 lg:hidden"
+      />
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, type LucideIcon } from "lucide-react"
+import { Calendar, LayoutDashboard, type LucideIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -10,41 +10,70 @@ type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  // true 면 주소가 정확히 같을 때만 선택된 것으로 본다.
+  exact?: boolean
 }
 
 // 기능을 만들 때마다 메뉴를 더한다.
 // Attendance 는 Session 안에서 다루므로 메뉴에 따로 두지 않는다.
 function navItems(clubId: string): NavItem[] {
-  return [{ href: `/clubs/${clubId}`, label: "개요", icon: LayoutDashboard }]
+  const base = `/clubs/${clubId}`
+
+  return [
+    { href: base, label: "개요", icon: LayoutDashboard, exact: true },
+    { href: `${base}/sessions`, label: "Session", icon: Calendar },
+  ]
 }
 
+function isActive(pathname: string, item: NavItem) {
+  return item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`)
+}
+
+// sidebar 는 넓은 화면의 왼쪽 메뉴, tabbar 는 좁은 화면의 아래쪽 메뉴다.
 export function ClubNav({
   clubId,
+  variant = "sidebar",
   className,
 }: {
   clubId: string
+  variant?: "sidebar" | "tabbar"
   className?: string
 }) {
   const pathname = usePathname()
+  const tabbar = variant === "tabbar"
 
   return (
     <nav
       aria-label="Club 메뉴"
-      className={cn("flex flex-col gap-0.5", className)}
+      className={cn(
+        tabbar
+          ? "flex h-16 shrink-0 items-stretch border-t bg-card"
+          : "flex flex-col gap-0.5",
+        className
+      )}
     >
-      {navItems(clubId).map(({ href, label, icon: Icon }) => {
-        const active = pathname === href
+      {navItems(clubId).map((item) => {
+        const active = isActive(pathname, item)
+        const Icon = item.icon
 
         return (
           <Link
-            key={href}
-            href={href}
+            key={item.href}
+            href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-9 items-center gap-3 rounded-md px-3 text-label-m transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+              "transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+              tabbar
+                ? "flex flex-1 flex-col items-center justify-center gap-1 text-label-s"
+                : "flex h-9 items-center gap-3 rounded-md px-3 text-label-m",
               active
-                ? "bg-primary-subtle text-brand"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                ? cn("text-brand", !tabbar && "bg-primary-subtle")
+                : cn(
+                    "text-muted-foreground",
+                    !tabbar && "hover:bg-accent hover:text-foreground"
+                  )
             )}
           >
             <Icon
@@ -52,7 +81,7 @@ export function ClubNav({
               strokeWidth={1.5}
               className={cn("size-5", active ? "text-icon-brand" : "text-icon")}
             />
-            {label}
+            {item.label}
           </Link>
         )
       })}

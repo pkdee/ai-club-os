@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/features/auth/session";
 import { ClubOverview } from "@/features/club/components/club-overview";
 import { getClubAccess } from "@/features/club/queries";
+import { UpcomingSessions } from "@/features/session/components/upcoming-sessions";
+import { listSessions } from "@/features/session/queries";
+import { sessionStatus } from "@/features/session/time";
 
 // layout 이 이미 같은 값을 읽었으므로 여기서는 다시 조회하지 않는다.
 async function loadClub(params: Promise<{ clubId: string }>) {
@@ -33,5 +36,21 @@ export default async function ClubOverviewPage(
     return null;
   }
 
-  return <ClubOverview club={club} />;
+  const now = new Date();
+  const result = await listSessions(club.id);
+  const sessions = result.status === "ok" ? result.sessions : null;
+  const done = sessions
+    ? sessions.filter((session) => sessionStatus(session.startsAt, now) === "done").length
+    : 0;
+
+  return (
+    <ClubOverview
+      club={club}
+      sessions={sessions ? { done, upcoming: sessions.length - done } : null}
+    >
+      {sessions && (
+        <UpcomingSessions clubId={club.id} sessions={sessions} now={now} />
+      )}
+    </ClubOverview>
+  );
 }
