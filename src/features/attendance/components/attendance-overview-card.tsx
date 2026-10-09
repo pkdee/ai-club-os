@@ -1,0 +1,72 @@
+import Link from "next/link"
+import { CircleAlert, ClipboardCheck } from "lucide-react"
+
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+
+import type { AttendanceMark } from "../status"
+import { AttendanceSummary } from "./attendance-summary"
+
+// Session 개요에 올리는 Attendance 요약. counts 가 null 이면 불러오지 못한 것이다.
+export function AttendanceOverviewCard({
+  href,
+  canManage,
+  counts,
+}: {
+  href: string
+  canManage: boolean
+  counts: Record<AttendanceMark, number> | null
+}) {
+  return (
+    <section className="flex flex-col gap-4 rounded-xl border bg-card p-6">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-h4">Attendance</h2>
+        <Link
+          href={href}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <ClipboardCheck aria-hidden="true" strokeWidth={1.5} />
+          {canManage ? "기록하기" : "모두 보기"}
+        </Link>
+      </div>
+      {counts ? (
+        <AttendanceSummary counts={counts} />
+      ) : (
+        <p className="text-muted-foreground">
+          Attendance 를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.
+        </p>
+      )}
+    </section>
+  )
+}
+
+export function AttendanceUnavailable({ href }: { href: string }) {
+  return (
+    <div className="rounded-xl border bg-card">
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia>
+            <CircleAlert strokeWidth={1.5} />
+          </EmptyMedia>
+          <EmptyTitle>Attendance 를 불러오지 못했습니다</EmptyTitle>
+          <EmptyDescription>
+            연결이 끊겼거나 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해
+            주세요.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Link href={href} className={buttonVariants({ variant: "outline" })}>
+            다시 시도
+          </Link>
+        </EmptyContent>
+      </Empty>
+    </div>
+  )
+}

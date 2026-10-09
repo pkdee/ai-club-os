@@ -1,50 +1,48 @@
 import type { Metadata } from "next";
 
-import { getCurrentUser } from "@/features/auth/session";
-import { getClubAccess } from "@/features/club/queries";
-import { SessionDetailScreen } from "@/features/session/components/session-detail-screen";
-import { getSession } from "@/features/session/queries";
+import { AttendanceOverviewCard } from "@/features/attendance/components/attendance-overview-card";
+import { listAttendance } from "@/features/attendance/queries";
+import { countAttendance } from "@/features/attendance/status";
+import { listMembers } from "@/features/member/queries";
+import { SessionOverview } from "@/features/session/components/session-overview";
+import { loadSessionPage } from "@/features/session/page-data";
 
 type Props = PageProps<"/clubs/[clubId]/sessions/[sessionId]">;
 
-// layout 이 이미 Club 을 읽었으므로 Club 은 다시 조회하지 않는다.
-async function load(params: Props["params"]) {
-  const { clubId, sessionId } = await params;
-  const user = await getCurrentUser();
-  if (!user) {
-    return null;
-  }
-
-  const access = await getClubAccess(clubId, user.id);
-  if (access.status !== "ok") {
-    return null;
-  }
-
-  return { club: access.club, result: await getSession(clubId, sessionId) };
-}
-
 export async function generateMetadata(props: Props): Promise<Metadata> {
-  const loaded = await load(props.params);
-  const title =
-    loaded?.result.status === "ok" ? loaded.result.session.title : "Session";
+  const { clubId, sessionId } = await props.params;
+  const data = await loadSessionPage(clubId, sessionId);
 
-  return { title: `${title} | AI Club OS` };
+  return { title: `${data ? data.session.title : "Session"} | AI Club OS` };
 }
 
-export default async function SessionDetailPage(props: Props) {
-  const loaded = await load(props.params);
-  // 볼 수 없는 Club 은 layout 이 안내 화면을 대신 그린다.
-  if (!loaded) {
+export default async function SessionOverviewPage(props: Props) {
+  const { clubId, sessionId } = await props.params;
+  const data = await loadSessionPage(clubId, sessionId);
+  // 볼 수 없거나 없는 Session 은 layout 이 안내 화면을 대신 그린다.
+  if (!data) {
     return null;
   }
+
+  const [members, attendance] = await Promise.all([
+    listMembers(clubId),
+    listAttendance(clubId, sessionId),
+  ]);
+  const counts =
+    members.status === "ok" && attendance.status === "ok"
+      ? countAttendance(
+          members.members.map((member) => member.id),
+          attendance.records
+        )
+      : null;
 
   return (
-    <SessionDetailScreen
-      clubId={loaded.club.id}
-      clubName={loaded.club.name}
-      canManage={loaded.club.role === "admin"}
-      result={loaded.result}
-      now={new Date()}
-    />
+    <SessionOverview session={data.session}>
+      <AttendanceOverviewCard
+        href={`/clubs/${clubId}/sessions/${sessionId}/attendance`}
+        canManage={data.club.role === "admin"}
+        counts={counts}
+      />
+    </SessionOverview>
   );
 }

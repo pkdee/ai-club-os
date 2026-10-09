@@ -58,10 +58,10 @@ export function ClubOverview({
       {children}
       <Alert tone="info">
         <Info aria-hidden="true" strokeWidth={1.5} />
-        <AlertTitle>Attendance 와 AI Log 는 준비 중입니다</AlertTitle>
+        <AlertTitle>AI Log 는 준비 중입니다</AlertTitle>
         <AlertDescription>
-          출석과 기록 기능은 다음 단계에서 추가합니다. 추가되면 이 화면에서 평균
-          출석과 최근 AI Log 를 볼 수 있습니다.
+          기록을 남기는 기능은 다음 단계에서 추가합니다. 추가되면 이 화면에서
+          최근 AI Log 를 볼 수 있습니다.
         </AlertDescription>
       </Alert>
     </>
