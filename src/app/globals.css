@@ -1,0 +1,280 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * 디자인 토큰은 Figma 의 Foundations 페이지를 기준으로 한다.
+ * 아래 :root 와 .dark 의 변수 이름은 Figma 의미 색 변수의 코드 이름과 같다.
+ * 값 옆 주석은 Figma 의 원시 색 이름이다.
+ */
+:root {
+  --radius: 0.625rem;
+
+  /* 면 */
+  --background: #ffffff; /* base/white */
+  --bg-app: #fafafa; /* zinc/50 */
+  --card: #ffffff; /* base/white */
+  --popover: #ffffff; /* base/white */
+  --muted: #f4f4f5; /* zinc/100 */
+  --accent: #f4f4f5; /* zinc/100 */
+  --primary: #4f46e5; /* indigo/600 */
+  --primary-hover: #4338ca; /* indigo/700 */
+  --primary-subtle: #eef2ff; /* indigo/50 */
+  --secondary: #f4f4f5; /* zinc/100 */
+  --secondary-hover: #e4e4e7; /* zinc/200 */
+  --destructive: #dc2626; /* red/600 */
+  --destructive-hover: #b91c1c; /* red/700 */
+  --danger-subtle: #fef2f2; /* red/50 */
+  --success-subtle: #ecfdf5; /* emerald/50 */
+  --warning-subtle: #fffbeb; /* amber/50 */
+  --info-subtle: #f0f9ff; /* sky/50 */
+  --bg-disabled: #f4f4f5; /* zinc/100 */
+  --bg-inverse: #18181b; /* zinc/900 */
+  --overlay: rgb(0 0 0 / 0.5); /* alpha/black-50 */
+  --skeleton: #e4e4e7; /* zinc/200 */
+
+  /* 글자 */
+  --foreground: #09090b; /* zinc/950 */
+  --card-foreground: #09090b; /* zinc/950 */
+  --popover-foreground: #09090b; /* zinc/950 */
+  --secondary-foreground: #09090b; /* zinc/950 */
+  --accent-foreground: #09090b; /* zinc/950 */
+  --muted-foreground: #52525b; /* zinc/600 */
+  --text-tertiary: #71717a; /* zinc/500 */
+  --text-disabled: #a1a1aa; /* zinc/400 */
+  --primary-foreground: #ffffff; /* base/white */
+  --text-brand: #4338ca; /* indigo/700 */
+  --text-success: #047857; /* emerald/700 */
+  --text-warning: #92400e; /* amber/800 */
+  --text-danger: #b91c1c; /* red/700 */
+  --text-info: #0369a1; /* sky/700 */
+  --text-inverse: #ffffff; /* base/white */
+
+  /* 선 */
+  --border: #e4e4e7; /* zinc/200 */
+  --input: #d4d4d8; /* zinc/300 */
+  --ring: #6366f1; /* indigo/500 */
+  --border-brand: #c7d2fe; /* indigo/200 */
+  --border-success: #a7f3d0; /* emerald/200 */
+  --border-warning: #fde68a; /* amber/200 */
+  --border-danger: #fecaca; /* red/200 */
+  --border-danger-strong: #ef4444; /* red/500 */
+  --border-info: #bae6fd; /* sky/200 */
+
+  /* 아이콘 */
+  --icon: #52525b; /* zinc/600 */
+  --icon-subtle: #a1a1aa; /* zinc/400 */
+  --icon-strong: #18181b; /* zinc/900 */
+  --icon-on-primary: #ffffff; /* base/white */
+  --icon-brand: #4f46e5; /* indigo/600 */
+  --icon-success: #059669; /* emerald/600 */
+  --icon-warning: #d97706; /* amber/600 */
+  --icon-danger: #dc2626; /* red/600 */
+  --icon-info: #0284c7; /* sky/600 */
+  --icon-disabled: #d4d4d8; /* zinc/300 */
+}
+
+.dark {
+  /* 면 */
+  --background: #09090b; /* zinc/950 */
+  --bg-app: #09090b; /* zinc/950 */
+  --card: #18181b; /* zinc/900 */
+  --popover: #18181b; /* zinc/900 */
+  --muted: #27272a; /* zinc/800 */
+  --accent: #27272a; /* zinc/800 */
+  --primary: #4f46e5; /* indigo/600 */
+  --primary-hover: #6366f1; /* indigo/500 */
+  --primary-subtle: #1e1b4b; /* indigo/950 */
+  --secondary: #27272a; /* zinc/800 */
+  --secondary-hover: #3f3f46; /* zinc/700 */
+  --destructive: #dc2626; /* red/600 */
+  --destructive-hover: #ef4444; /* red/500 */
+  --danger-subtle: #450a0a; /* red/950 */
+  --success-subtle: #022c22; /* emerald/950 */
+  --warning-subtle: #451a03; /* amber/950 */
+  --info-subtle: #082f49; /* sky/950 */
+  --bg-disabled: #27272a; /* zinc/800 */
+  --bg-inverse: #fafafa; /* zinc/50 */
+  --overlay: rgb(0 0 0 / 0.7); /* alpha/black-70 */
+  --skeleton: #27272a; /* zinc/800 */
+
+  /* 글자 */
+  --foreground: #fafafa; /* zinc/50 */
+  --card-foreground: #fafafa; /* zinc/50 */
+  --popover-foreground: #fafafa; /* zinc/50 */
+  --secondary-foreground: #fafafa; /* zinc/50 */
+  --accent-foreground: #fafafa; /* zinc/50 */
+  --muted-foreground: #a1a1aa; /* zinc/400 */
+  --text-tertiary: #71717a; /* zinc/500 */
+  --text-disabled: #52525b; /* zinc/600 */
+  --primary-foreground: #ffffff; /* base/white */
+  --text-brand: #a5b4fc; /* indigo/300 */
+  --text-success: #34d399; /* emerald/400 */
+  --text-warning: #fbbf24; /* amber/400 */
+  --text-danger: #f87171; /* red/400 */
+  --text-info: #38bdf8; /* sky/400 */
+  --text-inverse: #09090b; /* zinc/950 */
+
+  /* 선 */
+  --border: #27272a; /* zinc/800 */
+  --input: #3f3f46; /* zinc/700 */
+  --ring: #818cf8; /* indigo/400 */
+  --border-brand: #3730a3; /* indigo/800 */
+  --border-success: #064e3b; /* emerald/900 */
+  --border-warning: #78350f; /* amber/900 */
+  --border-danger: #7f1d1d; /* red/900 */
+  --border-danger-strong: #ef4444; /* red/500 */
+  --border-info: #0c4a6e; /* sky/900 */
+
+  /* 아이콘 */
+  --icon: #a1a1aa; /* zinc/400 */
+  --icon-subtle: #71717a; /* zinc/500 */
+  --icon-strong: #fafafa; /* zinc/50 */
+  --icon-on-primary: #ffffff; /* base/white */
+  --icon-brand: #818cf8; /* indigo/400 */
+  --icon-success: #34d399; /* emerald/400 */
+  --icon-warning: #fbbf24; /* amber/400 */
+  --icon-danger: #f87171; /* red/400 */
+  --icon-info: #38bdf8; /* sky/400 */
+  --icon-disabled: #3f3f46; /* zinc/700 */
+}
+
+/* 의미 색을 Tailwind 색 이름으로 연결한다. 예: bg-app, text-tertiary, border-danger-border */
+@theme inline {
+  --font-sans: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-app: var(--bg-app);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-info-subtle: var(--info-subtle);
+  --color-disabled: var(--bg-disabled);
+  --color-inverse: var(--bg-inverse);
+  --color-overlay: var(--overlay);
+  --color-skeleton: var(--skeleton);
+
+  --color-foreground: var(--foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-tertiary: var(--text-tertiary);
+  --color-disabled-foreground: var(--text-disabled);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--text-brand);
+  --color-success: var(--text-success);
+  --color-warning: var(--text-warning);
+  --color-danger: var(--text-danger);
+  --color-info: var(--text-info);
+  --color-inverse-foreground: var(--text-inverse);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-border: var(--border-brand);
+  --color-success-border: var(--border-success);
+  --color-warning-border: var(--border-warning);
+  --color-danger-border: var(--border-danger);
+  --color-danger-border-strong: var(--border-danger-strong);
+  --color-info-border: var(--border-info);
+
+  --color-icon: var(--icon);
+  --color-icon-subtle: var(--icon-subtle);
+  --color-icon-strong: var(--icon-strong);
+  --color-icon-on-primary: var(--icon-on-primary);
+  --color-icon-brand: var(--icon-brand);
+  --color-icon-success: var(--icon-success);
+  --color-icon-warning: var(--icon-warning);
+  --color-icon-danger: var(--icon-danger);
+  --color-icon-info: var(--icon-info);
+  --color-icon-disabled: var(--icon-disabled);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 2);
+}
+
+/*
+ * 글자 단계와 그림자. Figma 의 Text style, Effect style 과 같은 값이다.
+ * 글자 단계 이름을 바꾸거나 더하면 src/lib/utils.ts 의 목록도 함께 고친다.
+ */
+@theme {
+  --text-display-l: 2.25rem;
+  --text-display-l--line-height: 2.875rem;
+  --text-display-l--font-weight: 700;
+  --text-display-l--letter-spacing: -0.01em;
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 2.375rem;
+  --text-h1--font-weight: 700;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 700;
+  --text-h2--letter-spacing: -0.005em;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.75rem;
+  --text-h3--font-weight: 700;
+  --text-h4: 1rem;
+  --text-h4--line-height: 1.5rem;
+  --text-h4--font-weight: 700;
+  --text-body-l: 1rem;
+  --text-body-l--line-height: 1.625rem;
+  --text-body-l--font-weight: 400;
+  --text-body-m: 0.875rem;
+  --text-body-m--line-height: 1.375rem;
+  --text-body-m--font-weight: 400;
+  --text-body-s: 0.8125rem;
+  --text-body-s--line-height: 1.25rem;
+  --text-body-s--font-weight: 400;
+  --text-label-l: 1rem;
+  --text-label-l--line-height: 1.5rem;
+  --text-label-l--font-weight: 500;
+  --text-label-m: 0.875rem;
+  --text-label-m--line-height: 1.25rem;
+  --text-label-m--font-weight: 500;
+  --text-label-s: 0.75rem;
+  --text-label-s--line-height: 1rem;
+  --text-label-s--font-weight: 500;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
+  --text-caption--font-weight: 400;
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1rem;
+  --text-overline--font-weight: 500;
+  --text-overline--letter-spacing: 0.06em;
+
+  --shadow-xs: 0 1px 2px 0 rgb(13 13 26 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(13 13 26 / 0.08), 0 1px 2px -1px rgb(13 13 26 / 0.06);
+  --shadow-md: 0 4px 8px -1px rgb(13 13 26 / 0.08), 0 2px 4px -2px rgb(13 13 26 / 0.06);
+  --shadow-lg: 0 12px 20px -4px rgb(13 13 26 / 0.1), 0 4px 8px -4px rgb(13 13 26 / 0.06);
+  --shadow-xl: 0 24px 40px -8px rgb(13 13 26 / 0.16), 0 8px 12px -6px rgb(13 13 26 / 0.08);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-body-m text-foreground;
+  }
+}
