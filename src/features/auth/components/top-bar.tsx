@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react"
 
 import { Logo } from "@/components/logo"
+import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 
 import { signOut } from "../actions"
@@ -13,12 +14,7 @@ export function TopBar({ user }: { user: CurrentUser }) {
       <Logo />
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="flex size-8 items-center justify-center rounded-full bg-primary-subtle text-label-s text-brand"
-          >
-            {Array.from(user.name)[0]}
-          </span>
+          <Avatar name={user.name} />
           <span className="hidden text-label-m sm:inline">{user.name}</span>
         </div>
         <form action={signOut}>

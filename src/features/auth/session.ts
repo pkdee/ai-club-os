@@ -1,3 +1,5 @@
+import { cache } from "react"
+
 import { supabaseEnv } from "@/lib/supabase/env"
 import { createClient } from "@/lib/supabase/server"
 
@@ -9,7 +11,8 @@ export type CurrentUser = {
 
 // 서명을 검증한 토큰에서 현재 사용자를 읽는다. 로그인하지 않았으면 null 이다.
 // user_metadata 는 사용자가 바꿀 수 있는 값이라 표시에만 쓴다. 권한 판단에는 쓰지 않는다.
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// layout 과 page 가 함께 불러도 한 요청 안에서는 한 번만 확인한다.
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   if (!supabaseEnv()) {
     return null
   }
@@ -28,4 +31,4 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   )
 
   return { id: claims.sub, email, name: displayName ?? email ?? "이름 없음" }
-}
+})
