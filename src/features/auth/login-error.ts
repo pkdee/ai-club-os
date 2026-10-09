@@ -7,9 +7,9 @@ const MESSAGES: Record<LoginError, { title: string; description: string }> = {
       "Google 인증이 취소되었거나 시간이 지났습니다. 아래 버튼으로 다시 시도해 주세요.",
   },
   not_configured: {
-    title: "로그인이 아직 연결되지 않았습니다",
+    title: "로그인 설정이 비어 있습니다",
     description:
-      "Google Login 은 Supabase 연결을 마친 뒤에 동작합니다. 지금은 화면만 확인할 수 있습니다.",
+      "Supabase 연결 값이 없어 로그인을 시작할 수 없습니다. .env.local 의 값을 채운 뒤 서버를 다시 시작해 주세요.",
   },
 }
 
