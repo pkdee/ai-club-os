@@ -87,7 +87,7 @@ src/
 
 ## 요청 처리 흐름
 
-모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth` 하나입니다.
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth` 와 `club` 입니다.
 
 ```mermaid
 flowchart TD
@@ -144,6 +144,7 @@ sequenceDiagram
 ## 외부 경계
 
 - 인증과 기본 데이터는 Supabase를 사용합니다.
+- 데이터베이스 구조와 접근 규칙은 `supabase/migrations/` 의 SQL 파일로 관리합니다.
 - 파일이 필요한 기능만 Supabase Storage를 사용합니다.
 - AI Provider는 교체 가능한 연결부 뒤에 둡니다.
 - 배포는 Vercel을 기본으로 합니다.

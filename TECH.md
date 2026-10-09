@@ -7,8 +7,8 @@
 | 웹 | Next.js App Router | 16.4.0 도입 |
 | 언어 | TypeScript | 5.9 도입 |
 | 스타일 | Tailwind CSS | 4.3 도입 |
-| 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert 만 추가 |
-| 데이터베이스 | Supabase PostgreSQL | 도입 예정 |
+| 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty |
+| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
@@ -28,6 +28,8 @@
 | `lucide-react` | 아이콘. Figma 아이콘과 같은 Lucide 를 쓴다. |
 | `eslint`, `eslint-config-next`, `typescript`, `@types/*` | 뼈대 기본 구성 |
 | `@supabase/supabase-js` 2.117.3, `@supabase/ssr` 0.12.7 | 2026-10-10 추가. Supabase 연결과 서버 쪽 세션 관리. 공급망 사고에 대비해 버전을 고정한다. |
+
+Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행합니다. 지금은 마이그레이션 파일을 만들 때만 씁니다.
 
 끈 기능은 다음과 같습니다.
 
