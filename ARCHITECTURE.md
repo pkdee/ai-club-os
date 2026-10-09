@@ -8,6 +8,16 @@ AI Club OS는 활동 기록이 지식이 되고, 지식이 이해와 행동으�
 Activity -> Knowledge -> Intelligence -> Action
 ```
 
+```mermaid
+flowchart LR
+  activity["Activity<br/>Session, Attendance"]
+  knowledge["Knowledge<br/>AI Log"]
+  intelligence["Intelligence<br/>AI Insight"]
+  action["Action<br/>Project, Web Presentation"]
+
+  activity --> knowledge --> intelligence --> action
+```
+
 ## 핵심 영역
 
 - Club: 활동이 이루어지는 작업 공간
@@ -32,6 +42,21 @@ Google Login
   -> Session
   -> Attendance
   -> AI Log
+```
+
+```mermaid
+flowchart LR
+  subgraph mvp["v0.1 MVP"]
+    direction LR
+    login["Google Login"] --> club["Club"] --> member["Member"] --> session["Session"] --> attendance["Attendance"] --> ailog["AI Log"]
+  end
+
+  subgraph later["MVP 밖"]
+    direction LR
+    insight["AI Insight"] --> project["Project"] --> presentation["Web Presentation"]
+  end
+
+  ailog -.-> insight
 ```
 
 AI Insight, Project, Web Presentation은 MVP 밖에 둡니다.
@@ -59,6 +84,55 @@ src/
 `components/` 는 디자인 시스템 컴포넌트, `lib/supabase/` 는 Supabase 연결 경계입니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
 
 각 기능은 자신의 화면, 규칙, 데이터 접근 경계를 소유합니다. 여러 기능이 함께 쓰는 요소는 실제 중복이 확인된 뒤에만 공용 영역으로 이동합니다.
+
+## 요청 처리 흐름
+
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth` 하나입니다.
+
+```mermaid
+flowchart TD
+  browser["브라우저"] --> proxy["src/proxy.ts<br/>요청마다 세션 갱신"]
+  proxy --> check{"로그인이 필요한 경로인데<br/>로그인하지 않았는가"}
+  check -->|"예"| redirect["/login 으로 이동"]
+  check -->|"아니오"| app["src/app<br/>라우트와 화면 조립"]
+  app --> features["src/features<br/>기능별 화면, 규칙, 동작"]
+  features --> components["src/components<br/>디자인 시스템 컴포넌트"]
+  features --> lib["src/lib/supabase<br/>Supabase 연결 경계"]
+  proxy --> lib
+  lib --> supabase[("Supabase<br/>Auth, PostgreSQL")]
+```
+
+`proxy.ts` 는 화면 이동만 막습니다. Server Action 과 데이터 접근은 각자 사용자를 다시 확인합니다.
+
+## 로그인 흐름
+
+Google Login 은 PKCE 흐름을 씁니다. 결정 배경은 `docs/adr/0002-auth-session-with-supabase-ssr.md` 에 있습니다.
+
+```mermaid
+sequenceDiagram
+  actor user as 사용자
+  participant browser as 브라우저
+  participant next as Next.js 서버
+  participant supabase as Supabase Auth
+  participant google as Google
+
+  user->>browser: Google 계정으로 계속하기
+  browser->>next: signInWithGoogle 실행
+  Note over next: 인증 주소를 만들고 code verifier 를 쿠키에 저장
+  next-->>browser: Supabase 인증 주소로 이동
+  browser->>supabase: 인증 요청
+  supabase-->>browser: Google 인증 화면으로 이동
+  browser->>google: 계정 선택과 동의
+  google-->>browser: Supabase 로 돌아감
+  browser->>supabase: 인증 결과 전달
+  supabase-->>browser: /auth/callback 으로 이동, code 포함
+  browser->>next: GET /auth/callback
+  next->>supabase: exchangeCodeForSession
+  supabase-->>next: 세션
+  next-->>browser: 세션 쿠키를 저장하고 / 로 이동
+```
+
+인증에 실패하거나 code 가 없으면 `/login?error=auth_failed` 로 이동해 오류를 알립니다.
 
 ## 데이터 흐름 원칙
 
