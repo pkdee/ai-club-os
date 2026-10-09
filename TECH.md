@@ -9,7 +9,7 @@
 | 스타일 | Tailwind CSS | 4.3 도입 |
 | 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert 만 추가 |
 | 데이터베이스 | Supabase PostgreSQL | 도입 예정 |
-| 인증 | Supabase Auth와 Google Login | 도입 예정. 로그인 화면만 구현 |
+| 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
 | 패키지 관리 | npm | 도입 |
@@ -27,6 +27,7 @@
 | `cn`, `class-variance-authority` | shadcn/ui 컴포넌트의 클래스 병합과 변형 정의 |
 | `lucide-react` | 아이콘. Figma 아이콘과 같은 Lucide 를 쓴다. |
 | `eslint`, `eslint-config-next`, `typescript`, `@types/*` | 뼈대 기본 구성 |
+| `@supabase/supabase-js` 2.117.3, `@supabase/ssr` 0.12.7 | 2026-10-10 추가. Supabase 연결과 서버 쪽 세션 관리. 공급망 사고에 대비해 버전을 고정한다. |
 
 끈 기능은 다음과 같습니다.
 

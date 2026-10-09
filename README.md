@@ -10,7 +10,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, �
 
 ## 현재 단계
 
-v0.1 구현 첫 단계입니다. Next.js 뼈대, 디자인 토큰, 로그인 화면이 들어 있습니다. Supabase 가 아직 연결되지 않아 실제 로그인은 동작하지 않습니다.
+v0.1 구현 중입니다. Next.js 뼈대, 디자인 토큰, Google Login 이 들어 있습니다. Club, Member, Session, Attendance, AI Log 는 아직 없습니다.
 
 ## 실행
 
@@ -18,8 +18,14 @@ Node.js 24 와 npm 이 필요합니다.
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
+
+`.env.local` 에는 Supabase 프로젝트의 URL 과 publishable key 를 채웁니다. Supabase 쪽에는 아래 두 가지가 설정되어 있어야 합니다.
+
+- Authentication 의 Providers 에서 Google 을 켜고 Google OAuth 클라이언트 ID 와 비밀 값을 입력한다.
+- Authentication 의 URL Configuration 에서 Site URL 이 `http://localhost:3000` 이거나 Redirect URLs 에 `http://localhost:3000/**` 가 들어 있다.
 
 http://localhost:3000 을 열면 로그인 화면으로 이동합니다. 검사는 `npm run lint` 와 `npm run build` 로 합니다.
 

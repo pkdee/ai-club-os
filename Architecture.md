@@ -43,14 +43,20 @@ AI Insight, Project, Web Presentation은 MVP 밖에 둡니다.
 ```text
 src/
 ├── app/
-└── features/
-    ├── auth/
-    ├── club/
-    ├── member/
-    ├── session/
-    ├── attendance/
-    └── ai-log/
+├── components/
+├── features/
+│   ├── auth/
+│   ├── club/
+│   ├── member/
+│   ├── session/
+│   ├── attendance/
+│   └── ai-log/
+├── lib/
+│   └── supabase/
+└── proxy.ts
 ```
+
+`components/` 는 디자인 시스템 컴포넌트, `lib/supabase/` 는 Supabase 연결 경계입니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
 
 각 기능은 자신의 화면, 규칙, 데이터 접근 경계를 소유합니다. 여러 기능이 함께 쓰는 요소는 실제 중복이 확인된 뒤에만 공용 영역으로 이동합니다.
 
