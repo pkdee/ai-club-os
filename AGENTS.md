@@ -62,3 +62,22 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - 비밀 값과 개인 정보는 저장소에 넣지 않는다.
 - 사용자 승인 없이 원격 저장소 생성, 푸시, 배포를 하지 않는다.
 
+## 커밋 규칙
+
+- 작업 브랜치를 따로 만들지 않고 `main` 에 직접 커밋한다. 브랜치는 사용자가 요청할 때만 만든다.
+- 커밋 메시지는 한국어로 쓰고 Conventional Commits 를 따른다. type 은 `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `style` 등을 쓴다.
+- 제목은 `<type>: <한글 요약>` 형식의 한 줄로 쓴다. 72자 이내의 명령형으로 쓰고 마침표를 붙이지 않는다.
+- 제목 다음 한 줄을 비우고, 본문은 3~5줄의 목록으로 핵심만 적는다. 긴 설명과 구현 코드는 넣지 않는다.
+- 고유명과 기술명(API, Controller, Repository 등)은 영문 그대로 둔다.
+- 브레이킹 체인지가 있으면 마지막 줄에 `BREAKING CHANGE: <내용>` 을, 관련 이슈가 있으면 `Refs: <번호 또는 URL>` 을 붙인다.
+- 변경이 너무 작거나 뜻이 불분명하면 그대로 커밋하지 말고 더 알맞은 커밋 단위를 제안한다.
+
+```text
+feat: 안테나 로그 API에 createdFrom, createdTo 필터 추가
+
+- API 계층 및 Repository 쿼리에 날짜 필터 로직 추가
+- Service/Controller에 createdFrom, createdTo 파라미터 반영
+- OpenAPI 스펙에 신규 쿼리 파라미터 문서화
+- JPA 쿼리 predicate로 날짜 조건 처리 보완
+```
+
