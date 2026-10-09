@@ -87,7 +87,7 @@ src/
 
 ## 요청 처리 흐름
 
-모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth`, `club`, `session` 입니다.
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth`, `club`, `session`, `attendance` 입니다. `member` 는 아직 Member 목록을 읽는 부분만 있습니다.
 
 ```mermaid
 flowchart TD
