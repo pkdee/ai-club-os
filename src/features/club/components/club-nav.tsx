@@ -2,7 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, LayoutDashboard, type LucideIcon } from "lucide-react"
+import {
+  Calendar,
+  FileText,
+  LayoutDashboard,
+  type LucideIcon,
+} from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -22,6 +27,7 @@ function navItems(clubId: string): NavItem[] {
   return [
     { href: base, label: "개요", icon: LayoutDashboard, exact: true },
     { href: `${base}/sessions`, label: "Session", icon: Calendar },
+    { href: `${base}/logs`, label: "AI Log", icon: FileText },
   ]
 }
 

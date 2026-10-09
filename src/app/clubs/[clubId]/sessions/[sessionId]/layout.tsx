@@ -1,3 +1,5 @@
+import { WriteLogLink } from "@/features/ai-log/components/write-log-link";
+import { listSessionLogs } from "@/features/ai-log/queries";
 import { getCurrentUser } from "@/features/auth/session";
 import { getClubAccess } from "@/features/club/queries";
 import {
@@ -27,17 +29,21 @@ export default async function SessionLayout(
     return <SessionUnavailable clubId={clubId} reason={result.status} />;
   }
 
+  const logs = await listSessionLogs(clubId, sessionId);
+
   return (
     <>
       <SessionHeader
         clubName={access.club.name}
         session={result.session}
         canManage={access.club.role === "admin"}
+        actions={<WriteLogLink clubId={clubId} sessionId={sessionId} />}
         now={new Date()}
       />
       <SessionTabs
         baseHref={`/clubs/${clubId}/sessions/${sessionId}`}
         memberCount={access.club.memberCount}
+        logCount={logs.status === "ok" ? logs.total : null}
       />
       {props.children}
     </>

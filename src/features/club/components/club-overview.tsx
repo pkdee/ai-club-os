@@ -1,7 +1,3 @@
-import { Info } from "lucide-react"
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-
 import type { MyClub } from "../queries"
 
 function Stat({
@@ -22,24 +18,31 @@ function Stat({
   )
 }
 
-// sessions 가 null 이면 Session 수를 불러오지 못한 것이다.
-// children 에는 다른 기능이 개요에 올리는 영역을 넣는다.
+// sessions 나 logCount 가 null 이면 그 수를 불러오지 못한 것이다.
+// actions 와 children 에는 다른 기능이 개요에 올리는 버튼과 영역을 넣는다.
 export function ClubOverview({
   club,
   sessions,
+  logCount,
+  actions,
   children,
 }: {
   club: MyClub
   sessions: { done: number; upcoming: number } | null
+  logCount: number | null
+  actions?: React.ReactNode
   children?: React.ReactNode
 }) {
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1">{club.name}</h1>
-        {club.description && (
-          <p className="text-muted-foreground">{club.description}</p>
-        )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="text-h1">{club.name}</h1>
+          {club.description && (
+            <p className="text-muted-foreground">{club.description}</p>
+          )}
+        </div>
+        {actions}
       </div>
       <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
@@ -54,16 +57,11 @@ export function ClubOverview({
             caption={`예정 ${sessions.upcoming}회`}
           />
         )}
+        {logCount !== null && (
+          <Stat label="AI Log" value={`${logCount}개`} caption="Club 전체 기록" />
+        )}
       </dl>
       {children}
-      <Alert tone="info">
-        <Info aria-hidden="true" strokeWidth={1.5} />
-        <AlertTitle>AI Log 는 준비 중입니다</AlertTitle>
-        <AlertDescription>
-          기록을 남기는 기능은 다음 단계에서 추가합니다. 추가되면 이 화면에서
-          최근 AI Log 를 볼 수 있습니다.
-        </AlertDescription>
-      </Alert>
     </>
   )
 }

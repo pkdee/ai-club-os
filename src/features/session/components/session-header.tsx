@@ -68,15 +68,18 @@ export function SessionUnavailable({
 }
 
 // Session 상세의 모든 탭 위에 놓이는 제목 영역.
+// actions 에는 다른 기능이 이 회차에 올리는 버튼을 넣는다.
 export function SessionHeader({
   clubName,
   session,
   canManage,
+  actions,
   now,
 }: {
   clubName: string
   session: Session
   canManage: boolean
+  actions?: React.ReactNode
   now: Date
 }) {
   const clubHref = `/clubs/${session.clubId}`
@@ -90,7 +93,7 @@ export function SessionHeader({
           { label: session.title },
         ]}
       />
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-h1">{session.title}</h1>
@@ -125,18 +128,23 @@ export function SessionHeader({
             )}
           </ul>
         </div>
-        {canManage && (
-          <SessionFormDialog
-            target={{ clubId: session.clubId, sessionId: session.id }}
-            defaults={{
-              title: session.title,
-              date: kstDateKey(session.startsAt),
-              startTime: kstTime(session.startsAt),
-              endTime: kstTime(session.endsAt),
-              location: session.location,
-              description: session.description,
-            }}
-          />
+        {(canManage || actions) && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {canManage && (
+              <SessionFormDialog
+                target={{ clubId: session.clubId, sessionId: session.id }}
+                defaults={{
+                  title: session.title,
+                  date: kstDateKey(session.startsAt),
+                  startTime: kstTime(session.startsAt),
+                  endTime: kstTime(session.endsAt),
+                  location: session.location,
+                  description: session.description,
+                }}
+              />
+            )}
+            {actions}
+          </div>
         )}
       </div>
     </div>
