@@ -29,12 +29,43 @@ AI는 사용자의 기록을 대신 소유하지 않습니다. 요약, 연결, �
 - 로그인
 - 내 Club
 - Club 개요
-- Member
 - Session
-- Attendance
+  - Session 상세: 개요, Attendance, AI Log
 - AI Log
+- Member
+- Club 설정
 
-첫 화면 설계는 구현 마일스톤에서 사용자 역할과 주된 사용 기기를 확인한 뒤 구체화합니다.
+Attendance 는 따로 메뉴를 두지 않고 Session 상세의 탭으로 둡니다. 한 회차의 맥락 안에서 참여하고 기록한다는 원칙을 따른 것입니다.
+
+## 화면 설계
+
+v0.1 화면 설계는 Figma 파일에서 관리합니다. 제품 이름은 화면에서도 AI Club OS 로 씁니다.
+
+- 파일: https://www.figma.com/design/pSj712D4ia1bJZ1FytvzQ8/AI-DO
+- 기준일: 2026-10-08
+
+| 페이지 | 내용 |
+|---|---|
+| Foundations | 색, 글자, 간격, 모서리, 그림자 토큰과 견본 |
+| Components | Icon, Action, Form, Display, Navigation, Domain 여섯 묶음의 컴포넌트 |
+| Screens | 안내, Auth, Club, Member, Session, AI Log, 기본 상태, 작은 화면, Dark 모드 예시 |
+
+화면은 모두 컴포넌트 인스턴스로 조립합니다. 화면에 쓴 역할, Attendance 상태, AI Log 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정을 따릅니다.
+
+### 디자인 토큰
+
+- 색은 원시 색과 의미 색 두 층으로 나눕니다. 원시 색은 Tailwind 팔레트의 zinc, indigo, emerald, amber, red, sky 이고, 화면과 컴포넌트는 의미 색만 씁니다.
+- 의미 색은 Light 와 Dark 두 모드를 가집니다. 변수의 코드 이름은 가능한 곳에서 shadcn/ui 의 CSS 변수 이름에 맞췄습니다.
+- 대표 색은 indigo 입니다.
+- 글꼴은 Noto Sans KR 입니다. 본문은 14px, 줄 높이 22px 입니다.
+- 간격은 4px 단위이고, 모서리는 6, 8, 10, 14, 20px 단계입니다.
+
+### 화면 규칙
+
+- 한 화면에 Primary 버튼은 하나만 둡니다.
+- 상태는 색, 아이콘, 글자를 함께 써서 나타냅니다. Attendance 상태와 알림이 이 규칙을 따릅니다.
+- 기본 상태는 AI Log 화면을 기준으로 그렸습니다. 권한이 없는 상태는 역할이 모자란 경우와 Club 소속이 아닌 경우를 나눕니다.
+- 작은 화면은 390px 폭 기준이며 Club 개요, Attendance 기록, AI Log 쓰기를 그렸습니다.
 
 ## 기본 상태
 

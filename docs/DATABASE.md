@@ -37,6 +37,8 @@ User
 
 ## 이후 결정 사항
 
+역할, Attendance 상태 값, AI Log 입력 구조는 `docs/REQUIREMENTS.md` 의 잠정 결정을 출발점으로 삼습니다.
+
 - 식별자 형식
 - 역할과 권한 모델
 - Attendance 상태 값
