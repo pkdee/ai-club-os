@@ -49,6 +49,7 @@ User
 | `members` 의 사진 주소 열, 사진 맞추기 함수 | `20261010070509_add_member_avatar.sql` | `docs/adr/0008-member-avatar-from-google.md` |
 | 역할 바꾸기, 내보내기와 나가기, Club 정보 수정 규칙 | `20261010071641_manage_members_and_club.sql` | `docs/adr/0009-member-management-and-last-admin.md` |
 | AI Log 검색과 도구 목록 함수 | `20261010075452_add_ai_log_search.sql` | `docs/adr/0011-ai-log-search-functions.md` |
+| 검색과 도구 이름을 느슨하게 맞추도록 두 함수 교체 | `20261010080736_loosen_ai_log_search.sql` | `docs/adr/0012-loose-matching-for-search-and-tools.md` |
 
 ```mermaid
 erDiagram
@@ -215,8 +216,10 @@ erDiagram
 
 | 함수 | 하는 일 |
 |---|---|
-| `public.search_ai_logs(target_club_id, search)` | 제목, 내용, 도구 이름에 찾는 글자가 들어 있는 기록을 `ai_logs` 와 같은 모양으로 돌려준다. 대소문자를 가리지 않는다 |
-| `public.club_tool_counts(target_club_id)` | 그 Club 의 기록에 쓰인 도구 이름과 기록 수를 많이 쓰인 순서로 돌려준다 |
+| `public.search_ai_logs(target_club_id, search, tool_name)` | 찾는 글자의 낱말이 제목, 내용, 도구 이름에 모두 들어 있는 기록을 `ai_logs` 와 같은 모양으로 돌려준다. `tool_name` 을 주면 그 도구를 쓴 기록만 돌려준다 |
+| `public.club_tool_counts(target_club_id)` | 그 Club 의 기록에 쓰인 도구 이름과 쓴 횟수를 많이 쓰인 순서로 돌려준다. 표기만 다른 이름은 하나로 합친다 |
+
+글자를 비교할 때는 `private.search_key` 가 만든 값을 씁니다. 대소문자를 없애고 공백을 모두 뺀 값이라서 "청크 크기" 와 "청크크기", "ChatGPT" 와 "chatgpt" 가 같은 것으로 잡힙니다.
 
 ### club_invites
 
@@ -283,7 +286,7 @@ Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠�
 - 운영자가 없어진 Club 을 되살리는 방법
 - Member 가 자기 이름을 고치는 방법
 - AI Log 삭제 규칙
-- 도구 이름의 표기를 맞추는 방법
+- 이미 저장된 기록의 도구 표기를 한꺼번에 고치는 방법
 - 수정 기록과 보존 기간
 - 파일 첨부 범위
 - 나머지 테이블의 행 단위 보안 정책
