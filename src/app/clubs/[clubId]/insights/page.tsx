@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { InsightListScreen } from "@/features/ai-insight/components/insight-list-screen";
-import { listClubInsights } from "@/features/ai-insight/queries";
+import {
+  listClubInsights,
+  listLogMonths,
+} from "@/features/ai-insight/queries";
 import { loadClubPage } from "@/features/club/page-data";
 
 export const metadata: Metadata = {
@@ -18,12 +21,21 @@ export default async function InsightListPage(
     return null;
   }
 
+  const canManage = data.club.role === "admin";
+  const now = new Date();
+  // 달을 고르는 줄은 운영자에게만 보이므로 운영자일 때만 읽는다.
+  const [result, months] = await Promise.all([
+    listClubInsights(clubId),
+    canManage ? listLogMonths(clubId, now) : [],
+  ]);
+
   return (
     <InsightListScreen
       clubId={clubId}
-      canManage={data.club.role === "admin"}
-      result={await listClubInsights(clubId)}
-      now={new Date()}
+      canManage={canManage}
+      result={result}
+      months={months}
+      now={now}
     />
   );
 }

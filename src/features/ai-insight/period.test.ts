@@ -4,9 +4,9 @@ import { test } from "node:test"
 import {
   isMonthKey,
   monthKeyOf,
+  monthKeysBetween,
   monthLabel,
   monthRange,
-  recentMonthKeys,
 } from "./period"
 
 test("달을 가리키는 값의 모양을 확인한다", () => {
@@ -44,8 +44,15 @@ test("달의 이름을 만든다", () => {
   assert.equal(monthLabel("2026-03"), "2026년 3월")
 })
 
-test("이번 달부터 거슬러 올라가며 달을 센다", () => {
-  assert.deepEqual(recentMonthKeys(new Date("2026-02-10T03:00:00.000Z"), 4), ["2026-02", "2026-01", "2025-12", "2025-11"])
-  // 한국 시간으로는 이미 3월이다.
-  assert.deepEqual(recentMonthKeys(new Date("2026-02-28T16:00:00.000Z"), 2), ["2026-03", "2026-02"])
+test("두 달 사이의 달을 최근 달부터 돌려준다", () => {
+  assert.deepEqual(monthKeysBetween("2025-11", "2026-02", 24), ["2026-02", "2026-01", "2025-12", "2025-11"])
+  assert.deepEqual(monthKeysBetween("2026-10", "2026-10", 24), ["2026-10"])
+})
+
+test("정해진 수를 넘으면 오래된 달을 뺀다", () => {
+  assert.deepEqual(monthKeysBetween("2020-01", "2026-03", 3), ["2026-03", "2026-02", "2026-01"])
+})
+
+test("시작이 끝보다 뒤면 달이 없다", () => {
+  assert.deepEqual(monthKeysBetween("2026-11", "2026-10", 24), [])
 })

@@ -21,11 +21,8 @@ import {
 } from "@/components/ui/empty"
 import { formatLogDate } from "@/features/ai-log/format"
 
-import { monthKeyOf, monthLabel, recentMonthKeys } from "../period"
-import type { Insight, InsightListResult } from "../queries"
-
-// 운영자에게 고르라고 보여 주는 최근 달의 수.
-const MONTH_CHOICES = 6
+import { monthKeyOf, monthLabel } from "../period"
+import type { Insight, InsightListResult, LogMonth } from "../queries"
 
 function insightHref(clubId: string, insight: Insight) {
   return insight.session
@@ -82,16 +79,18 @@ function InsightCard({
 }
 
 // Club 의 AI Insight 를 모아 보는 화면. 구성원에게는 공개된 것만, 운영자에게는 초안까지 보인다.
-// 운영자에게는 한 달 정리를 만들 달을 고르는 줄이 함께 보인다.
+// 운영자에게는 한 달 정리를 만들 달을 고르는 줄이 함께 보인다. months 는 AI Log 가 실제로 있는 달이고, null 이면 불러오지 못한 것이다.
 export function InsightListScreen({
   clubId,
   canManage,
   result,
+  months,
   now,
 }: {
   clubId: string
   canManage: boolean
   result: InsightListResult
+  months: LogMonth[] | null
   now: Date
 }) {
   const base = `/clubs/${clubId}/insights`
@@ -150,35 +149,47 @@ export function InsightListScreen({
               <div className="flex flex-col gap-1">
                 <h2 className="text-h4">한 달 정리</h2>
                 <p className="text-body-s text-muted-foreground">
-                  달을 고르면 그 달에 남긴 Club 의 AI Log 를 한꺼번에 정리할 수
-                  있습니다. 한 회차의 정리는 Session 의 AI Insight 탭에서
-                  만듭니다.
+                  AI Log 가 있는 달을 고르면 그 달에 남긴 Club 의 기록을
+                  한꺼번에 정리할 수 있습니다. 한 회차의 정리는 Session 의 AI
+                  Insight 탭에서 만듭니다.
                 </p>
               </div>
-              <ul className="flex flex-wrap gap-2">
-                {recentMonthKeys(now, MONTH_CHOICES).map((month) => {
-                  const status = periodStatus.get(month)
+              {months === null ? (
+                <p className="text-body-s text-muted-foreground">
+                  AI Log 가 있는 달을 불러오지 못했습니다. 잠시 뒤 다시 열어
+                  주세요.
+                </p>
+              ) : months.length === 0 ? (
+                <p className="text-body-s text-muted-foreground">
+                  아직 AI Log 가 없습니다. 기록이 쌓이면 여기에서 달을 골라
+                  정리할 수 있습니다.
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {months.map(({ month, logCount }) => {
+                    const status = periodStatus.get(month)
 
-                  return (
-                    <li key={month}>
-                      <Link
-                        href={`${base}/${month}`}
-                        className={buttonVariants({
-                          variant: "outline",
-                          size: "sm",
-                        })}
-                      >
-                        {monthLabel(month)}
-                        {status && (
+                    return (
+                      <li key={month}>
+                        <Link
+                          href={`${base}/${month}`}
+                          className={buttonVariants({
+                            variant: "outline",
+                            size: "sm",
+                          })}
+                        >
+                          {monthLabel(month)}
                           <span className="text-caption text-muted-foreground">
-                            {status === "published" ? "공개됨" : "초안"}
+                            AI Log {logCount}개
+                            {status &&
+                              ` · ${status === "published" ? "공개됨" : "초안"}`}
                           </span>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </section>
           )}
           {insights.length > 0 ? (

@@ -3,6 +3,7 @@ import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 
 import { parseInsightContent, type InsightContent } from "./content"
+import { monthKeyOf, monthKeysBetween, monthRange } from "./period"
 import type { InsightSourceLog } from "./prompt"
 
 export type InsightStatus = "draft" | "published"
@@ -60,6 +61,11 @@ const INSIGHT_COLUMNS =
 // 한 번에 읽는 AI Insight 수와 AI 에 보낼 기록 수의 한도.
 const INSIGHT_LIST_LIMIT = 100
 const SOURCE_LOG_LIMIT = 500
+// 한 달 정리에서 거슬러 올라가 보여 주는 달의 수.
+const LOG_MONTH_LIMIT = 24
+
+// AI Log 가 있는 달과 그 달의 기록 수.
+export type LogMonth = { month: string; logCount: number }
 
 // 테이블이 아직 없을 때 돌아오는 오류. 데이터베이스가 내는 것과 API 가 내는 것 두 가지다.
 function isMissingTable(error: { code?: string }) {
@@ -234,6 +240,49 @@ export async function countPeriodLogs(
     return null
   }
   return count
+}
+
+// AI Log 가 하나라도 있는 달을 최근 달부터 돌려준다. 한 달 정리에서 고를 달이 된다. 불러오지 못하면 null 이다.
+// 가장 오래된 기록이 든 달부터 이번 달까지를 달마다 세고, 기록이 없는 달은 뺀다. 달은 한국 시간으로 나눈다.
+export async function listLogMonths(
+  clubId: string,
+  now: Date
+): Promise<LogMonth[] | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("ai_logs")
+    .select("created_at")
+    .eq("club_id", clubId)
+    .order("created_at", { ascending: true })
+    .range(0, 0)
+
+  if (error) {
+    console.error("가장 오래된 AI Log 를 불러오지 못했습니다.", error)
+    return null
+  }
+  const first = (data as { created_at: string }[])[0]
+  if (!first) {
+    return []
+  }
+
+  const months = monthKeysBetween(
+    monthKeyOf(first.created_at),
+    monthKeyOf(now),
+    LOG_MONTH_LIMIT
+  )
+  const counts = await Promise.all(
+    months.map((month) => {
+      const { start, end } = monthRange(month)
+      return countPeriodLogs(clubId, start, end)
+    })
+  )
+  if (counts.some((count) => count === null)) {
+    return null
+  }
+
+  return months
+    .map((month, index) => ({ month, logCount: counts[index] ?? 0 }))
+    .filter((item) => item.logCount > 0)
 }
 
 // 근거로 달린 기록의 제목을 식별자로 묶어 읽는다. 지워진 기록은 들어 있지 않다.

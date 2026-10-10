@@ -37,15 +37,19 @@ export function monthLabel(key: string) {
   return `${Number(key.slice(0, 4))}년 ${Number(key.slice(5))}월`
 }
 
-// 이번 달부터 거슬러 올라가며 count 개의 달을 돌려준다.
-export function recentMonthKeys(now: Date, count: number) {
-  const current = monthKeyOf(now)
-  let year = Number(current.slice(0, 4))
-  let month = Number(current.slice(5))
+// last 달부터 first 달까지 거슬러 올라가며 달을 돌려준다. 최근 달이 앞에 오고, limit 개를 넘으면 오래된 달을 뺀다.
+// first 가 last 보다 뒤면 빈 목록이다.
+export function monthKeysBetween(first: string, last: string, limit: number) {
+  let year = Number(last.slice(0, 4))
+  let month = Number(last.slice(5))
   const keys: string[] = []
 
-  for (let index = 0; index < count; index += 1) {
-    keys.push(`${year}-${String(month).padStart(2, "0")}`)
+  while (keys.length < limit) {
+    const key = `${year}-${String(month).padStart(2, "0")}`
+    if (key < first) {
+      break
+    }
+    keys.push(key)
     month -= 1
     if (month === 0) {
       month = 12
