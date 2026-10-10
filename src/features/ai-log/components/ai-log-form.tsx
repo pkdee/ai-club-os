@@ -1,8 +1,17 @@
 "use client"
 
-import { useActionState, useState } from "react"
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react"
 import Link from "next/link"
-import { Calendar, Check, CircleAlert } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calendar, Check, CircleAlert, History } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
@@ -22,9 +31,17 @@ import {
   type AiLogFormState,
   type AiLogTarget,
 } from "../actions"
+import { hasDraftContent } from "../draft"
+import {
+  forgetOpenedDraft,
+  openedDraft,
+  removeDraft,
+  writeDraft,
+} from "../draft-storage"
 import {
   AI_LOG_TEXT_MAX,
   AI_LOG_TITLE_MAX,
+  readAiLogForm,
   type AiLogInput,
 } from "../rules"
 import { ToolsInput } from "./tools-input"
@@ -39,10 +56,14 @@ export type SessionOption = {
 
 const initialState: AiLogFormState = { status: "idle" }
 
+// 적기를 멈추고 이만큼 지나면 쓰다 만 내용을 브라우저에 맡겨 둔다.
+const DRAFT_DELAY_MS = 500
+
 const GUIDE = [
   "완성된 글이 아니어도 됩니다.",
   "잘 안 된 시도도 좋은 기록입니다.",
   "필수 항목은 제목과 시도한 내용입니다.",
+  "쓰는 동안 이 브라우저에 임시로 저장됩니다.",
   "저장한 뒤에도 고칠 수 있습니다.",
 ]
 
@@ -75,6 +96,7 @@ const TEXT_FIELDS = [
 
 // logId 가 있으면 고치는 화면, 없으면 새로 쓰는 화면이다.
 // sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
+// draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
 export function AiLogForm({
   target,
   clubName,
@@ -82,6 +104,7 @@ export function AiLogForm({
   sessions,
   knownTools,
   cancelHref,
+  draftKey,
 }: {
   target: AiLogTarget
   clubName: string
@@ -89,34 +112,158 @@ export function AiLogForm({
   sessions: SessionOption[] | null
   knownTools: string[]
   cancelHref: string
+  draftKey: string
 }) {
   const editing = Boolean(target.logId)
+  const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 저장에 성공한 뒤에는 더 맡겨 두지 않는다.
+  const savedRef = useRef(false)
+
   const [state, formAction, pending] = useActionState(
-    (previous: AiLogFormState, formData: FormData) =>
-      saveAiLog(target, previous, formData),
+    async (previous: AiLogFormState, formData: FormData) => {
+      const result = await saveAiLog(target, previous, formData)
+      if (result.status === "success" && result.logId) {
+        // 저장이 끝난 뒤에야 맡겨 둔 것을 지운다. 저장하지 못했거나 로그인이 풀렸을 때는 내용이 남는다.
+        savedRef.current = true
+        if (timerRef.current) {
+          clearTimeout(timerRef.current)
+        }
+        removeDraft(draftKey)
+        router.push(`/clubs/${target.clubId}/logs/${result.logId}`)
+      }
+      return result
+    },
     initialState
   )
-  // 고른 Session 에 따라 옆의 안내가 바뀌므로 이 값은 직접 들고 있는다.
-  const [sessionId, setSessionId] = useState(defaults.sessionId)
+  // 상세 화면으로 넘어갈 때까지 버튼을 잠가 둔다.
+  const saving = pending || state.status === "success"
+
+  // 화면을 열었을 때 맡겨져 있던 내용. 서버에서 그릴 때와 처음 그릴 때는 없는 것으로 본다.
+  const subscribe = useCallback(
+    () => () => forgetOpenedDraft(draftKey),
+    [draftKey]
+  )
+  const opened = useSyncExternalStore(
+    subscribe,
+    () => openedDraft(draftKey),
+    () => null
+  )
+  const [discarded, setDiscarded] = useState(false)
+  const restored =
+    opened && !discarded && hasDraftContent(opened.values, defaults)
+      ? opened
+      : null
+  // 맡겨 둔 Session 이 그사이 없어졌으면 처음 값으로 둔다.
+  const base: AiLogInput = restored
+    ? {
+        ...restored.values,
+        sessionId:
+          restored.values.sessionId === "" ||
+          sessions?.some((session) => session.id === restored.values.sessionId)
+            ? restored.values.sessionId
+            : defaults.sessionId,
+      }
+    : defaults
+
+  // 고른 Session 에 따라 옆의 안내가 바뀌므로 이 값은 직접 들고 있는다. 고르기 전에는 처음 값을 따른다.
+  const [pickedSession, setPickedSession] = useState<string | null>(null)
+  const sessionId = pickedSession ?? base.sessionId
   const errors = state.errors ?? {}
-  const values = state.values ?? defaults
+  const values = state.values ?? base
   const selected = sessions?.find((session) => session.id === sessionId) ?? null
   const clubHref = `/clubs/${target.clubId}`
   const invalid = (name: keyof AiLogInput) => (errors[name] ? true : undefined)
+
+  // 지금 폼에 적힌 것을 브라우저에 맡겨 둔다. 처음 값과 같아졌으면 맡겨 둔 것을 지운다.
+  const persistDraft = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    const form = formRef.current
+    if (!form || savedRef.current) {
+      return
+    }
+
+    const current = readAiLogForm(new FormData(form))
+    if (hasDraftContent(current, defaults)) {
+      writeDraft(draftKey, current)
+    } else {
+      removeDraft(draftKey)
+    }
+  }, [defaults, draftKey])
+
+  // 적는 동안에는 잠시 멈췄을 때 한 번만 맡긴다.
+  function scheduleDraft() {
+    if (savedRef.current) {
+      return
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    timerRef.current = setTimeout(persistDraft, DRAFT_DELAY_MS)
+  }
+
+  function flushDraft() {
+    if (timerRef.current) {
+      persistDraft()
+    }
+  }
+
+  // 탭을 닫거나 다른 곳으로 떠날 때 아직 맡기지 않은 것이 있으면 바로 맡긴다.
+  useEffect(() => {
+    function flush() {
+      if (timerRef.current) {
+        persistDraft()
+      }
+    }
+    window.addEventListener("pagehide", flush)
+    return () => window.removeEventListener("pagehide", flush)
+  }, [persistDraft])
+  // 이 화면이 사라질 때도 같다. 폼이 아직 남아 있을 때 읽어야 해서 그리기 전 단계에서 처리한다.
+  useLayoutEffect(
+    () => () => {
+      if (timerRef.current) {
+        persistDraft()
+      }
+    },
+    [persistDraft]
+  )
+
+  function discardDraft() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    removeDraft(draftKey)
+    setDiscarded(true)
+    setPickedSession(null)
+  }
 
   const actions = (
     <>
       <Link href={cancelHref} className={buttonVariants({ variant: "outline" })}>
         취소
       </Link>
-      <Button type="submit" disabled={pending} className="flex-1 sm:flex-none">
-        {pending ? "저장하는 중" : "저장"}
+      <Button type="submit" disabled={saving} className="flex-1 sm:flex-none">
+        {saving ? "저장하는 중" : "저장"}
       </Button>
     </>
   )
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form
+      ref={formRef}
+      action={formAction}
+      // 글자를 적거나 도구를 넣고 뺄 때마다 잠시 뒤에 맡기고, 칸을 떠날 때는 바로 맡긴다.
+      onInput={scheduleDraft}
+      onClick={scheduleDraft}
+      onKeyUp={scheduleDraft}
+      onBlur={flushDraft}
+      className="flex flex-col gap-6"
+    >
       <div className="flex flex-col gap-3">
         <Breadcrumb
           items={[
@@ -130,6 +277,24 @@ export function AiLogForm({
           <div className="hidden items-center gap-2 sm:flex">{actions}</div>
         </div>
       </div>
+      {restored && state.status === "idle" && (
+        <Alert tone="info">
+          <History aria-hidden="true" strokeWidth={1.5} />
+          <AlertTitle>쓰다 만 내용을 불러왔습니다</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-2">
+            {restored.savedLabel} 에 이 브라우저에 임시로 저장된 내용입니다.
+            저장하면 임시 저장은 지워집니다.
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={discardDraft}
+            >
+              {editing ? "저장된 기록으로 되돌리기" : "지우고 새로 쓰기"}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       {state.message ? (
         <Alert tone="danger">
           <CircleAlert aria-hidden="true" strokeWidth={1.5} />
@@ -150,14 +315,18 @@ export function AiLogForm({
       )}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
+          <div
+            // 맡겨 둔 내용을 불러오거나 지우면 칸을 새로 만들어 그 값으로 채운다.
+            key={restored ? "restored" : "initial"}
+            className="flex flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6"
+          >
             <Field>
               <FieldLabel htmlFor="log-session">Session</FieldLabel>
               <NativeSelect
                 id="log-session"
                 name="sessionId"
                 value={sessionId}
-                onChange={(event) => setSessionId(event.target.value)}
+                onChange={(event) => setPickedSession(event.target.value)}
                 aria-invalid={invalid("sessionId")}
                 aria-describedby="log-session-help"
               >
@@ -200,7 +369,7 @@ export function AiLogForm({
               <ToolsInput
                 id="log-tools"
                 name="tools"
-                defaultValue={defaults.tools}
+                defaultValue={base.tools}
                 clubTools={knownTools}
                 invalid={invalid("tools")}
                 describedBy="log-tools-help"

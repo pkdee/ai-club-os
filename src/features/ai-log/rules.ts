@@ -66,6 +66,26 @@ export function canonicalTools(entered: string[], clubTools: string[]) {
   )
 }
 
+// 브라우저가 줄바꿈을 두 글자로 보내는 경우가 있어 한 글자로 맞춘다. 글자 수 제한이 어긋나지 않게 하려는 것이다.
+function formText(formData: FormData, name: string) {
+  return String(formData.get(name) ?? "")
+    .replace(/\r\n?/g, "\n")
+    .trim()
+}
+
+// 폼에 적힌 값을 입력으로 읽는다. 저장할 때와 쓰다 만 내용을 맡겨 둘 때 같은 방식으로 읽는다.
+export function readAiLogForm(formData: FormData): AiLogInput {
+  return {
+    sessionId: formText(formData, "sessionId"),
+    title: formText(formData, "title"),
+    tools: normalizeTools(formData.getAll("tools").map(String)),
+    attempt: formText(formData, "attempt"),
+    result: formText(formData, "result"),
+    learned: formText(formData, "learned"),
+    nextAction: formText(formData, "nextAction"),
+  }
+}
+
 export function validateAiLog(input: AiLogInput): AiLogValidation {
   const errors: AiLogInputErrors = {}
 

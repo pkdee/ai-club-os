@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
+import { draftKey } from "@/features/ai-log/draft";
 import {
   defaultSessionId,
   toSessionOptions,
@@ -54,6 +55,7 @@ export default async function AiLogNewPage(
           ? `/clubs/${clubId}/sessions/${sessionId}/logs`
           : `/clubs/${clubId}/logs`
       }
+      draftKey={draftKey(data.user.id, clubId)}
     />
   );
 }

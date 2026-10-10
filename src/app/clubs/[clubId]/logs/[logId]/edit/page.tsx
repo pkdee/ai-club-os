@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AiLogUnavailable } from "@/features/ai-log/components/ai-log-detail";
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
+import { draftKey } from "@/features/ai-log/draft";
 import { getAiLog, listClubTools } from "@/features/ai-log/queries";
 import { toSessionOptions } from "@/features/ai-log/session-options";
 import { loadClubPage } from "@/features/club/page-data";
@@ -55,6 +56,7 @@ export default async function AiLogEditPage(
       }
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}
+      draftKey={draftKey(data.user.id, clubId, log.id)}
     />
   );
 }

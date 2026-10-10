@@ -10,17 +10,19 @@ import { isUuid } from "@/lib/uuid"
 import { listClubTools } from "./queries"
 import {
   canonicalTools,
-  normalizeTools,
+  readAiLogForm,
   validateAiLog,
   type AiLogInput,
   type AiLogInputErrors,
 } from "./rules"
 
 export type AiLogFormState = {
-  status: "idle" | "error"
+  status: "idle" | "error" | "success"
   message?: string
   errors?: AiLogInputErrors
   values?: AiLogInput
+  // 저장에 성공했을 때 그 기록의 식별자.
+  logId?: string
 }
 
 export type AiLogTarget = {
@@ -38,14 +40,7 @@ const AUTHOR_ONLY_MESSAGE =
 const SESSION_GONE_MESSAGE =
   "고른 Session 을 찾을 수 없습니다. Session 을 다시 고른 뒤 저장해 주세요."
 
-// 브라우저가 줄바꿈을 두 글자로 보내는 경우가 있어 한 글자로 맞춘다. 글자 수 제한이 어긋나지 않게 하려는 것이다.
-function text(formData: FormData, name: string) {
-  return String(formData.get(name) ?? "")
-    .replace(/\r\n?/g, "\n")
-    .trim()
-}
-
-// 저장에 성공하면 그 기록의 상세로 이동한다.
+// 저장에 성공하면 그 기록의 식별자를 돌려준다. 화면이 쓰다 만 내용을 지운 뒤 상세로 이동한다.
 // 누가 할 수 있는지는 데이터베이스의 접근 규칙이 판단한다.
 export async function saveAiLog(
   target: AiLogTarget,
@@ -57,15 +52,7 @@ export async function saveAiLog(
     redirect("/login")
   }
 
-  const values: AiLogInput = {
-    sessionId: text(formData, "sessionId"),
-    title: text(formData, "title"),
-    tools: normalizeTools(formData.getAll("tools").map(String)),
-    attempt: text(formData, "attempt"),
-    result: text(formData, "result"),
-    learned: text(formData, "learned"),
-    nextAction: text(formData, "nextAction"),
-  }
+  const values = readAiLogForm(formData)
 
   const validation = validateAiLog(values)
   if (!validation.ok) {
@@ -142,5 +129,6 @@ export async function saveAiLog(
 
   // Club 개요, Session 상세, AI Log 화면이 모두 기록을 보여 주므로 Club 아래를 통째로 새로 읽는다.
   revalidatePath(`/clubs/${target.clubId}`, "layout")
-  redirect(`/clubs/${target.clubId}/logs/${logId}`)
+  // 이동하기 전에 폼이 처음 값으로 돌아가 보이지 않도록 적은 값을 함께 돌려준다.
+  return { status: "success", logId, values }
 }
