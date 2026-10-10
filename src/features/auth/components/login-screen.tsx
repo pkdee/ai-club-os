@@ -1,4 +1,4 @@
-import { ArrowRight, CircleAlert } from "lucide-react"
+import { ArrowRight, CircleAlert, MailOpen } from "lucide-react"
 
 import { Logo } from "@/components/logo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -64,8 +64,16 @@ function BrandPanel() {
   )
 }
 
-export function LoginScreen({ error }: { error: LoginError | null }) {
+// returnPath 는 로그인한 뒤 돌아갈 경로다. 없으면 처음 화면으로 간다.
+export function LoginScreen({
+  error,
+  returnPath,
+}: {
+  error: LoginError | null
+  returnPath: string | null
+}) {
   const message = error ? loginErrorMessage(error) : null
+  const invited = returnPath?.startsWith("/join/") ?? false
 
   return (
     <div className="flex min-h-dvh flex-1">
@@ -86,7 +94,17 @@ export function LoginScreen({ error }: { error: LoginError | null }) {
               <AlertDescription>{message.description}</AlertDescription>
             </Alert>
           )}
+          {invited && !message && (
+            <Alert tone="info">
+              <MailOpen aria-hidden="true" strokeWidth={1.5} />
+              <AlertTitle>Club 초대를 받았습니다</AlertTitle>
+              <AlertDescription>
+                로그인하면 초대받은 Club 을 확인하고 참여할 수 있습니다.
+              </AlertDescription>
+            </Alert>
+          )}
           <form action={signInWithGoogle}>
+            {returnPath && <input type="hidden" name="next" value={returnPath} />}
             <GoogleButton />
           </form>
           <p className="text-caption text-tertiary">
