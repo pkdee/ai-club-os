@@ -11,6 +11,7 @@ const project = {
   clubName: "AI 모각코",
   showNames: false,
   publishedAt: "2026-10-11T03:00:00+00:00",
+  intro: "한 학기 동안 만든 것입니다.",
   project: { name: "RAG 챗봇", goal: "자료를 찾아 준다", status: "active", createdAt: "2026-10-01T00:00:00+00:00" },
   participantCount: 3,
   participantNames: null,
@@ -54,6 +55,16 @@ test("발표로 볼 수 없는 값은 받지 않는다", () => {
   assert.equal(parsePresentation({ ...project, scope: "slides" }), null)
   assert.equal(parsePresentation({ ...project, clubName: "" }), null)
   assert.equal(parsePresentation({ ...project, project: { name: "" } }), null)
+})
+
+test("소개 글이 없거나 글자가 아니면 빈 글자로 읽는다", () => {
+  // 소개 글 열이 생기기 전의 데이터베이스는 이 값을 돌려주지 않는다.
+  const withoutIntro: Record<string, unknown> = { ...project }
+  delete withoutIntro.intro
+  assert.equal(parsePresentation(withoutIntro)?.intro, "")
+  assert.equal(parsePresentation({ ...project, intro: 3 })?.intro, "")
+  assert.equal(parsePresentation({ ...project, intro: null })?.intro, "")
+  assert.equal(parsePresentation({ ...project, intro: "  \n 줄을 바꿔\n적었다 \n" })?.intro, "줄을 바꿔\n적었다")
 })
 
 test("누르면 실행되는 주소의 링크는 뺀다", () => {

@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/features/auth/session"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
+import { PRESENTATION_INTRO_MAX } from "./content"
 import { isPresentationToken, presentationPath } from "./token"
 
 export type PresentationActionResult =
@@ -27,6 +28,9 @@ const NOT_ALLOWED_MESSAGE = {
 }
 const NOT_READY_MESSAGE =
   "데이터베이스에 발표의 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const INTRO_TOO_LONG_MESSAGE = `소개 글은 ${PRESENTATION_INTRO_MAX}자 이내로 적어 주세요.`
+const INTRO_NOT_READY_MESSAGE =
+  "소개 글을 아직 쓸 수 없습니다. 데이터베이스에 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
 const GONE_MESSAGE =
   "발표를 찾을 수 없습니다. 다른 사람이 먼저 공개를 거뒀을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 
@@ -44,14 +48,20 @@ async function requireUser() {
 
 // 발표를 공개한다. 링크는 데이터베이스가 만든다. 누가 할 수 있는지는 데이터베이스의 접근 규칙이 판단한다.
 // showNames 가 true 이면 참여자와 기록 작성자의 이름을 보인다.
+// intro 는 발표에만 보이는 소개 글이다. null 이면 소개 글 칸이 화면에 없었던 것이라 보내지 않는다.
 export async function publishPresentation(
   clubId: string,
   target: PresentationTarget,
-  showNames: boolean
+  showNames: boolean,
+  intro: string | null = null
 ): Promise<PresentationActionResult> {
   await requireUser()
   if (target.scope === "project" && !isUuid(target.projectId)) {
     return { ok: false, message: NOT_ALLOWED_MESSAGE.project }
+  }
+  const cleaned = intro === null ? null : cleanIntro(intro)
+  if (cleaned !== null && Array.from(cleaned).length > PRESENTATION_INTRO_MAX) {
+    return { ok: false, message: INTRO_TOO_LONG_MESSAGE }
   }
 
   const supabase = await createClient()
@@ -60,6 +70,7 @@ export async function publishPresentation(
     scope: target.scope,
     project_id: target.scope === "project" ? target.projectId : null,
     show_names: showNames === true,
+    ...(cleaned !== null && { intro: cleaned }),
   })
 
   // 23505 는 그사이 다른 사람이 먼저 공개한 경우다. 바라는 상태가 됐으므로 성공으로 본다.
@@ -78,6 +89,52 @@ export async function publishPresentation(
   }
 
   revalidatePath(`/clubs/${clubId}`, "layout")
+  return { ok: true }
+}
+
+// 브라우저가 줄바꿈을 두 글자로 보내는 경우가 있어 한 글자로 맞추고 앞뒤 공백을 뗀다.
+function cleanIntro(value: string) {
+  return String(value ?? "")
+    .replace(/\r\n?/g, "\n")
+    .trim()
+}
+
+// 발표의 소개 글을 고친다. 링크는 그대로다. 비워서 저장하면 소개 글이 사라진다.
+export async function setPresentationIntro(
+  clubId: string,
+  presentationId: string,
+  intro: string
+): Promise<PresentationActionResult> {
+  await requireUser()
+  if (!isUuid(presentationId)) {
+    return { ok: false, message: GONE_MESSAGE }
+  }
+  const cleaned = cleanIntro(intro)
+  if (Array.from(cleaned).length > PRESENTATION_INTRO_MAX) {
+    return { ok: false, message: INTRO_TOO_LONG_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("presentations")
+    .update({ intro: cleaned })
+    .eq("club_id", clubId)
+    .eq("id", presentationId)
+    .select("token")
+
+  if (error) {
+    // PGRST204 와 42703 은 소개 글 열이 아직 없을 때다.
+    if (error.code === "PGRST204" || error.code === "42703") {
+      return { ok: false, message: INTRO_NOT_READY_MESSAGE }
+    }
+    console.error("발표의 소개 글을 고치지 못했습니다.", error)
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+  if (data.length === 0) {
+    return { ok: false, message: GONE_MESSAGE }
+  }
+
+  refresh(clubId, (data as { token: string }[])[0]?.token)
   return { ok: true }
 }
 

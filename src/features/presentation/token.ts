@@ -9,3 +9,8 @@ export function isPresentationToken(value: unknown): value is string {
 export function presentationPath(token: string) {
   return `/p/${token}`
 }
+
+// 같은 발표를 한 장씩 넘겨 보는 주소.
+export function presentationSlidesPath(token: string) {
+  return `${presentationPath(token)}/slides`
+}

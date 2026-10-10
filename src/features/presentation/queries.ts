@@ -12,11 +12,14 @@ export type Presentation = {
   token: string
   showNames: boolean
   publishedAt: string
+  // 발표에만 보이는 소개 글. 데이터베이스에 그 열이 아직 없으면 null 이다.
+  intro: string | null
 }
 
 // unavailable 은 데이터베이스에 발표의 구조가 아직 없다는 뜻이다.
+// introReady 는 소개 글을 적을 수 있다는 뜻이다. 그 열이 아직 없으면 소개 글 칸을 그리지 않는다.
 export type PresentationResult =
-  | { status: "ok"; presentation: Presentation | null }
+  | { status: "ok"; presentation: Presentation | null; introReady: boolean }
   | { status: "unavailable" }
   | { status: "error" }
 
@@ -31,9 +34,30 @@ type PresentationRow = {
   token: string
   show_names: boolean
   created_at: string
+  // 소개 글 열이 아직 없는 데이터베이스에서 읽으면 이 값이 없다.
+  intro?: string
 }
 
 const COLUMNS = "id, token, show_names, created_at"
+// 소개 글. 그 열이 생긴 뒤에만 읽을 수 있다.
+const INTRO_COLUMN = ", intro"
+// 열이 아직 없을 때의 오류 번호.
+const MISSING_COLUMN = "42703"
+
+type ReadResponse = { data: unknown; error: { code?: string } | null }
+
+// 소개 글과 함께 읽어 보고, 그 열이 아직 없으면 소개 글 없이 다시 읽는다.
+async function readPresentation(
+  read: (columns: string) => PromiseLike<ReadResponse>,
+  label: string
+): Promise<PresentationResult> {
+  let response = await read(COLUMNS + INTRO_COLUMN)
+  const introReady = response.error?.code !== MISSING_COLUMN
+  if (!introReady) {
+    response = await read(COLUMNS)
+  }
+  return toResult(response.data, response.error, label, introReady)
+}
 
 function isMissingTable(error: { code?: string }) {
   return error.code === "42P01" || error.code === "PGRST205"
@@ -42,7 +66,8 @@ function isMissingTable(error: { code?: string }) {
 function toResult(
   data: unknown,
   error: { code?: string } | null,
-  label: string
+  label: string,
+  introReady: boolean
 ): PresentationResult {
   if (error) {
     if (isMissingTable(error)) {
@@ -60,8 +85,10 @@ function toResult(
           token: row.token,
           showNames: row.show_names,
           publishedAt: row.created_at,
+          intro: typeof row.intro === "string" ? row.intro : null,
         }
       : null,
+    introReady,
   }
 }
 
@@ -69,19 +96,21 @@ function toResult(
 export const getProjectPresentation = cache(
   async (clubId: string, projectId: string): Promise<PresentationResult> => {
     if (!isUuid(projectId)) {
-      return { status: "ok", presentation: null }
+      return { status: "ok", presentation: null, introReady: false }
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("presentations")
-      .select(COLUMNS)
-      .eq("club_id", clubId)
-      .eq("scope", "project")
-      .eq("project_id", projectId)
-      .maybeSingle()
-
-    return toResult(data, error, "Project")
+    return readPresentation(
+      (columns) =>
+        supabase
+          .from("presentations")
+          .select(columns)
+          .eq("club_id", clubId)
+          .eq("scope", "project")
+          .eq("project_id", projectId)
+          .maybeSingle(),
+      "Project"
+    )
   }
 )
 
@@ -89,14 +118,16 @@ export const getProjectPresentation = cache(
 export const getClubPresentation = cache(
   async (clubId: string): Promise<PresentationResult> => {
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("presentations")
-      .select(COLUMNS)
-      .eq("club_id", clubId)
-      .eq("scope", "club")
-      .maybeSingle()
-
-    return toResult(data, error, "Club")
+    return readPresentation(
+      (columns) =>
+        supabase
+          .from("presentations")
+          .select(columns)
+          .eq("club_id", clubId)
+          .eq("scope", "club")
+          .maybeSingle(),
+      "Club"
+    )
   }
 )
 

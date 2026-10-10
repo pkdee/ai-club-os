@@ -117,6 +117,7 @@ export default async function ProjectDetailPage(props: Props) {
               clubId={clubId}
               target={{ scope: "project", projectId }}
               presentation={presentation.presentation}
+              introReady={presentation.introReady}
               canManage={canEdit}
               notes={[
                 "이름, 목표, 진행 상태, 결과물 링크, 할 일이 보입니다.",

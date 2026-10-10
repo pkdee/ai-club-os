@@ -8,11 +8,13 @@ import {
   FlaskConical,
   Lightbulb,
   LinkIcon,
+  MonitorPlay,
   Target,
   type LucideIcon,
 } from "lucide-react"
 
 import { Logo } from "@/components/logo"
+import { buttonVariants } from "@/components/ui/button"
 import {
   Empty,
   EmptyDescription,
@@ -26,15 +28,18 @@ import { linkHost } from "@/features/project/rules"
 import { kstDateKey } from "@/features/session/time"
 import { cn } from "@/lib/utils"
 
-import type {
-  ClubPresentation,
-  ProjectPresentation,
-  PublicLog,
+import {
+  presentationStats,
+  type ClubPresentation,
+  type PresentationStat,
+  type ProjectPresentation,
+  type PublicLog,
+  type PublicPresentation,
 } from "../content"
 import { presentationPath } from "../token"
 
 // 예: 2026년 10월 8일. 한국 시간 기준이다. 날짜를 알 수 없으면 빈 글자다.
-function formatDate(value: string) {
+export function formatDate(value: string) {
   if (!value) {
     return ""
   }
@@ -43,11 +48,27 @@ function formatDate(value: string) {
 }
 
 // 발표 화면의 틀. Club 안쪽 화면과 달리 메뉴가 없고, 로그인하지 않은 사람도 본다.
-export function PresentationShell({ children }: { children: React.ReactNode }) {
+// slidesHref 가 있으면 같은 발표를 한 장씩 넘겨 보는 화면으로 가는 길을 둔다.
+export function PresentationShell({
+  slidesHref,
+  children,
+}: {
+  slidesHref?: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex min-h-dvh flex-1 flex-col bg-app">
-      <header className="flex h-16 shrink-0 items-center border-b bg-card px-4 sm:px-8">
+      <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-card px-4 sm:px-8">
         <Logo />
+        {slidesHref && (
+          <Link
+            href={slidesHref}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <MonitorPlay aria-hidden="true" strokeWidth={1.5} />
+            발표 모드
+          </Link>
+        )}
       </header>
       <main className="mx-auto flex w-full max-w-[880px] flex-1 flex-col gap-10 px-4 py-10 sm:px-8 sm:py-14">
         {children}
@@ -88,15 +109,7 @@ export function PresentationUnavailable({
   )
 }
 
-function Stat({
-  label,
-  value,
-  caption,
-}: {
-  label: string
-  value: string
-  caption?: string
-}) {
+export function Stat({ label, value, caption }: PresentationStat) {
   return (
     <div className="flex flex-col gap-1 rounded-xl border bg-card p-5">
       <dt className="text-body-s text-muted-foreground">{label}</dt>
@@ -130,8 +143,39 @@ function Section({
   )
 }
 
+// 공개하는 사람이 적은 소개 글. 적지 않았으면 그리지 않는다.
+function Intro({ presentation }: { presentation: PublicPresentation }) {
+  if (!presentation.intro) {
+    return null
+  }
+  return (
+    <section className="flex flex-col gap-2 rounded-xl border bg-card p-5 sm:p-6">
+      <h2 className="text-label-m text-muted-foreground">소개</h2>
+      <p className="text-body-l break-words whitespace-pre-wrap">
+        {presentation.intro}
+      </p>
+    </section>
+  )
+}
+
+function Stats({
+  presentation,
+  className,
+}: {
+  presentation: PublicPresentation
+  className: string
+}) {
+  return (
+    <dl className={cn("grid gap-4", className)}>
+      {presentationStats(presentation).map((stat) => (
+        <Stat key={stat.label} {...stat} />
+      ))}
+    </dl>
+  )
+}
+
 // 이름을 줄지어 보여 준다. 내보낼 이름이 없는 사람은 수로만 알린다.
-function Names({
+export function Names({
   names,
   unit,
 }: {
@@ -160,7 +204,7 @@ function Names({
   )
 }
 
-const LOG_PARTS: {
+export const LOG_PARTS: {
   key: "attempt" | "result" | "learned" | "nextAction"
   label: string
   icon: LucideIcon
@@ -212,7 +256,6 @@ export function ProjectPresentationView({
   presentation: ProjectPresentation
 }) {
   const { project, links, tasks, logs } = presentation
-  const done = tasks.filter((task) => task.done).length
 
   return (
     <>
@@ -230,19 +273,8 @@ export function ProjectPresentationView({
           </p>
         )}
       </div>
-      <dl className="grid gap-4 sm:grid-cols-3">
-        <Stat
-          label="남긴 AI Log"
-          value={`${presentation.logCount}개`}
-          caption={`이 가운데 ${logs.length}개를 발표에 담았습니다`}
-        />
-        <Stat
-          label="할 일"
-          value={tasks.length > 0 ? `${done} / ${tasks.length}` : "없음"}
-          caption={tasks.length > 0 ? "끝낸 일과 전체" : undefined}
-        />
-        <Stat label="참여자" value={`${presentation.participantCount}명`} />
-      </dl>
+      <Intro presentation={presentation} />
+      <Stats presentation={presentation} className="sm:grid-cols-3" />
       {links.length > 0 && (
         <Section title="결과물">
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -350,12 +382,8 @@ export function ClubPresentationView({
           </p>
         )}
       </div>
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Member" value={`${presentation.memberCount}명`} />
-        <Stat label="진행한 Session" value={`${sessions.length}회`} />
-        <Stat label="AI Log" value={`${presentation.logCount}개`} />
-        <Stat label="Project" value={`${presentation.projectCount}개`} />
-      </dl>
+      <Intro presentation={presentation} />
+      <Stats presentation={presentation} className="grid-cols-2 sm:grid-cols-4" />
       {projects.length > 0 && (
         <Section
           title="Project"

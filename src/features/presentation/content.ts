@@ -21,11 +21,16 @@ export type PublicLog = {
   author: string | null
 }
 
+// 발표에만 보이는 소개 글의 길이. 데이터베이스의 check 제약과 같은 값이어야 한다.
+export const PRESENTATION_INTRO_MAX = 600
+
 export type ProjectPresentation = {
   scope: "project"
   clubName: string
   showNames: boolean
   publishedAt: string
+  // 공개하는 사람이 적은 소개 글. 적지 않았으면 빈 글자다.
+  intro: string
   project: {
     name: string
     goal: string
@@ -48,6 +53,7 @@ export type ClubPresentation = {
   clubDescription: string
   showNames: boolean
   publishedAt: string
+  intro: string
   memberCount: number
   memberNames: (string | null)[] | null
   logCount: number
@@ -58,6 +64,41 @@ export type ClubPresentation = {
 }
 
 export type PublicPresentation = ProjectPresentation | ClubPresentation
+
+export type PresentationStat = { label: string; value: string; caption?: string }
+
+// 발표의 맨 위에 숫자로 보여 주는 것들. 이어 보는 화면과 한 장씩 넘겨 보는 화면이 같은 값을 쓴다.
+export function presentationStats(
+  presentation: PublicPresentation
+): PresentationStat[] {
+  if (presentation.scope === "project") {
+    const { tasks, logs } = presentation
+    const done = tasks.filter((task) => task.done).length
+
+    return [
+      {
+        label: "남긴 AI Log",
+        value: `${presentation.logCount}개`,
+        caption: `이 가운데 ${logs.length}개를 발표에 담았습니다`,
+      },
+      tasks.length > 0
+        ? {
+            label: "할 일",
+            value: `${done} / ${tasks.length}`,
+            caption: "끝낸 일과 전체",
+          }
+        : { label: "할 일", value: "없음" },
+      { label: "참여자", value: `${presentation.participantCount}명` },
+    ]
+  }
+
+  return [
+    { label: "Member", value: `${presentation.memberCount}명` },
+    { label: "진행한 Session", value: `${presentation.sessions.length}회` },
+    { label: "AI Log", value: `${presentation.logCount}개` },
+    { label: "Project", value: `${presentation.projectCount}개` },
+  ]
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -128,6 +169,7 @@ export function parsePresentation(value: unknown): PublicPresentation | null {
     clubName: text(value.clubName),
     showNames: value.showNames === true,
     publishedAt: time(value.publishedAt),
+    intro: text(value.intro).trim(),
   }
 
   if (value.scope === "project") {

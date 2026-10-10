@@ -12,6 +12,7 @@ import {
   CircleAlert,
   Copy,
   ExternalLink,
+  MonitorPlay,
   Presentation as PresentationIcon,
 } from "lucide-react"
 
@@ -27,18 +28,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 import {
   publishPresentation,
+  setPresentationIntro,
   setPresentationNames,
   unpublishPresentation,
   type PresentationActionResult,
   type PresentationTarget,
 } from "../actions"
+import { PRESENTATION_INTRO_MAX } from "../content"
 import type { Presentation } from "../queries"
-import { presentationPath } from "../token"
+import { presentationPath, presentationSlidesPath } from "../token"
 
 const noop = () => () => {}
 
@@ -67,15 +72,54 @@ const COPY = {
 }
 const NAMES_HELP =
   "꺼 두면 사람 수만 보입니다. 이메일과 사진은 어느 경우에도 보이지 않습니다."
+const INTRO_HELP =
+  "발표의 맨 위에 보입니다. Club 안의 화면에는 보이지 않습니다. 비워 둬도 됩니다."
+
+// 발표의 맨 위에 보이는 소개 글을 적는 칸. 공개하는 창과 고치는 창이 함께 쓴다.
+function IntroField({
+  id,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string
+  value: string
+  disabled: boolean
+  onChange: (value: string) => void
+}) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>소개 글</FieldLabel>
+      <Textarea
+        id={id}
+        value={value}
+        disabled={disabled}
+        maxLength={PRESENTATION_INTRO_MAX}
+        placeholder="보는 사람에게 먼저 들려주고 싶은 말을 적습니다."
+        onChange={(event) => onChange(event.target.value)}
+        aria-describedby={`${id}-help`}
+      />
+      <div className="flex items-start justify-between gap-3">
+        <FieldDescription id={`${id}-help`}>{INTRO_HELP}</FieldDescription>
+        <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
+          {Array.from(value).length} / {PRESENTATION_INTRO_MAX}
+          <span className="sr-only">자</span>
+        </span>
+      </div>
+    </Field>
+  )
+}
 
 // 발표를 공개하고 거두는 영역. Project 화면의 옆 칸과 Club 설정에 놓는다.
 // presentation 이 null 이면 아직 공개하지 않은 것이다. canManage 는 공개하고 거둘 수 있는 사람이라는 뜻이고,
 // 실제 판단은 데이터베이스가 한다. notes 는 공개하면 무엇이 나가는지 알리는 글이다.
 // 공개하지 않았고 공개할 수도 없는 사람에게는 아무것도 그리지 않는다.
+// introReady 가 false 이면 데이터베이스에 소개 글 열이 아직 없는 것이라 소개 글 칸을 그리지 않는다.
 export function PresentationCard({
   clubId,
   target,
   presentation,
+  introReady,
   canManage,
   notes,
   className,
@@ -83,14 +127,18 @@ export function PresentationCard({
   clubId: string
   target: PresentationTarget
   presentation: Presentation | null
+  introReady: boolean
   canManage: boolean
   notes: string[]
   className?: string
 }) {
   const origin = useOrigin()
   const inputRef = useRef<HTMLInputElement>(null)
-  const [dialog, setDialog] = useState<"publish" | "unpublish" | null>(null)
+  const [dialog, setDialog] = useState<
+    "publish" | "unpublish" | "intro" | null
+  >(null)
   const [showNames, setShowNames] = useState(false)
+  const [intro, setIntro] = useState("")
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<{ title: string; message: string } | null>(
     null
@@ -201,17 +249,56 @@ export function PresentationCard({
           <span role="status" className="sr-only">
             {copied ? "링크를 복사했습니다." : ""}
           </span>
-          <a
-            href={path}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            <ExternalLink aria-hidden="true" strokeWidth={1.5} />
-            발표 열기
-          </a>
+          <div className="flex flex-col gap-2">
+            <a
+              href={path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <ExternalLink aria-hidden="true" strokeWidth={1.5} />
+              발표 열기
+            </a>
+            <a
+              href={presentationSlidesPath(presentation.token)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <MonitorPlay aria-hidden="true" strokeWidth={1.5} />
+              발표 모드로 열기
+            </a>
+          </div>
           {canManage && (
             <div className="flex flex-col gap-3 border-t pt-3">
+              {introReady && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-label-m">소개 글</h3>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => {
+                        setIntro(presentation.intro ?? "")
+                        setDialog("intro")
+                      }}
+                    >
+                      {presentation.intro ? "고치기" : "적기"}
+                    </Button>
+                  </div>
+                  <p
+                    className={cn(
+                      "line-clamp-3 text-body-s break-words whitespace-pre-wrap",
+                      !presentation.intro && "text-muted-foreground"
+                    )}
+                  >
+                    {presentation.intro ||
+                      "아직 적지 않았습니다. 적으면 발표의 맨 위에 보입니다."}
+                  </p>
+                </div>
+              )}
               <CheckboxField
                 checked={presentation.showNames}
                 disabled={pending}
@@ -245,6 +332,7 @@ export function PresentationCard({
             disabled={pending}
             onClick={() => {
               setShowNames(false)
+              setIntro("")
               setDialog("publish")
             }}
           >
@@ -291,6 +379,14 @@ export function PresentationCard({
                 label={copy.names}
                 description={NAMES_HELP}
               />
+              {introReady && (
+                <IntroField
+                  id="presentation-publish-intro"
+                  value={intro}
+                  disabled={pending}
+                  onChange={setIntro}
+                />
+              )}
               <DialogFooter>
                 <Button
                   type="button"
@@ -305,11 +401,54 @@ export function PresentationCard({
                   disabled={pending}
                   onClick={() =>
                     run("발표를 공개하지 못했습니다", () =>
-                      publishPresentation(clubId, target, showNames)
+                      publishPresentation(
+                        clubId,
+                        target,
+                        showNames,
+                        // 소개 글 칸이 없었으면 보내지 않는다.
+                        introReady ? intro : null
+                      )
                     )
                   }
                 >
                   {pending ? "공개하는 중" : "공개"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+          {dialog === "intro" && presentation && (
+            <>
+              <DialogHeader>
+                <DialogTitle>소개 글 고치기</DialogTitle>
+                <DialogDescription>
+                  저장하면 발표에 바로 반영됩니다. 링크는 그대로입니다.
+                </DialogDescription>
+              </DialogHeader>
+              <IntroField
+                id="presentation-edit-intro"
+                value={intro}
+                disabled={pending}
+                onChange={setIntro}
+              />
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => setDialog(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    run("소개 글을 고치지 못했습니다", () =>
+                      setPresentationIntro(clubId, presentation.id, intro)
+                    )
+                  }
+                >
+                  {pending ? "저장하는 중" : "저장"}
                 </Button>
               </DialogFooter>
             </>

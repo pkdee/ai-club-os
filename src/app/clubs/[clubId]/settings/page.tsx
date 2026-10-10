@@ -40,6 +40,7 @@ export default async function ClubSettingsPage(
           clubId={clubId}
           target={{ scope: "club" }}
           presentation={presentation.presentation}
+          introReady={presentation.introReady}
           canManage
           notes={[
             "Club 의 이름과 소개, Member 수, AI Log 수, Project 수가 보입니다.",

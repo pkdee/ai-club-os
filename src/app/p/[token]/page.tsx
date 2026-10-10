@@ -7,6 +7,7 @@ import {
   ProjectPresentationView,
 } from "@/features/presentation/components/presentation-view";
 import { getPublicPresentation } from "@/features/presentation/queries";
+import { presentationSlidesPath } from "@/features/presentation/token";
 
 type Props = PageProps<"/p/[token]">;
 
@@ -38,7 +39,11 @@ export default async function PresentationPage(props: Props) {
   const result = await getPublicPresentation(token);
 
   return (
-    <PresentationShell>
+    <PresentationShell
+      slidesHref={
+        result.status === "ok" ? presentationSlidesPath(token) : undefined
+      }
+    >
       {result.status !== "ok" ? (
         <PresentationUnavailable reason={result.status} />
       ) : result.presentation.scope === "project" ? (
