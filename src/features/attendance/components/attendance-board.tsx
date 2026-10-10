@@ -23,6 +23,7 @@ export type AttendanceMember = {
   id: string
   name: string
   roleLabel: string
+  avatarUrl: string | null
 }
 
 type Change = { memberIds: string[]; status: AttendanceStatus | null }
@@ -122,7 +123,7 @@ export function AttendanceBoard({
               className="flex flex-col gap-3 border-b px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={member.name} />
+                <Avatar name={member.name} src={member.avatarUrl} />
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate text-label-m">{member.name}</span>
                   <span className="text-caption text-muted-foreground">

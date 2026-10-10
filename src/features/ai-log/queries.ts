@@ -1,12 +1,14 @@
 import { cache } from "react"
 
 import { memberName } from "@/features/member/name"
+import { googleAvatarUrl } from "@/lib/google-avatar"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
 export type AiLogAuthor = {
   userId: string
   name: string
+  avatarUrl: string | null
 }
 
 export type AiLogSummary = {
@@ -47,7 +49,11 @@ type SummaryRow = {
   created_at: string
   author_id: string | null
   session: { id: string; title: string } | null
-  author: { display_name: string; email: string | null } | null
+  author: {
+    display_name: string
+    email: string | null
+    avatar_url: string | null
+  } | null
 }
 
 type DetailRow = SummaryRow & {
@@ -59,7 +65,7 @@ type DetailRow = SummaryRow & {
 
 // Session 제목과 작성자 이름을 함께 읽는다. 어느 외래 키를 따라갈지 이름으로 정해 둔다.
 const SUMMARY_COLUMNS =
-  "id, club_id, title, attempt, tools, created_at, author_id, session:sessions!ai_logs_session_fkey(id, title), author:members!ai_logs_author_fkey(display_name, email)"
+  "id, club_id, title, attempt, tools, created_at, author_id, session:sessions!ai_logs_session_fkey(id, title), author:members!ai_logs_author_fkey(display_name, email, avatar_url)"
 const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, result, learned, next_action, updated_at`
 
 // 한 Session 에서 한 번에 읽는 기록 수. Member 수를 넘는 일이 드물어 넉넉히 둔다.
@@ -75,7 +81,11 @@ function toSummary(row: SummaryRow): AiLogSummary {
     createdAt: row.created_at,
     author:
       row.author_id && row.author
-        ? { userId: row.author_id, name: memberName(row.author) }
+        ? {
+            userId: row.author_id,
+            name: memberName(row.author),
+            avatarUrl: googleAvatarUrl(row.author.avatar_url),
+          }
         : null,
     session: row.session,
   }

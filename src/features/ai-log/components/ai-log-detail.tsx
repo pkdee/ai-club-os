@@ -145,7 +145,7 @@ export function AiLogDetail({
           <div className="flex min-w-0 flex-col gap-3">
             <h1 className="text-h1">{log.title}</h1>
             <div className="flex flex-wrap items-center gap-2">
-              <Avatar size="sm" name={name} />
+              <Avatar size="sm" name={name} src={log.author?.avatarUrl} />
               <span className="text-label-m">{name}</span>
               <span className="text-caption text-muted-foreground">
                 {formatLogDate(log.createdAt, now)} 작성

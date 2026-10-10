@@ -51,7 +51,7 @@ function MemberTable({
             <tr key={member.id} className="border-b last:border-b-0">
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <Avatar name={member.name} />
+                  <Avatar name={member.name} src={member.avatarUrl} />
                   <div className="flex min-w-0 flex-col">
                     <span className="flex items-center gap-1.5">
                       <span className="truncate text-label-m">

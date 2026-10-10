@@ -20,6 +20,13 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // 속한 Club 에 보이는 프로필 사진을 지금의 Google 계정 사진으로 맞춘다.
+      // 실패해도 로그인은 그대로 진행한다. 다음 로그인 때 다시 맞춘다.
+      const synced = await supabase.rpc("sync_my_avatar")
+      if (synced.error) {
+        console.error("프로필 사진을 맞추지 못했습니다.", synced.error)
+      }
+
       return NextResponse.redirect(new URL(returnPath ?? "/", request.url))
     }
   }

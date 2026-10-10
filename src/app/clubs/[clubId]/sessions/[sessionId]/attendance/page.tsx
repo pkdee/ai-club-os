@@ -45,6 +45,7 @@ export default async function SessionAttendancePage(props: Props) {
         id: member.id,
         name: member.name,
         roleLabel: ROLE_LABEL[member.role],
+        avatarUrl: member.avatarUrl,
       }))}
       records={attendance.records}
       canManage={data.club.role === "admin"}

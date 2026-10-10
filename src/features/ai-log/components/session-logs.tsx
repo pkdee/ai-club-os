@@ -18,6 +18,7 @@ import { AiLogCardList } from "./ai-log-card"
 export type Attendee = {
   userId: string
   name: string
+  avatarUrl: string | null
 }
 
 // 출석하거나 지각한 Member 가운데 몇 명이 이 회차의 기록을 남겼는지 보여 준다.
@@ -79,7 +80,11 @@ function WritingProgress({
               <ul className="flex flex-col gap-2">
                 {waiting.map((attendee) => (
                   <li key={attendee.userId} className="flex items-center gap-2">
-                    <Avatar size="sm" name={attendee.name} />
+                    <Avatar
+                      size="sm"
+                      name={attendee.name}
+                      src={attendee.avatarUrl}
+                    />
                     <span className="text-label-m">{attendee.name}</span>
                   </li>
                 ))}

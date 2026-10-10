@@ -1,5 +1,6 @@
 import { cache } from "react"
 
+import { googleAvatarUrl } from "@/lib/google-avatar"
 import { supabaseEnv } from "@/lib/supabase/env"
 import { createClient } from "@/lib/supabase/server"
 
@@ -7,6 +8,8 @@ export type CurrentUser = {
   id: string
   email: string | null
   name: string
+  // Google 계정의 프로필 사진. 없으면 null 이다.
+  avatarUrl: string | null
 }
 
 // 서명을 검증한 토큰에서 현재 사용자를 읽는다. 로그인하지 않았으면 null 이다.
@@ -30,5 +33,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     (value): value is string => typeof value === "string" && value.length > 0
   )
 
-  return { id: claims.sub, email, name: displayName ?? email ?? "이름 없음" }
+  return {
+    id: claims.sub,
+    email,
+    name: displayName ?? email ?? "이름 없음",
+    avatarUrl:
+      googleAvatarUrl(metadata.avatar_url) ?? googleAvatarUrl(metadata.picture),
+  }
 })

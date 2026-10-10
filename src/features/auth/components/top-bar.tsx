@@ -14,7 +14,7 @@ export function TopBar({ user }: { user: CurrentUser }) {
       <Logo />
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <Avatar name={user.name} />
+          <Avatar name={user.name} src={user.avatarUrl} />
           <span className="hidden text-label-m sm:inline">{user.name}</span>
         </div>
         <form action={signOut}>

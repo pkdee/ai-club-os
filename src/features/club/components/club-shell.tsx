@@ -48,7 +48,7 @@ export function ClubShell({
         </Link>
         <ClubNav clubId={club.id} className="flex-1" />
         <div className="flex items-center gap-3 border-t px-2 pt-3">
-          <Avatar name={user.name} />
+          <Avatar name={user.name} src={user.avatarUrl} />
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-label-m">{user.name}</span>
             {user.email && (

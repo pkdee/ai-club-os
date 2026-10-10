@@ -38,7 +38,11 @@ export default async function SessionLogsPage(props: Props) {
             const status = attendance.records[member.id];
             return status === "present" || status === "late";
           })
-          .map((member) => ({ userId: member.userId, name: member.name }))
+          .map((member) => ({
+            userId: member.userId,
+            name: member.name,
+            avatarUrl: member.avatarUrl,
+          }))
       : null;
 
   return (

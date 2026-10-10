@@ -17,7 +17,7 @@ export function AiLogCard({ log, now }: { log: AiLogSummary; now: Date }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="flex items-center gap-2">
-          <Avatar size="sm" name={name} />
+          <Avatar size="sm" name={name} src={log.author?.avatarUrl} />
           <span className="text-label-m">{name}</span>
           <span className="text-caption text-muted-foreground">
             {formatLogDate(log.createdAt, now)}
