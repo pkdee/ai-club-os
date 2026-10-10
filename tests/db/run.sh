@@ -38,8 +38,10 @@ if [ "$ready" -lt 2 ]; then
 fi
 
 # 한 파일을 한 데이터베이스에 적용한다. 오류가 나면 바로 멈춘다.
+# 다시 실행해도 되게 쓴 마이그레이션이 내는 알림(없는 것을 지우려 했다는 말)은 감춘다.
 apply() {
-  docker exec -i "$CONTAINER" psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -q <"$2" >/dev/null
+  docker exec -e PGOPTIONS="-c client_min_messages=warning" -i "$CONTAINER" \
+    psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -q <"$2" >/dev/null
 }
 
 # 시험마다 복사해 쓸 바탕 데이터베이스를 만든다.
