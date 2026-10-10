@@ -47,6 +47,7 @@ User
 | `ai_logs` | `20261009181137_create_ai_logs.sql` | `docs/adr/0006-ai-log-structure-and-authorship.md` |
 | `club_invites`, 참여 함수 | `20261010064838_create_club_invites.sql` | `docs/adr/0007-club-invite-link.md` |
 | `members` 의 사진 주소 열, 사진 맞추기 함수 | `20261010070509_add_member_avatar.sql` | `docs/adr/0008-member-avatar-from-google.md` |
+| 역할 바꾸기, 내보내기와 나가기, Club 정보 수정 규칙 | `20261010071641_manage_members_and_club.sql` | `docs/adr/0009-member-management-and-last-admin.md` |
 
 ```mermaid
 erDiagram
@@ -240,11 +241,12 @@ erDiagram
 |---|---|---|
 | `clubs` | 조회 | 그 Club 의 Member |
 | `clubs` | 생성 | 로그인한 사용자. 이름과 소개만 넣을 수 있다 |
-| `clubs` | 수정, 삭제 | 아직 없음 |
+| `clubs` | 수정 | 그 Club 의 운영자. 이름과 소개만 고칠 수 있다 |
+| `clubs` | 삭제 | 아직 없음 |
 | `members` | 조회 | 같은 Club 의 Member |
 | `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
-| `members` | 수정 | 직접 고칠 수 없다. 본인의 사진 주소만 `sync_my_avatar` 로 맞춘다 |
-| `members` | 삭제 | 아직 없음 |
+| `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞춘다 |
+| `members` | 삭제 | 그 Club 의 운영자는 누구든 내보낼 수 있고, 누구나 자기 행을 지워 스스로 나갈 수 있다 |
 | `sessions` | 조회 | 그 Club 의 Member |
 | `sessions` | 생성, 수정 | 그 Club 의 운영자 |
 | `sessions` | 삭제 | 아직 없음 |
@@ -257,13 +259,19 @@ erDiagram
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 
+### 마지막 운영자
+
+Club 에는 운영자가 한 명 이상 남아야 합니다. `members` 의 trigger 가 운영자를 구성원으로 내리거나 지우려 할 때 다른 운영자가 있는지 확인하고, 없으면 오류(`P0001`)를 냅니다. 동시에 들어온 요청이 서로를 지나치지 않도록 확인 전에 그 Club 의 행을 잠급니다. Club 이나 사용자 계정이 삭제되면서 함께 지워지는 경우에는 막지 않습니다.
+
+Member 가 Club 에서 나가면 그 사람의 Attendance 는 함께 삭제되고, AI Log 는 작성자가 비워진 채 남습니다.
+
 ## 이후 결정 사항
 
 Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
-- 역할별 세부 권한. Club 수정과 삭제, Member 의 역할 바꾸기와 내보내기
+- Club 삭제 규칙
+- 운영자가 없어진 Club 을 되살리는 방법
 - Member 가 자기 이름을 고치는 방법
-- 탈퇴한 Member 의 Attendance 와 AI Log 를 남길지 여부. 지금은 Attendance 는 함께 삭제되고 AI Log 는 작성자 없이 남는다
 - AI Log 삭제 규칙
 - 도구 이름의 표기를 맞추는 방법
 - 수정 기록과 보존 기간
