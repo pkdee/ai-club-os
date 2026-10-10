@@ -3,7 +3,17 @@ import { cn } from "@/lib/utils"
 
 import { ToolIcon } from "./tool-icon"
 
-// 사용한 도구를 이름표로 줄지어 보여 준다. 이름 앞에 도구의 로고나 종류 아이콘을 둔다.
+// 도구 하나의 이름표. 이름 앞에 도구의 로고나 종류 아이콘을 둔다.
+export function ToolChip({ tool }: { tool: string }) {
+  return (
+    <Badge className="gap-1.5">
+      <ToolIcon name={tool} className="size-3.5" />
+      {tool}
+    </Badge>
+  )
+}
+
+// 사용한 도구를 이름표로 줄지어 보여 준다.
 // 도구가 없으면 아무것도 그리지 않는다.
 export function ToolChips({
   tools,
@@ -23,10 +33,7 @@ export function ToolChips({
     >
       {tools.map((tool) => (
         <li key={tool} className="flex">
-          <Badge className="gap-1.5">
-            <ToolIcon name={tool} className="size-3.5" />
-            {tool}
-          </Badge>
+          <ToolChip tool={tool} />
         </li>
       ))}
     </ul>

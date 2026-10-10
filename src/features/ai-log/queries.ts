@@ -42,6 +42,12 @@ export type ClubToolsResult =
   | { status: "ok"; tools: { name: string; logCount: number }[] }
   | { status: "error" }
 
+export type SessionLogCount = { id: string; title: string; logCount: number }
+
+export type SessionLogCountsResult =
+  | { status: "ok"; sessions: SessionLogCount[] }
+  | { status: "error" }
+
 export type AiLogResult =
   | { status: "ok"; log: AiLog }
   | { status: "not-found" }
@@ -245,9 +251,73 @@ export const listClubTools = cache(
   }
 )
 
+// Session 마다 달린 AI Log 수를 최근 회차부터 읽는다. 기록이 없는 Session 도 0 으로 들어 있다.
+// Session 으로 고르는 칸과 목록 옆의 요약이 함께 쓴다.
+export const listSessionLogCounts = cache(
+  async (clubId: string): Promise<SessionLogCountsResult> => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("id, title, ai_logs!ai_logs_session_fkey(count)")
+      .eq("club_id", clubId)
+      .order("starts_at", { ascending: false })
+
+    if (error) {
+      console.error("Session 별 AI Log 수를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      sessions: (
+        data as unknown as {
+          id: string
+          title: string
+          ai_logs: { count: number }[]
+        }[]
+      ).map((row) => ({
+        id: row.id,
+        title: row.title,
+        logCount: row.ai_logs[0]?.count ?? 0,
+      })),
+    }
+  }
+)
+
+// Member 마다 쓴 AI Log 수를 사용자 식별자로 묶어 읽는다. 불러오지 못하면 null 이다.
+// Club 에서 빠진 사람의 기록은 작성자가 비어 있어 여기에 들어가지 않는다.
+export const countLogsByAuthor = cache(
+  async (clubId: string): Promise<Record<string, number> | null> => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("members")
+      .select("user_id, ai_logs!ai_logs_author_fkey(count)")
+      .eq("club_id", clubId)
+
+    if (error) {
+      console.error("Member 별 AI Log 수를 불러오지 못했습니다.", error)
+      return null
+    }
+
+    const counts: Record<string, number> = {}
+    for (const row of data as unknown as {
+      user_id: string
+      ai_logs: { count: number }[]
+    }[]) {
+      counts[row.user_id] = row.ai_logs[0]?.count ?? 0
+    }
+    return counts
+  }
+)
+
 // 기록 수만 센다. 불러오지 못하면 null 이다.
+// authorId 를 주면 그 사람이 쓴 것만, since 를 주면 그 시각부터 남긴 것만 센다.
 export const countClubLogs = cache(
-  async (clubId: string, authorId: string | null): Promise<number | null> => {
+  async (
+    clubId: string,
+    authorId: string | null,
+    since: string | null = null
+  ): Promise<number | null> => {
     const supabase = await createClient()
     let query = supabase
       .from("ai_logs")
@@ -255,6 +325,9 @@ export const countClubLogs = cache(
       .eq("club_id", clubId)
     if (authorId) {
       query = query.eq("author_id", authorId)
+    }
+    if (since) {
+      query = query.gte("created_at", since)
     }
 
     const { error, count } = await query

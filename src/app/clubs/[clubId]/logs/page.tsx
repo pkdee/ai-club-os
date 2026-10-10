@@ -7,10 +7,10 @@ import { knownToolName } from "@/features/ai-log/tool-catalog";
 import {
   countClubLogs,
   listClubTools,
+  listSessionLogCounts,
   searchClubLogs,
 } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
-import { listSessions } from "@/features/session/queries";
 
 export const metadata: Metadata = {
   title: "AI Log | AI Club OS",
@@ -42,12 +42,14 @@ export default async function AiLogListPage(
   }
   const filters = { ...requested, tool: selectedTool };
 
-  const [result, allCount, mineCount, sessions] = await Promise.all([
+  const [result, allCount, mineCount, sessionCounts] = await Promise.all([
     searchClubLogs(clubId, filters, data.user.id),
     countClubLogs(clubId, null),
     countClubLogs(clubId, data.user.id),
-    listSessions(clubId),
+    listSessionLogCounts(clubId),
   ]);
+  // 최근 회차가 위에 오는 순서로 온다. 고르는 칸과 옆의 요약이 함께 쓴다.
+  const sessions = sessionCounts.status === "ok" ? sessionCounts.sessions : [];
 
   return (
     <AiLogListScreen
@@ -55,15 +57,12 @@ export default async function AiLogListPage(
       filters={filters}
       result={result}
       counts={{ all: allCount, mine: mineCount }}
-      // 고르는 칸에는 최근 회차가 위에 오게 한다.
-      sessions={
-        sessions.status === "ok"
-          ? [...sessions.sessions]
-              .reverse()
-              .map((session) => ({ id: session.id, title: session.title }))
-          : []
-      }
+      sessions={sessions}
       tools={toolNames}
+      summary={{
+        tools: tools.status === "ok" ? tools.tools : [],
+        sessions,
+      }}
       now={new Date()}
     />
   );
