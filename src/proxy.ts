@@ -4,8 +4,13 @@ import { safeReturnPath } from "@/features/auth/return-path"
 import { updateSession } from "@/lib/supabase/proxy"
 
 // 로그인 없이 열 수 있는 경로. 나머지는 모두 로그인이 필요하다.
+// /p/ 는 링크를 아는 사람이 보는 발표다. 무엇을 보여 줄지는 데이터베이스가 링크 값으로 판단한다.
 function isPublicPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/auth/")
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/p/")
+  )
 }
 
 // 로그인하지 않았으면 로그인 화면으로 보내되, 보려던 경로를 next 에 담아 둔다.

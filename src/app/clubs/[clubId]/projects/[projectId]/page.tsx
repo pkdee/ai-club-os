@@ -5,6 +5,11 @@ import { WriteLogLink } from "@/features/ai-log/components/write-log-link";
 import { listProjectLogs } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { listMembers } from "@/features/member/queries";
+import { PresentationCard } from "@/features/presentation/components/presentation-card";
+import {
+  countProjectSharedLogs,
+  getProjectPresentation,
+} from "@/features/presentation/queries";
 import { ProjectSessionsCard } from "@/features/project/components/linked-cards";
 import {
   ProjectDetail,
@@ -54,14 +59,18 @@ export default async function ProjectDetailPage(props: Props) {
   const canEdit = isParticipant || isAdmin;
   const now = new Date();
   // 참여자로 넣을 사람을 고르는 목록은 고칠 수 있는 사람에게만 필요하다.
-  const [members, logs, taskDetails, joinRequests] = await Promise.all([
+  const [members, logs, taskDetails, joinRequests, presentation, shared] =
+    await Promise.all([
     canEdit ? listMembers(clubId) : null,
     // 기록 수를 세지 못했다면 AI Log 와의 연결이 아직 없는 것이라 기록을 읽지 않는다.
     project.logCount === null ? null : listProjectLogs(clubId, projectId),
     getProjectTaskDetails(clubId, projectId),
-    // 고칠 수 있는 사람에게는 들어온 요청이 모두, 다른 Member 에게는 자기 요청만 돌아온다.
-    listProjectJoinRequests(clubId, projectId),
-  ]);
+      // 고칠 수 있는 사람에게는 들어온 요청이 모두, 다른 Member 에게는 자기 요청만 돌아온다.
+      listProjectJoinRequests(clubId, projectId),
+      getProjectPresentation(clubId, projectId),
+      // 공개하기 전에 기록이 몇 개 나가는지 알리려고 센다. 공개할 수 있는 사람에게만 필요하다.
+      canEdit ? countProjectSharedLogs(clubId, projectId) : null,
+    ]);
   const joined = new Set(project.participants.map((item) => item.memberId));
   // 이미 참여자가 된 사람의 요청이 남아 있으면 보여 주지 않는다.
   const requests =
@@ -95,12 +104,30 @@ export default async function ProjectDetailPage(props: Props) {
             : "none"
       }
       aside={
-        logs?.status === "ok" && (
-          <ProjectSessionsCard
-            clubId={clubId}
-            sessions={sessionsOfLogs(logs.logs)}
-          />
-        )
+        <>
+          {logs?.status === "ok" && (
+            <ProjectSessionsCard
+              clubId={clubId}
+              sessions={sessionsOfLogs(logs.logs)}
+            />
+          )}
+          {/* 발표의 구조가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
+          {presentation.status === "ok" && (
+            <PresentationCard
+              clubId={clubId}
+              target={{ scope: "project", projectId }}
+              presentation={presentation.presentation}
+              canManage={canEdit}
+              notes={[
+                "이름, 목표, 진행 상태, 결과물 링크, 할 일이 보입니다.",
+                shared
+                  ? `AI Log 는 작성자가 발표에 넣어도 된다고 한 ${shared.shared}개만 보입니다. 이 Project 에 묶인 것은 모두 ${shared.total}개입니다.`
+                  : "AI Log 는 작성자가 발표에 넣어도 된다고 한 것만 보입니다.",
+                "작성자가 나중에 허락을 거두면 그 기록은 발표에서 바로 빠집니다.",
+              ]}
+            />
+          )}
+        </>
       }
       // 참여자만 자기 기록을 이 Project 에 묶을 수 있다.
       actions={
