@@ -49,6 +49,27 @@ const DELETE_NOT_ALLOWED_MESSAGE =
   "작성자와 운영자만 지울 수 있습니다. 이미 지워졌거나 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 const SESSION_GONE_MESSAGE =
   "고른 Session 을 찾을 수 없습니다. Session 을 다시 고른 뒤 저장해 주세요."
+const PROJECT_GONE_MESSAGE =
+  "고른 Project 를 찾을 수 없습니다. Project 를 다시 고른 뒤 저장해 주세요."
+const PROJECT_NOT_ALLOWED_MESSAGE =
+  "참여하는 Project 에만 AI Log 를 묶을 수 있습니다. Project 를 다시 고른 뒤 저장해 주세요."
+
+// 저장하지 못한 까닭을 고른다. Project 를 묶는 규칙에 걸린 것과 Session 이나 Project 가 없어진 것을 가려낸다.
+function saveErrorMessage(
+  error: { code?: string; message?: string; details?: string },
+  denied: string
+) {
+  const text = `${error.message ?? ""} ${error.details ?? ""}`
+  if (error.code === "42501") {
+    return text.includes("Project") ? PROJECT_NOT_ALLOWED_MESSAGE : denied
+  }
+  if (error.code === "23503") {
+    return text.includes("ai_logs_project_fkey")
+      ? PROJECT_GONE_MESSAGE
+      : SESSION_GONE_MESSAGE
+  }
+  return RETRY_MESSAGE
+}
 
 // 저장에 성공하면 그 기록의 식별자를 돌려준다. 화면이 쓰다 만 내용을 지운 뒤 상세로 이동한다.
 // 누가 할 수 있는지는 데이터베이스의 접근 규칙이 판단한다.
@@ -80,8 +101,12 @@ export async function saveAiLog(
         )
       : values.tools
 
+  // Project 를 고르는 칸이 화면에 있었을 때만 그 값을 보낸다.
+  // 데이터베이스에 Project 연결이 아직 없으면 칸이 나오지 않고, 그때는 이 값을 보내지 않아야 저장이 된다.
+  const withProject = formData.get("projectField") === "1"
   const fields = {
     session_id: values.sessionId || null,
+    ...(withProject && { project_id: values.projectId || null }),
     title: values.title,
     tools,
     attempt: values.attempt,
@@ -109,7 +134,7 @@ export async function saveAiLog(
       console.error("AI Log 를 고치지 못했습니다.", error)
       return {
         status: "error",
-        message: error.code === "23503" ? SESSION_GONE_MESSAGE : RETRY_MESSAGE,
+        message: saveErrorMessage(error, AUTHOR_ONLY_MESSAGE),
         values,
       }
     }
@@ -126,13 +151,11 @@ export async function saveAiLog(
 
     if (error) {
       console.error("AI Log 를 남기지 못했습니다.", error)
-      const message =
-        error.code === "42501"
-          ? MEMBER_ONLY_MESSAGE
-          : error.code === "23503"
-            ? SESSION_GONE_MESSAGE
-            : RETRY_MESSAGE
-      return { status: "error", message, values }
+      return {
+        status: "error",
+        message: saveErrorMessage(error, MEMBER_ONLY_MESSAGE),
+        values,
+      }
     }
     logId = (data as { id: string }).id
   }

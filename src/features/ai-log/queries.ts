@@ -25,6 +25,8 @@ export type AiLogSummary = {
   author: AiLogAuthor | null
   // Session 없이 남긴 기록이면 null 이다.
   session: { id: string; title: string } | null
+  // 어느 Project 에도 묶지 않은 기록이면 null 이다.
+  project: { id: string; name: string } | null
 }
 
 export type AiLog = AiLogSummary & {
@@ -62,6 +64,8 @@ type SummaryRow = {
   created_at: string
   author_id: string | null
   session: { id: string; title: string } | null
+  // Project 연결이 아직 없는 데이터베이스에서 읽으면 이 값이 없다.
+  project?: { id: string; name: string } | null
   author: {
     display_name: string
     email: string | null
@@ -80,8 +84,26 @@ type DetailRow = SummaryRow & {
 const SUMMARY_COLUMNS =
   "id, club_id, title, attempt, tools, created_at, author_id, session:sessions!ai_logs_session_fkey(id, title), author:members!ai_logs_author_fkey(display_name, email, avatar_url)"
 const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, result, learned, next_action, updated_at`
+// 묶인 Project 의 이름. ai_logs 에 Project 연결이 생긴 뒤에만 읽을 수 있다.
+const PROJECT_EMBED = ", project:projects!ai_logs_project_fkey(id, name)"
 
-// 한 Session 에서 한 번에 읽는 기록 수. Member 수를 넘는 일이 드물어 넉넉히 둔다.
+// Project 연결이 아직 없을 때 돌아오는 오류. 관계를 찾지 못했거나 열이 없다는 것이다.
+function isMissingProjectLink(error: { code?: string }) {
+  return error.code === "PGRST200" || error.code === "42703"
+}
+
+// 먼저 Project 와 함께 읽고, 연결이 아직 없으면 Project 없이 다시 읽는다.
+// 사용자가 마이그레이션을 적용하기 전에도 기록 화면이 멈추지 않게 하려는 것이다.
+async function readWithProject<T extends { error: { code?: string } | null }>(
+  read: (project: string) => PromiseLike<T>
+): Promise<T> {
+  const response = await read(PROJECT_EMBED)
+  return response.error && isMissingProjectLink(response.error)
+    ? read("")
+    : response
+}
+
+// 한 Session 이나 한 Project 에서 한 번에 읽는 기록 수. 넉넉히 둔다.
 const SESSION_LOG_LIMIT = 200
 
 function toSummary(row: SummaryRow): AiLogSummary {
@@ -101,6 +123,7 @@ function toSummary(row: SummaryRow): AiLogSummary {
           }
         : null,
     session: row.session,
+    project: row.project ?? null,
   }
 }
 
@@ -113,18 +136,20 @@ export const listClubLogs = cache(
     authorId: string | null
   ): Promise<AiLogListResult> => {
     const supabase = await createClient()
-    let query = supabase
-      .from("ai_logs")
-      .select(SUMMARY_COLUMNS, { count: "exact" })
-      .eq("club_id", clubId)
-    if (authorId) {
-      query = query.eq("author_id", authorId)
-    }
+    const { data, error, count } = await readWithProject((project) => {
+      let query = supabase
+        .from("ai_logs")
+        .select(SUMMARY_COLUMNS + project, { count: "exact" })
+        .eq("club_id", clubId)
+      if (authorId) {
+        query = query.eq("author_id", authorId)
+      }
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .range(0, limit - 1)
+      return query
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(0, limit - 1)
+    })
 
     if (error) {
       console.error("AI Log 목록을 불러오지 못했습니다.", error)
@@ -172,32 +197,34 @@ export async function searchClubLogs(
   const ascending = filters.sort === "oldest"
 
   // search 와 tool 은 함수에 넘길 값이다. 둘 다 비어 있으면 함수를 거치지 않고 바로 읽는다.
-  async function read(search: string, tool: string | null) {
-    const selected =
-      search || tool
-        ? applyConditions(
-            supabase.rpc(
-              "search_ai_logs",
-              { target_club_id: clubId, search, tool_name: tool },
-              { count: "exact" }
-            ),
-            filters,
-            userId
-          ).select(SUMMARY_COLUMNS)
-        : applyConditions(
-            supabase
-              .from("ai_logs")
-              .select(SUMMARY_COLUMNS, { count: "exact" })
-              .eq("club_id", clubId),
-            filters,
-            userId
-          )
+  function read(search: string, tool: string | null) {
+    return readWithProject((project) => {
+      const selected =
+        search || tool
+          ? applyConditions(
+              supabase.rpc(
+                "search_ai_logs",
+                { target_club_id: clubId, search, tool_name: tool },
+                { count: "exact" }
+              ),
+              filters,
+              userId
+            ).select(SUMMARY_COLUMNS + project)
+          : applyConditions(
+              supabase
+                .from("ai_logs")
+                .select(SUMMARY_COLUMNS + project, { count: "exact" })
+                .eq("club_id", clubId),
+              filters,
+              userId
+            )
 
-    // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
-    return selected
-      .order("created_at", { ascending })
-      .order("id", { ascending })
-      .range(0, filters.limit - 1)
+      // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
+      return selected
+        .order("created_at", { ascending })
+        .order("id", { ascending })
+        .range(0, filters.limit - 1)
+    })
   }
 
   // 도구를 가리키는 말은 그 도구의 다른 표기까지 함께 찾도록 넓혀서 넘긴다.
@@ -343,17 +370,42 @@ export const countClubLogs = cache(
 export const listSessionLogs = cache(
   async (clubId: string, sessionId: string): Promise<AiLogListResult> => {
     const supabase = await createClient()
+    const { data, error, count } = await readWithProject((project) =>
+      supabase
+        .from("ai_logs")
+        .select(SUMMARY_COLUMNS + project, { count: "exact" })
+        .eq("club_id", clubId)
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(0, SESSION_LOG_LIMIT - 1)
+    )
+
+    if (error) {
+      console.error("Session 의 AI Log 를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    const logs = (data as unknown as SummaryRow[]).map(toSummary)
+    return { status: "ok", logs, total: count ?? logs.length }
+  }
+)
+
+// 한 Project 에 묶인 AI Log 를 최신순으로 읽는다.
+export const listProjectLogs = cache(
+  async (clubId: string, projectId: string): Promise<AiLogListResult> => {
+    const supabase = await createClient()
     const { data, error, count } = await supabase
       .from("ai_logs")
-      .select(SUMMARY_COLUMNS, { count: "exact" })
+      .select(SUMMARY_COLUMNS + PROJECT_EMBED, { count: "exact" })
       .eq("club_id", clubId)
-      .eq("session_id", sessionId)
+      .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .range(0, SESSION_LOG_LIMIT - 1)
 
     if (error) {
-      console.error("Session 의 AI Log 를 불러오지 못했습니다.", error)
+      console.error("Project 의 AI Log 를 불러오지 못했습니다.", error)
       return { status: "error" }
     }
 
@@ -369,12 +421,14 @@ export const getAiLog = cache(
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("ai_logs")
-      .select(DETAIL_COLUMNS)
-      .eq("club_id", clubId)
-      .eq("id", logId)
-      .maybeSingle()
+    const { data, error } = await readWithProject((project) =>
+      supabase
+        .from("ai_logs")
+        .select(DETAIL_COLUMNS + project)
+        .eq("club_id", clubId)
+        .eq("id", logId)
+        .maybeSingle()
+    )
 
     if (error) {
       console.error("AI Log 를 불러오지 못했습니다.", error)

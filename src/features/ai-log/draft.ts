@@ -31,7 +31,7 @@ function sameTools(a: string[], b: string[]) {
 }
 
 // 맡겨 둘 만큼 달라졌는지 본다. 적는 칸이나 도구가 처음 값과 다르면 달라진 것이다.
-// Session 만 바꾼 것은 다시 고르기 쉬우므로 달라진 것으로 치지 않는다.
+// Session 이나 Project 만 바꾼 것은 다시 고르기 쉬우므로 달라진 것으로 치지 않는다.
 export function hasDraftContent(values: AiLogInput, defaults: AiLogInput) {
   return (
     TEXT_FIELDS.some((name) => values[name] !== defaults[name]) ||
@@ -51,6 +51,8 @@ function isInput(value: unknown): value is AiLogInput {
 
   return (
     typeof input.sessionId === "string" &&
+    // Project 를 고르는 칸이 생기기 전에 맡겨 둔 것에는 이 값이 없다.
+    (input.projectId === undefined || typeof input.projectId === "string") &&
     TEXT_FIELDS.every((name) => typeof input[name] === "string") &&
     Array.isArray(input.tools) &&
     input.tools.every((tool) => typeof tool === "string")
@@ -88,6 +90,7 @@ export function parseDraft(raw: string | null, now: Date): AiLogDraft | null {
     savedAt,
     values: {
       sessionId: values.sessionId,
+      projectId: values.projectId ?? "",
       title: values.title,
       tools: [...values.tools],
       attempt: values.attempt,

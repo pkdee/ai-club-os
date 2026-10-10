@@ -6,6 +6,7 @@ import { draftKey } from "@/features/ai-log/draft";
 import { getAiLog, listClubTools } from "@/features/ai-log/queries";
 import { toSessionOptions } from "@/features/ai-log/session-options";
 import { loadClubPage } from "@/features/club/page-data";
+import { listProjects } from "@/features/project/queries";
 import { listSessions } from "@/features/session/queries";
 
 export const metadata: Metadata = {
@@ -33,10 +34,23 @@ export default async function AiLogEditPage(
     return <AiLogUnavailable clubId={clubId} reason="not-author" />;
   }
 
-  const [sessions, tools] = await Promise.all([
+  const [sessions, tools, projectList] = await Promise.all([
     listSessions(clubId),
     listClubTools(clubId),
+    listProjects(clubId),
   ]);
+  // 내가 참여하는 Project 와, 이미 묶여 있는 Project 를 고를 수 있다.
+  // 참여를 그만둔 뒤에도 묶어 둔 것은 그대로 둘 수 있어야 해서 함께 넣는다.
+  const projects =
+    projectList.status === "ok"
+      ? projectList.projects
+          .filter(
+            (project) =>
+              project.id === log.project?.id ||
+              project.participants.some((item) => item.userId === data.user.id)
+          )
+          .map((project) => ({ id: project.id, name: project.name }))
+      : null;
 
   return (
     <AiLogForm
@@ -44,6 +58,7 @@ export default async function AiLogEditPage(
       clubName={data.club.name}
       defaults={{
         sessionId: log.session?.id ?? "",
+        projectId: log.project?.id ?? "",
         title: log.title,
         tools: log.tools,
         attempt: log.attempt,
@@ -54,6 +69,7 @@ export default async function AiLogEditPage(
       sessions={
         sessions.status === "ok" ? toSessionOptions(sessions.sessions) : null
       }
+      projects={projects}
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}
       draftKey={draftKey(data.user.id, clubId, log.id)}

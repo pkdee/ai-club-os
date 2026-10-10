@@ -98,12 +98,14 @@ const TEXT_FIELDS = [
 
 // logId 가 있으면 고치는 화면, 없으면 새로 쓰는 화면이다.
 // sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
+// projects 는 고를 수 있는 Project 다. 내가 참여하는 것만 들어 있고, null 이면 Project 를 고르는 칸을 그리지 않는다.
 // draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
 export function AiLogForm({
   target,
   clubName,
   defaults,
   sessions,
+  projects,
   knownTools,
   cancelHref,
   draftKey,
@@ -112,6 +114,7 @@ export function AiLogForm({
   clubName: string
   defaults: AiLogInput
   sessions: SessionOption[] | null
+  projects: { id: string; name: string }[] | null
   knownTools: string[]
   cancelHref: string
   draftKey: string
@@ -161,7 +164,7 @@ export function AiLogForm({
     opened && !discarded && hasDraftContent(opened.values, defaults)
       ? opened
       : null
-  // 맡겨 둔 Session 이 그사이 없어졌으면 처음 값으로 둔다.
+  // 맡겨 둔 Session 이나 Project 가 그사이 없어졌으면 처음 값으로 둔다.
   const base: AiLogInput = restored
     ? {
         ...restored.values,
@@ -170,6 +173,11 @@ export function AiLogForm({
           sessions?.some((session) => session.id === restored.values.sessionId)
             ? restored.values.sessionId
             : defaults.sessionId,
+        projectId:
+          restored.values.projectId === "" ||
+          projects?.some((project) => project.id === restored.values.projectId)
+            ? restored.values.projectId
+            : defaults.projectId,
       }
     : defaults
 
@@ -378,6 +386,38 @@ export function AiLogForm({
                 </FieldDescription>
               )}
             </Field>
+            {projects && (
+              <Field>
+                <FieldLabel htmlFor="log-project">Project</FieldLabel>
+                {/* 이 칸이 화면에 있었다는 표시. 서버는 이 표시가 있을 때만 Project 값을 저장한다. */}
+                <input type="hidden" name="projectField" value="1" />
+                <NativeSelect
+                  id="log-project"
+                  name="projectId"
+                  defaultValue={values.projectId}
+                  aria-invalid={invalid("projectId")}
+                  aria-describedby="log-project-help"
+                >
+                  <option value="">Project 없이 남기기</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+                {errors.projectId ? (
+                  <FieldError id="log-project-help">
+                    {errors.projectId}
+                  </FieldError>
+                ) : (
+                  <FieldDescription id="log-project-help">
+                    {projects.length > 0
+                      ? "내가 참여하는 Project 에 이 기록을 묶을 수 있습니다."
+                      : "참여하는 Project 가 없습니다. Project 에 참여하면 여기에서 고를 수 있습니다."}
+                  </FieldDescription>
+                )}
+              </Field>
+            )}
             <Field>
               <FieldLabel htmlFor="log-title">제목 (필수)</FieldLabel>
               <Input

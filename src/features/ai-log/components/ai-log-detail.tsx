@@ -4,6 +4,7 @@ import {
   CircleAlert,
   CircleArrowRight,
   FlaskConical,
+  FolderKanban,
   Lightbulb,
   Pencil,
   Target,
@@ -157,8 +158,21 @@ export function AiLogDetail({
                 {edited && ` · ${formatLogDate(log.updatedAt, now)} 수정`}
               </span>
             </div>
-            {(log.session || log.tools.length > 0) && (
+            {(log.session || log.project || log.tools.length > 0) && (
               <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+                {log.project && (
+                  <Link
+                    href={`${clubHref}/projects/${log.project.id}`}
+                    className="flex items-center gap-1.5 rounded-sm text-body-s text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                  >
+                    <FolderKanban
+                      aria-hidden="true"
+                      strokeWidth={1.5}
+                      className="size-4 shrink-0 text-icon-subtle"
+                    />
+                    {log.project.name}
+                  </Link>
+                )}
                 {log.session && (
                   <Link
                     href={`${clubHref}/sessions/${log.session.id}`}

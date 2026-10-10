@@ -14,6 +14,8 @@ export const AI_LOG_TOOL_COUNT_MAX = 10
 export type AiLogInput = {
   // 비어 있으면 Session 없이 Club 의 기록으로 남긴다.
   sessionId: string
+  // 비어 있으면 어느 Project 에도 묶지 않는다.
+  projectId: string
   title: string
   tools: string[]
   attempt: string
@@ -77,6 +79,7 @@ function formText(formData: FormData, name: string) {
 export function readAiLogForm(formData: FormData): AiLogInput {
   return {
     sessionId: formText(formData, "sessionId"),
+    projectId: formText(formData, "projectId"),
     title: formText(formData, "title"),
     tools: normalizeTools(formData.getAll("tools").map(String)),
     attempt: formText(formData, "attempt"),
@@ -91,6 +94,10 @@ export function validateAiLog(input: AiLogInput): AiLogValidation {
 
   if (input.sessionId && !isUuid(input.sessionId)) {
     errors.sessionId = "Session 을 다시 골라 주세요."
+  }
+
+  if (input.projectId && !isUuid(input.projectId)) {
+    errors.projectId = "Project 를 다시 골라 주세요."
   }
 
   if (length(input.title) === 0) {

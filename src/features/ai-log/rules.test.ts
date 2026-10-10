@@ -14,6 +14,7 @@ const astral = "\u{1F600}"
 
 const base: AiLogInput = {
   sessionId: "",
+  projectId: "",
   title: "제목",
   tools: [],
   attempt: "해 봤다",
@@ -84,4 +85,6 @@ test("도구는 10개까지이고 이름은 30자까지다", () => {
 test("Session 은 비우거나 식별자 형식이어야 한다", () => {
   assert.deepEqual(errorKeys({ ...base, sessionId: "abc" }), ["sessionId"])
   assert.deepEqual(errorKeys({ ...base, sessionId: "22222222-2222-4222-8222-222222222222" }), [])
+  assert.deepEqual(errorKeys({ ...base, projectId: "abc" }), ["projectId"])
+  assert.deepEqual(errorKeys({ ...base, projectId: "22222222-2222-4222-8222-222222222222" }), [])
 })

@@ -12,6 +12,7 @@ import type { AiLogInput } from "./rules"
 
 const empty: AiLogInput = {
   sessionId: "",
+  projectId: "",
   title: "",
   tools: [],
   attempt: "",
@@ -35,8 +36,17 @@ test("적는 칸이나 도구가 처음과 다르면 맡겨 둘 내용이 있는
   assert.equal(hasDraftContent({ ...empty, tools: ["Claude"] }, empty), true)
 })
 
-test("Session 만 바꾼 것은 맡겨 둘 내용으로 치지 않는다", () => {
+test("Session 이나 Project 만 바꾼 것은 맡겨 둘 내용으로 치지 않는다", () => {
   assert.equal(hasDraftContent({ ...empty, sessionId: "s1" }, empty), false)
+  assert.equal(hasDraftContent({ ...empty, projectId: "p1" }, empty), false)
+})
+
+test("Project 값이 없던 때에 맡겨 둔 것도 읽는다", () => {
+  const { projectId: _projectId, ...old } = { ...empty, title: "예전 것" }
+  void _projectId
+  const raw = JSON.stringify({ v: 1, savedAt: now.toISOString(), values: old })
+  assert.deepEqual(parseDraft(raw, now)?.values, { ...empty, title: "예전 것" })
+  assert.equal(parseDraft(JSON.stringify({ v: 1, savedAt: now.toISOString(), values: { ...empty, projectId: 3 } }), now), null)
 })
 
 test("고치는 화면에서는 저장된 내용과 다를 때만 맡겨 둔다", () => {

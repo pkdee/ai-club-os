@@ -5,8 +5,8 @@ import { buttonVariants } from "@/components/ui/button"
 import type { AiLogListResult } from "../queries"
 import { AiLogCardList } from "./ai-log-card"
 
-// 다른 화면에 올리는 AI Log 묶음. Club 개요의 최근 기록과 Session 개요의 이 회차 기록이 쓴다.
-// 최신순으로 limit 개까지 보여 준다.
+// 다른 화면에 올리는 AI Log 묶음. Club 개요의 최근 기록, Session 개요의 이 회차 기록, Project 의 기록이 쓴다.
+// 최신순으로 limit 개까지 보여 준다. href 를 주면 모두 보는 화면으로 가는 버튼을 함께 그린다.
 export function AiLogSection({
   title,
   href,
@@ -16,7 +16,7 @@ export function AiLogSection({
   now,
 }: {
   title: string
-  href: string
+  href?: string
   result: AiLogListResult
   limit: number
   emptyText: string
@@ -28,12 +28,14 @@ export function AiLogSection({
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-h3">{title}</h2>
-        <Link
-          href={href}
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
-        >
-          모두 보기
-        </Link>
+        {href && (
+          <Link
+            href={href}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+          >
+            모두 보기
+          </Link>
+        )}
       </div>
       {logs.length > 0 ? (
         <AiLogCardList logs={logs} now={now} />

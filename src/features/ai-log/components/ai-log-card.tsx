@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Calendar } from "lucide-react"
+import { Calendar, FolderKanban } from "lucide-react"
 
 import { Avatar } from "@/components/ui/avatar"
 
@@ -23,14 +23,28 @@ export function AiLogCard({ log, now }: { log: AiLogSummary; now: Date }) {
             {formatLogDate(log.createdAt, now)}
           </span>
         </div>
-        {log.session && (
-          <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
-            <Calendar
-              aria-hidden="true"
-              strokeWidth={1.5}
-              className="size-3.5 shrink-0 text-icon-subtle"
-            />
-            {log.session.title}
+        {(log.session || log.project) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
+            {log.project && (
+              <span className="flex items-center gap-1.5">
+                <FolderKanban
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                  className="size-3.5 shrink-0 text-icon-subtle"
+                />
+                {log.project.name}
+              </span>
+            )}
+            {log.session && (
+              <span className="flex items-center gap-1.5">
+                <Calendar
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                  className="size-3.5 shrink-0 text-icon-subtle"
+                />
+                {log.session.title}
+              </span>
+            )}
           </div>
         )}
       </div>

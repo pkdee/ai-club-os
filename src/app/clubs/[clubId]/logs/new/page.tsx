@@ -8,6 +8,7 @@ import {
 } from "@/features/ai-log/session-options";
 import { listClubTools } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
+import { listProjects } from "@/features/project/queries";
 import { listSessions } from "@/features/session/queries";
 
 export const metadata: Metadata = {
@@ -25,10 +26,22 @@ export default async function AiLogNewPage(
     return null;
   }
 
-  const [result, tools] = await Promise.all([
+  const [result, tools, projectList] = await Promise.all([
     listSessions(clubId),
     listClubTools(clubId),
+    listProjects(clubId),
   ]);
+  // 내가 참여하는 Project 만 고를 수 있다. Project 를 아직 쓸 수 없으면 고르는 칸을 그리지 않는다.
+  const projects =
+    projectList.status === "ok"
+      ? projectList.projects
+          .filter((project) =>
+            project.participants.some((item) => item.userId === data.user.id)
+          )
+          .map((project) => ({ id: project.id, name: project.name }))
+      : null;
+  const projectId =
+    projects?.find((project) => project.id === query.project)?.id ?? "";
   const sessions = result.status === "ok" ? result.sessions : null;
   const sessionId = sessions
     ? defaultSessionId(sessions, query.session, new Date())
@@ -40,6 +53,7 @@ export default async function AiLogNewPage(
       clubName={data.club.name}
       defaults={{
         sessionId,
+        projectId,
         title: "",
         tools: [],
         attempt: "",
@@ -48,12 +62,15 @@ export default async function AiLogNewPage(
         nextAction: "",
       }}
       sessions={sessions ? toSessionOptions(sessions) : null}
+      projects={projects}
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
-      // Session 에서 들어왔으면 취소할 때 그 회차의 AI Log 로 돌아간다.
+      // Session 이나 Project 에서 들어왔으면 취소할 때 그곳으로 돌아간다.
       cancelHref={
         sessionId && query.session === sessionId
           ? `/clubs/${clubId}/sessions/${sessionId}/logs`
-          : `/clubs/${clubId}/logs`
+          : projectId
+            ? `/clubs/${clubId}/projects/${projectId}`
+            : `/clubs/${clubId}/logs`
       }
       draftKey={draftKey(data.user.id, clubId)}
     />
