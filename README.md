@@ -29,7 +29,19 @@ npm run dev
 
 데이터베이스 구조는 `supabase/migrations/` 의 SQL 파일에 있습니다. 새 Supabase 프로젝트에는 이 파일들을 이름 순서대로 적용해야 합니다. 대시보드의 SQL Editor 에 붙여 넣어 실행하거나 Supabase CLI 의 `supabase db push` 를 씁니다.
 
-http://localhost:3000 을 열면 로그인 화면으로 이동합니다. 검사는 `npm run lint` 와 `npm run build` 로 합니다.
+http://localhost:3000 을 열면 로그인 화면으로 이동합니다.
+
+## 검증
+
+```bash
+npm run lint
+npm run build
+npm test
+```
+
+`npm test` 는 입력 규칙 시험과 접근 규칙 시험을 차례로 돌립니다. 접근 규칙 시험은 Docker 에 빈 Postgres 를 띄워 `supabase/migrations/` 를 적용한 뒤 시험하므로 Docker 가 켜져 있어야 합니다. 실제 Supabase 프로젝트에는 아무것도 보내지 않습니다. 하나만 돌리려면 `npm run test:unit` 이나 `npm run test:db` 를 씁니다.
+
+화면에서의 흐름은 자동으로 확인하지 않습니다. 범위와 이유는 `docs/adr/0010-automated-checks-without-new-packages.md` 에 있습니다.
 
 ## 범위
 

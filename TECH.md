@@ -13,6 +13,7 @@
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
 | 패키지 관리 | npm | 도입 |
+| 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
 
 ## 도입한 패키지와 근거
 
