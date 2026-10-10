@@ -70,8 +70,13 @@ export function SessionUnavailable({
 }
 
 // 지울 때 함께 지워지는 Attendance 와 남는 AI Log 를 알려 주는 글. 수가 null 이면 세지 못한 것이다.
-function deleteNotes(attendanceCount: number | null, logCount: number | null) {
+function deleteNotes(
+  attendanceCount: number | null,
+  logCount: number | null,
+  hasInsight: boolean
+) {
   return [
+    ...(hasInsight ? ["이 회차의 AI Insight 도 함께 지워집니다."] : []),
     attendanceCount === null
       ? "이 회차의 Attendance 기록이 함께 지워집니다."
       : attendanceCount === 0
@@ -88,13 +93,15 @@ function deleteNotes(attendanceCount: number | null, logCount: number | null) {
 
 // Session 상세의 모든 탭 위에 놓이는 제목 영역.
 // actions 에는 다른 기능이 이 회차에 올리는 버튼을 넣는다.
-// attendanceCount 와 logCount 는 지우기 전에 보여 주는 수다. 다른 기능이 센 값을 받는다.
+// attendanceCount 와 logCount 는 지우기 전에 보여 주는 수이고, hasInsight 는 이 회차를 정리한 AI Insight 가 있다는 뜻이다.
+// 모두 다른 기능이 읽은 값을 받는다.
 export function SessionHeader({
   clubName,
   session,
   canManage,
   attendanceCount,
   logCount,
+  hasInsight,
   actions,
   now,
 }: {
@@ -103,6 +110,7 @@ export function SessionHeader({
   canManage: boolean
   attendanceCount: number | null
   logCount: number | null
+  hasInsight: boolean
   actions?: React.ReactNode
   now: Date
 }) {
@@ -158,7 +166,11 @@ export function SessionHeader({
               <DeleteDialog
                 label="삭제"
                 title="이 Session 을 지울까요?"
-                description={deleteNotes(attendanceCount, logCount).map(
+                description={deleteNotes(
+                  attendanceCount,
+                  logCount,
+                  hasInsight
+                ).map(
                   (note) => (
                     <p key={note}>{note}</p>
                   )

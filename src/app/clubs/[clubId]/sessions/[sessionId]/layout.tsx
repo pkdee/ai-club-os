@@ -1,3 +1,4 @@
+import { getSessionInsight } from "@/features/ai-insight/queries";
 import { WriteLogLink } from "@/features/ai-log/components/write-log-link";
 import { listSessionLogs } from "@/features/ai-log/queries";
 import { countSessionAttendance } from "@/features/attendance/queries";
@@ -31,10 +32,11 @@ export default async function SessionLayout(
   }
 
   const canManage = access.club.role === "admin";
-  // Attendance 수는 운영자가 Session 을 지우기 전에 보는 안내에만 쓴다.
-  const [logs, attendanceCount] = await Promise.all([
+  // Attendance 수와 AI Insight 는 운영자가 Session 을 지우기 전에 보는 안내에만 쓴다.
+  const [logs, attendanceCount, insight] = await Promise.all([
     listSessionLogs(clubId, sessionId),
     canManage ? countSessionAttendance(clubId, sessionId) : null,
+    canManage ? getSessionInsight(clubId, sessionId) : null,
   ]);
   const logCount = logs.status === "ok" ? logs.total : null;
 
@@ -46,6 +48,7 @@ export default async function SessionLayout(
         canManage={canManage}
         attendanceCount={attendanceCount}
         logCount={logCount}
+        hasInsight={insight?.status === "ok" && insight.insight !== null}
         actions={<WriteLogLink clubId={clubId} sessionId={sessionId} />}
         now={new Date()}
       />

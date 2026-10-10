@@ -7,6 +7,7 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
+  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react"
@@ -31,6 +32,7 @@ function navItems(clubId: string, canManage: boolean): NavItem[] {
     { href: base, label: "개요", icon: LayoutDashboard, exact: true },
     { href: `${base}/sessions`, label: "Session", icon: Calendar },
     { href: `${base}/logs`, label: "AI Log", icon: FileText },
+    { href: `${base}/insights`, label: "AI Insight", icon: Sparkles },
     { href: `${base}/members`, label: "Member", icon: Users },
   ]
 

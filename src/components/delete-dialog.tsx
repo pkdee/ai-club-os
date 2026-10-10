@@ -18,7 +18,7 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-// 지우는 동작이 돌려주는 값. 성공하면 다른 화면으로 이동하므로 화면에 오는 것은 대개 실패한 까닭이다.
+// 지우는 동작이 돌려주는 값. 성공하면서 다른 화면으로 이동하는 동작은 값을 돌려주지 않고 떠난다.
 export type DeleteResult = { ok: true } | { ok: false; message: string }
 
 type Confirm = {
@@ -132,7 +132,10 @@ export function DeleteDialog(props: DeleteDialogProps) {
               const result = await (props.confirm
                 ? props.onDelete(typed)
                 : props.onDelete())
-              if (!result.ok) {
+              if (result.ok) {
+                // 지운 뒤 다른 화면으로 가지 않는 곳에서는 창만 닫는다.
+                setOpen(false)
+              } else {
                 onError(result.message)
               }
             })

@@ -20,6 +20,7 @@ export function SessionTabs({
     { href: baseHref, label: "개요", count: null },
     { href: `${baseHref}/attendance`, label: "Attendance", count: memberCount },
     { href: `${baseHref}/logs`, label: "AI Log", count: logCount },
+    { href: `${baseHref}/insight`, label: "AI Insight", count: null },
   ]
 
   return (
