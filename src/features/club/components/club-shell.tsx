@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, ChevronsUpDown, LogOut } from "lucide-react"
+import { ArrowLeft, ChevronsUpDown, LogOut, Settings } from "lucide-react"
 
 import { Avatar } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -84,6 +84,16 @@ export function ClubShell({
         <span className="min-w-0 flex-1 truncate pl-2 text-h4">
           {club.name}
         </span>
+        {/* 좁은 화면에서는 아래쪽 메뉴에 자리가 모자라 설정을 여기에 둔다. */}
+        {club.role === "admin" && (
+          <Link
+            href={`/clubs/${club.id}/settings`}
+            aria-label="Club 설정"
+            className={buttonVariants({ variant: "ghost", size: "icon" })}
+          >
+            <Settings aria-hidden="true" strokeWidth={1.5} />
+          </Link>
+        )}
         <form action={signOut}>
           <Button
             type="submit"
