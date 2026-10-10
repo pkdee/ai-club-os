@@ -4,14 +4,10 @@
 -- Project 는 여러 AI Log 와 할 일, 결과물 링크를 하나의 결과물로 묶는다.
 -- Member 는 누구나 만들고, 그 Project 의 참여자와 운영자가 고친다. 지우는 것은 만든 사람과 운영자다.
 
--- 앱이 켜져 있는 데이터베이스에 손으로 적용할 때는 아래 두 묶음을 하나씩 따로 실행한다.
--- 묶음 1 은 새 테이블만 만들어서 앱의 조회와 부딪히지 않는다.
--- 묶음 2 는 ai_logs 하나만 잠근다. 묶음 1 과 한 번에 실행하면 여러 테이블을 함께 잠그게 되어
--- 앱의 조회와 서로를 기다리다 멈출 수 있다(deadlock, 40P01).
-
--- ===========================================================================
--- 묶음 1. Project 와 참여자, 결과물 링크, 할 일
--- ===========================================================================
+-- 이 파일은 새 테이블만 만든다. 외래 키가 기존 테이블에 거는 잠금은 조회를 막지 않아서
+-- 앱이 켜져 있는 데이터베이스에 통째로 적용해도 된다.
+-- AI Log 를 Project 에 묶는 부분은 ai_logs 를 잠그므로 다음 파일(link_ai_logs_to_projects)로 나눴다.
+-- 한 번에 실행하면 여러 테이블을 함께 잠그게 되어 앱의 조회와 서로를 기다리다 멈출 수 있다(deadlock, 40P01).
 
 -- ---------------------------------------------------------------------------
 -- 테이블
@@ -340,52 +336,3 @@ grant insert (project_id, club_id, label, url) on table public.project_links to 
 grant select, delete on table public.project_tasks to authenticated;
 grant insert (project_id, club_id, title) on table public.project_tasks to authenticated;
 grant update (title, done) on table public.project_tasks to authenticated;
-
--- ===========================================================================
--- 묶음 2. AI Log 를 Project 에 묶기
--- ===========================================================================
-
--- AI Log 하나는 Project 하나에만 속한다. 비어 있으면 어느 Project 에도 속하지 않는다.
--- 같은 Club 의 Project 만 가리킬 수 있고, Project 가 삭제되면 기록은 남고 연결만 비워진다.
-alter table public.ai_logs
-  add column if not exists project_id uuid;
-
-alter table public.ai_logs
-  drop constraint if exists ai_logs_project_fkey;
-alter table public.ai_logs
-  add constraint ai_logs_project_fkey foreign key (project_id, club_id)
-    references public.projects (id, club_id) on delete set null (project_id);
-
-comment on column public.ai_logs.project_id is '기록이 속한 Project. 비어 있으면 어느 Project 에도 속하지 않는다.';
-
--- 외래 키와 Project 별 목록이 쓰는 색인.
-create index if not exists ai_logs_project_id_club_id_idx on public.ai_logs (project_id, club_id)
-  where project_id is not null;
-
--- 작성자는 자기가 참여하는 Project 에만 기록을 묶는다.
--- 묶는 Project 를 바꿀 때만 확인한다. 참여를 그만둔 뒤에도 이미 묶어 둔 기록의 다른 내용은 고칠 수 있다.
-create or replace function private.check_ai_log_project()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  if new.project_id is not null
-    and (tg_op = 'INSERT' or new.project_id is distinct from old.project_id)
-    and not private.is_project_participant(new.project_id) then
-    raise exception '참여하는 Project 에만 AI Log 를 묶을 수 있습니다.'
-      using errcode = '42501';
-  end if;
-  return new;
-end;
-$$;
-
-revoke all on function private.check_ai_log_project() from public;
-
-drop trigger if exists ai_logs_check_project on public.ai_logs;
-create trigger ai_logs_check_project
-  before insert or update of project_id on public.ai_logs
-  for each row
-  execute function private.check_ai_log_project();
-
-grant insert (project_id), update (project_id) on table public.ai_logs to authenticated;

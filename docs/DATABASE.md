@@ -54,7 +54,8 @@ User
 | 검색이 한 도구의 여러 표기를 함께 찾도록 함수 교체 | `20261010082852_search_tool_spellings.sql` | `docs/adr/0013-known-tool-catalog.md` |
 | AI Log, Session, Club 을 지우는 규칙 | `20261010091458_add_delete_rules.sql` | `docs/adr/0015-delete-rules.md` |
 | `ai_insights` | `20261010141008_create_ai_insights.sql` | `docs/adr/0017-ai-insight-draft-and-publish.md` |
-| `projects`, `project_members`, `project_links`, `project_tasks`, `ai_logs` 의 Project 열 | `20261010145830_create_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
+| `projects`, `project_members`, `project_links`, `project_tasks` | `20261010145830_create_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
+| `ai_logs` 의 Project 열과 참여자 확인 | `20261010153246_link_ai_logs_to_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
 
 ```mermaid
 erDiagram
