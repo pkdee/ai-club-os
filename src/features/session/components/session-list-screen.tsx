@@ -66,7 +66,14 @@ export function SessionListScreen({
     .filter((session) => sessionStatus(session.startsAt, now) === "done")
     .reverse()
   const createDialog = canManage ? (
-    <SessionFormDialog target={{ clubId }} defaults={{ date: kstDateKey(now) }} />
+    <SessionFormDialog
+      target={{ clubId }}
+      defaults={{
+        date: kstDateKey(now),
+        // 시간표 열이 아직 없으면 넘기지 않아서 창에 칸이 나오지 않는다.
+        ...(result.status === "ok" && result.agendaReady && { agenda: "" }),
+      }}
+    />
   ) : null
 
   return (

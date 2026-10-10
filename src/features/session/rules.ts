@@ -4,6 +4,7 @@ import { kstToIso } from "./time"
 export const SESSION_TITLE_MAX = 80
 export const SESSION_LOCATION_MAX = 80
 export const SESSION_DESCRIPTION_MAX = 2000
+export const SESSION_AGENDA_MAX = 2000
 
 export type SessionInput = {
   title: string
@@ -12,6 +13,8 @@ export type SessionInput = {
   endTime: string
   location: string
   description: string
+  // 시간표. 한 줄에 하나씩 적는다. 비워 둘 수 있다.
+  agenda: string
 }
 
 export type SessionInputErrors = Partial<Record<keyof SessionInput, string>>
@@ -56,6 +59,9 @@ export function validateSession(input: SessionInput): SessionValidation {
   }
   if (length(input.description) > SESSION_DESCRIPTION_MAX) {
     errors.description = `목표와 소개는 ${SESSION_DESCRIPTION_MAX}자 이내로 적어 주세요.`
+  }
+  if (length(input.agenda) > SESSION_AGENDA_MAX) {
+    errors.agenda = `시간표는 ${SESSION_AGENDA_MAX}자 이내로 적어 주세요.`
   }
 
   if (Object.keys(errors).length > 0 || !startsAt || !endsAt) {

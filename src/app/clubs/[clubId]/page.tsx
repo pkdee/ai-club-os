@@ -151,7 +151,11 @@ export default async function ClubOverviewPage(
           {club.role === "admin" && (
             <SessionFormDialog
               target={{ clubId: club.id }}
-              defaults={{ date: kstDateKey(now) }}
+              defaults={{
+                date: kstDateKey(now),
+                ...(result.status === "ok" &&
+                  result.agendaReady && { agenda: "" }),
+              }}
               quiet
             />
           )}

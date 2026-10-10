@@ -2,8 +2,11 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import {
+  MEMBER_LIMIT_MAX,
+  MEMBER_PAGE_SIZE,
   MEMBER_SEARCH_MAX,
   matchesMember,
+  memberLimit,
   membersHref,
   parseMemberQuery,
 } from "./search"
@@ -46,4 +49,19 @@ test("주소에는 기본값이 아닌 것만 적는다", () => {
     membersHref("c1", "member", "김 하늘"),
     "/clubs/c1/members?role=member&q=%EA%B9%80+%ED%95%98%EB%8A%98"
   )
+})
+
+test("보여 줄 수는 첫 묶음보다 작아지지 않고 최대를 넘지 않는다", () => {
+  assert.equal(memberLimit(undefined), MEMBER_PAGE_SIZE)
+  assert.equal(memberLimit("abc"), MEMBER_PAGE_SIZE)
+  assert.equal(memberLimit("5"), MEMBER_PAGE_SIZE)
+  assert.equal(memberLimit("40"), 40)
+  assert.equal(memberLimit("99999"), MEMBER_LIMIT_MAX)
+  assert.equal(memberLimit(["40"]), MEMBER_PAGE_SIZE)
+})
+
+test("더 보기 주소에는 늘어난 수만 적는다", () => {
+  assert.equal(membersHref("c1", "all", "", MEMBER_PAGE_SIZE), "/clubs/c1/members")
+  assert.equal(membersHref("c1", "all", "", 40), "/clubs/c1/members?n=40")
+  assert.equal(membersHref("c1", "admin", "하늘", 60), "/clubs/c1/members?role=admin&q=%ED%95%98%EB%8A%98&n=60")
 })

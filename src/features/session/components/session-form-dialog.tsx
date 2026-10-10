@@ -30,6 +30,7 @@ import {
   type SessionTarget,
 } from "../actions"
 import {
+  SESSION_AGENDA_MAX,
   SESSION_DESCRIPTION_MAX,
   SESSION_LOCATION_MAX,
   SESSION_TITLE_MAX,
@@ -61,6 +62,8 @@ function SessionForm({
   )
   const errors = state.errors ?? {}
   const values = state.values ?? defaults
+  // 처음 값에 시간표가 있을 때만 시간표 칸을 그린다. 없으면 데이터베이스에 그 열이 아직 없는 것이다.
+  const showAgenda = defaults.agenda !== undefined
   const invalid = (name: keyof SessionInput) => (errors[name] ? true : undefined)
   const errorId = (name: keyof SessionInput) =>
     errors[name] ? `session-${name}-error` : undefined
@@ -178,6 +181,30 @@ function SessionForm({
           </FieldDescription>
         )}
       </Field>
+      {showAgenda && (
+        <Field>
+          <FieldLabel htmlFor="session-agenda">시간표</FieldLabel>
+          {/* 이 칸이 화면에 있었다는 표시. 서버는 이 표시가 있을 때만 시간표를 저장한다. */}
+          <input type="hidden" name="agendaField" value="1" />
+          <Textarea
+            id="session-agenda"
+            name="agenda"
+            maxLength={SESSION_AGENDA_MAX}
+            placeholder={"19:00 지난 회차 돌아보기\n19:20 실습\n20:40 AI Log 작성"}
+            defaultValue={values.agenda}
+            aria-invalid={invalid("agenda")}
+            aria-describedby="session-agenda-help"
+          />
+          {errors.agenda ? (
+            <FieldError id="session-agenda-help">{errors.agenda}</FieldError>
+          ) : (
+            <FieldDescription id="session-agenda-help">
+              한 줄에 하나씩 적습니다. 줄 앞에 시각을 적으면 따로 보여 줍니다.
+              비워 둬도 됩니다.
+            </FieldDescription>
+          )}
+        </Field>
+      )}
       <DialogFooter>
         <DialogClose render={<Button type="button" variant="outline" />}>
           취소

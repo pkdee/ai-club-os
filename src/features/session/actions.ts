@@ -64,7 +64,13 @@ export async function saveSession(
     endTime: text(formData, "endTime"),
     location: text(formData, "location"),
     description: text(formData, "description"),
+    agenda: String(formData.get("agenda") ?? "")
+      .replace(/\r\n?/g, "\n")
+      .trim(),
   }
+  // 시간표 칸이 화면에 있었을 때만 그 값을 보낸다.
+  // 데이터베이스에 시간표 열이 아직 없으면 칸이 나오지 않고, 그때는 보내지 않아야 저장이 된다.
+  const withAgenda = formData.get("agendaField") === "1"
 
   const validation = validateSession(values)
   if (!validation.ok) {
@@ -75,6 +81,7 @@ export async function saveSession(
     title: values.title,
     description: values.description,
     location: values.location,
+    ...(withAgenda && { agenda: values.agenda }),
     starts_at: validation.startsAt,
     ends_at: validation.endsAt,
   }

@@ -18,6 +18,7 @@ import { ROLE_LABEL } from "@/features/club/roles"
 import type { ClubBanListResult } from "../bans"
 import type { MemberListResult } from "../queries"
 import {
+  MEMBER_PAGE_SIZE,
   MEMBER_SEARCH_MAX,
   matchesMember,
   membersHref,
@@ -35,6 +36,7 @@ export function MemberListScreen({
   clubId,
   view,
   query,
+  limit = MEMBER_PAGE_SIZE,
   result,
   logCounts,
   currentUserId,
@@ -45,6 +47,8 @@ export function MemberListScreen({
   clubId: string
   view: MemberView
   query: string
+  // 한 화면에 보여 줄 Member 수. 더 보기를 누를 때마다 늘어난다.
+  limit?: number
   result: MemberListResult
   logCounts: Record<string, number> | null
   currentUserId: string
@@ -167,14 +171,29 @@ export function MemberListScreen({
           {shown.length > 0 ? (
             <MemberTable
               clubId={clubId}
-              members={shown}
+              members={shown.slice(0, limit)}
               logCounts={logCounts}
               currentUserId={currentUserId}
               canManage={canManage}
               canBlock={canManage && bans?.status === "ok"}
               adminCount={admins.length}
             />
-          ) : (
+          ) : null}
+          {shown.length > limit && (
+            <div className="flex items-center justify-between gap-3">
+              <p role="status" className="text-body-s text-muted-foreground">
+                {shown.length}명 중 {limit}명
+              </p>
+              <Link
+                href={membersHref(clubId, view, query, limit + MEMBER_PAGE_SIZE)}
+                scroll={false}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                더 보기
+              </Link>
+            </div>
+          )}
+          {shown.length > 0 ? null : (
             <p className="rounded-xl border bg-card p-5 text-muted-foreground">
               {query
                 ? "찾는 Member 가 없습니다. 이름이나 이메일을 다시 확인해 주세요."

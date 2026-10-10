@@ -6,8 +6,8 @@ import { defaultSessionId, toSessionOptions } from "./session-options"
 // 한국 시간 2026-10-08 12:00
 const now = new Date("2026-10-08T03:00:00.000Z")
 const sessions = [
-  { id: "11111111-1111-4111-8111-111111111111", clubId: "c", title: "1회차", description: "", location: "", startsAt: "2026-10-01T10:00:00.000Z", endsAt: "2026-10-01T12:00:00.000Z" },
-  { id: "22222222-2222-4222-8222-222222222222", clubId: "c", title: "2회차", description: "소개", location: "", startsAt: "2026-10-08T10:00:00.000Z", endsAt: "2026-10-08T12:00:00.000Z" },
+  { id: "11111111-1111-4111-8111-111111111111", clubId: "c", title: "1회차", description: "", location: "", startsAt: "2026-10-01T10:00:00.000Z", endsAt: "2026-10-01T12:00:00.000Z", agenda: null },
+  { id: "22222222-2222-4222-8222-222222222222", clubId: "c", title: "2회차", description: "소개", location: "", startsAt: "2026-10-08T10:00:00.000Z", endsAt: "2026-10-08T12:00:00.000Z", agenda: null },
 ]
 
 test("주소로 받은 회차가 이 Club 의 것이면 그것을 고른다", () => {

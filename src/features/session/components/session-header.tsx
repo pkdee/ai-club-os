@@ -188,6 +188,8 @@ export function SessionHeader({
                   endTime: kstTime(session.endsAt),
                   location: session.location,
                   description: session.description,
+                  // 시간표 열이 아직 없으면 넘기지 않아서 창에 칸이 나오지 않는다.
+                  ...(session.agenda !== null && { agenda: session.agenda }),
                 }}
               />
             )}

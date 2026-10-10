@@ -11,7 +11,7 @@ import {
 import { formatInviteExpiry } from "@/features/member/format";
 import { getClubInvite } from "@/features/member/invite";
 import { listMembers } from "@/features/member/queries";
-import { parseMemberQuery } from "@/features/member/search";
+import { memberLimit, parseMemberQuery } from "@/features/member/search";
 
 export const metadata: Metadata = {
   title: "Member | AI Club OS",
@@ -45,6 +45,7 @@ export default async function MemberListPage(
       clubId={clubId}
       view={view}
       query={parseMemberQuery(query.q)}
+      limit={memberLimit(query.n)}
       result={members}
       logCounts={logCounts}
       currentUserId={data.user.id}

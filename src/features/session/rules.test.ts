@@ -10,6 +10,7 @@ const base: SessionInput = {
   endTime: "21:00",
   location: "",
   description: "",
+  agenda: "",
 }
 
 function errorKeys(input: SessionInput) {
@@ -48,4 +49,10 @@ test("장소와 소개의 길이를 확인한다", () => {
   assert.deepEqual(errorKeys({ ...base, location: "가".repeat(81) }), ["location"])
   assert.deepEqual(errorKeys({ ...base, description: "가".repeat(2000) }), [])
   assert.deepEqual(errorKeys({ ...base, description: "가".repeat(2001) }), ["description"])
+})
+
+test("시간표는 비워 둘 수 있고 2000자를 넘을 수 없다", () => {
+  assert.deepEqual(errorKeys({ ...base, agenda: "19:00 시작\n19:20 실습" }), [])
+  assert.deepEqual(errorKeys({ ...base, agenda: "가".repeat(2000) }), [])
+  assert.deepEqual(errorKeys({ ...base, agenda: "가".repeat(2001) }), ["agenda"])
 })
