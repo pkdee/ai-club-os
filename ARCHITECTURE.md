@@ -28,6 +28,7 @@ flowchart LR
 - AI Insight: AI Log를 바탕으로 만든 이해와 제안
 - Project: 여러 활동과 기록이 모이는 결과물
 - Web Presentation: 결과를 외부에 보여 주는 발표 화면
+- 알림: 다른 영역의 기록에서 내가 챙길 것과 새 소식을 읽어 내 모아 보여 주는 화면. 자기 데이터는 마지막으로 확인한 시각뿐이다
 
 AI Log는 나머지 확장 기능이 지식을 얻는 핵심 Entity입니다.
 
@@ -78,7 +79,8 @@ src/
 │   ├── ai-log/
 │   ├── ai-insight/
 │   ├── project/
-│   └── presentation/
+│   ├── presentation/
+│   └── notification/
 ├── lib/
 │   └── supabase/
 └── proxy.ts
@@ -90,7 +92,9 @@ src/
 
 ## 요청 처리 흐름
 
-모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/`, 그리고 발표를 여는 `/p/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 이때 보려던 경로를 `next` 값으로 넘겨서 로그인한 뒤 그곳으로 돌아옵니다. 지금 구현된 기능은 `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`, `project`, `presentation` 입니다.
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/`, 그리고 발표를 여는 `/p/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 이때 보려던 경로를 `next` 값으로 넘겨서 로그인한 뒤 그곳으로 돌아옵니다. 지금 구현된 기능은 `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`, `project`, `presentation`, `notification` 입니다.
+
+`notification` 은 다른 기능의 기록을 읽기만 합니다. 참여 요청, 할 일, 참여, 공개된 AI Insight 를 직접 조회해 알림으로 다듬고, 그 기능들이 알림을 알 필요는 없습니다. Club 안쪽 화면의 틀(`src/app/clubs/[clubId]/layout.tsx`)이 메뉴에 보일 알림 수를 읽어 넘깁니다.
 
 ```mermaid
 flowchart TD
