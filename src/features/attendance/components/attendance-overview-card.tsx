@@ -14,7 +14,7 @@ import {
 import type { AttendanceMark } from "../status"
 import { AttendanceSummary } from "./attendance-summary"
 
-// Session 개요에 올리는 Attendance 요약. counts 가 null 이면 불러오지 못한 것이다.
+// Session 개요의 옆 칸에 올리는 Attendance 요약. counts 가 null 이면 불러오지 못한 것이다.
 export function AttendanceOverviewCard({
   href,
   canManage,
@@ -25,24 +25,19 @@ export function AttendanceOverviewCard({
   counts: Record<AttendanceMark, number> | null
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-card p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-h4">Attendance</h2>
-        <Link
-          href={href}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          <ClipboardCheck aria-hidden="true" strokeWidth={1.5} />
-          {canManage ? "기록하기" : "모두 보기"}
-        </Link>
-      </div>
+    <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+      <h2 className="text-h4">Attendance</h2>
       {counts ? (
-        <AttendanceSummary counts={counts} />
+        <AttendanceSummary counts={counts} stacked />
       ) : (
-        <p className="text-muted-foreground">
+        <p className="text-body-s text-muted-foreground">
           Attendance 를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.
         </p>
       )}
+      <Link href={href} className={buttonVariants({ variant: "outline" })}>
+        <ClipboardCheck aria-hidden="true" strokeWidth={1.5} />
+        {canManage ? "Attendance 기록" : "Attendance 보기"}
+      </Link>
     </section>
   )
 }
