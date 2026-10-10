@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CircleAlert, FileText, RefreshCw } from "lucide-react"
+import { CircleAlert, FileText, RefreshCw, SearchX } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -12,34 +12,46 @@ import {
 } from "@/components/ui/empty"
 import { LinkTabs } from "@/components/ui/link-tabs"
 
+import {
+  clearedLogsHref,
+  isFiltered,
+  logsHref,
+  type AiLogFilters,
+} from "../filters"
 import { AI_LOG_LIMIT_MAX, AI_LOG_PAGE_SIZE } from "../paging"
 import type { AiLogListResult } from "../queries"
 import { AiLogCardList } from "./ai-log-card"
+import { AiLogFilterBar } from "./ai-log-filter-bar"
 import { WriteLogLink } from "./write-log-link"
 
-// view 가 mine 이면 내가 쓴 기록만 보는 중이다. counts 의 값이 null 이면 그 수를 세지 못한 것이다.
+// counts 는 조건을 걸지 않았을 때의 전체 수와 내가 쓴 수다. 값이 null 이면 세지 못한 것이다.
+// sessions 와 tools 는 고르는 칸에 넣을 목록이다.
 export function AiLogListScreen({
   clubId,
-  view,
+  filters,
   result,
   counts,
-  limit,
+  sessions,
+  tools,
   now,
 }: {
   clubId: string
-  view: "all" | "mine"
+  filters: AiLogFilters
   result: AiLogListResult
   counts: { all: number | null; mine: number | null }
-  limit: number
+  sessions: { id: string; title: string }[]
+  tools: string[]
   now: Date
 }) {
-  const base = `/clubs/${clubId}/logs`
-  const mine = view === "mine"
-  const viewHref = mine ? `${base}?view=mine` : base
+  const mine = filters.view === "mine"
+  const filtered = isFiltered(filters)
   const logs = result.status === "ok" ? result.logs : []
   const total = result.status === "ok" ? result.total : 0
-  const moreHref = `${base}?${mine ? "view=mine&" : ""}n=${limit + AI_LOG_PAGE_SIZE}`
+  const firstPage = { limit: AI_LOG_PAGE_SIZE }
+  const clearHref = clearedLogsHref(clubId, filters)
   const writeLink = <WriteLogLink clubId={clubId} />
+  // 기록이 하나도 없는 Club 에서는 찾을 것이 없으므로 찾는 칸을 감춘다.
+  const hasAnyLog = counts.all !== 0 || filtered
 
   return (
     <>
@@ -51,20 +63,35 @@ export function AiLogListScreen({
             있습니다.
           </p>
         </div>
-        {logs.length > 0 && writeLink}
+        {(logs.length > 0 || filtered) && writeLink}
       </div>
       <LinkTabs
         label="AI Log 보기"
         tabs={[
-          { href: base, label: "전체", count: counts.all, active: !mine },
           {
-            href: `${base}?view=mine`,
+            href: logsHref(clubId, filters, { view: "all", ...firstPage }),
+            label: "전체",
+            count: counts.all,
+            active: !mine,
+          },
+          {
+            href: logsHref(clubId, filters, { view: "mine", ...firstPage }),
             label: "내가 쓴 기록",
             count: counts.mine,
             active: mine,
           },
         ]}
       />
+      {hasAnyLog && (
+        <AiLogFilterBar
+          // 주소가 바뀌면 칸의 값도 주소에 맞게 다시 채운다.
+          key={logsHref(clubId, filters, firstPage)}
+          clubId={clubId}
+          filters={filters}
+          sessions={sessions}
+          tools={tools}
+        />
+      )}
       {result.status === "error" ? (
         <div className="rounded-xl border bg-card">
           <Empty>
@@ -80,11 +107,33 @@ export function AiLogListScreen({
             </EmptyHeader>
             <EmptyContent>
               <Link
-                href={viewHref}
+                href={logsHref(clubId, filters)}
                 className={buttonVariants({ variant: "outline" })}
               >
                 <RefreshCw aria-hidden="true" strokeWidth={1.5} />
                 다시 시도
+              </Link>
+            </EmptyContent>
+          </Empty>
+        </div>
+      ) : logs.length === 0 && filtered ? (
+        <div className="rounded-xl border bg-card">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia>
+                <SearchX strokeWidth={1.5} />
+              </EmptyMedia>
+              <EmptyTitle>조건에 맞는 기록이 없습니다</EmptyTitle>
+              <EmptyDescription>
+                찾는 글자를 줄이거나 고른 조건을 지워 보세요.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                href={clearHref}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                조건 지우기
               </Link>
             </EmptyContent>
           </Empty>
@@ -109,11 +158,26 @@ export function AiLogListScreen({
         </div>
       ) : (
         <>
+          {filtered && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p role="status" className="text-body-s text-muted-foreground">
+                조건에 맞는 기록 {total}개
+              </p>
+              <Link
+                href={clearHref}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                조건 지우기
+              </Link>
+            </div>
+          )}
           <AiLogCardList logs={logs} now={now} />
           {total > logs.length &&
-            (limit < AI_LOG_LIMIT_MAX ? (
+            (filters.limit < AI_LOG_LIMIT_MAX ? (
               <Link
-                href={moreHref}
+                href={logsHref(clubId, filters, {
+                  limit: filters.limit + AI_LOG_PAGE_SIZE,
+                })}
                 scroll={false}
                 className={buttonVariants({
                   variant: "outline",
@@ -124,8 +188,8 @@ export function AiLogListScreen({
               </Link>
             ) : (
               <p className="text-center text-body-s text-muted-foreground">
-                최근 {AI_LOG_LIMIT_MAX}개까지 보여 줍니다. 전체는 {total}
-                개입니다.
+                {AI_LOG_LIMIT_MAX}개까지 보여 줍니다. 모두 {total}개입니다. 찾는
+                글자나 조건으로 좁혀 보세요.
               </p>
             ))}
         </>

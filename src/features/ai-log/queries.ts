@@ -5,6 +5,8 @@ import { googleAvatarUrl } from "@/lib/google-avatar"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
+import { NO_SESSION, type AiLogFilters } from "./filters"
+
 export type AiLogAuthor = {
   userId: string
   name: string
@@ -33,6 +35,10 @@ export type AiLog = AiLogSummary & {
 
 export type AiLogListResult =
   | { status: "ok"; logs: AiLogSummary[]; total: number }
+  | { status: "error" }
+
+export type ClubToolsResult =
+  | { status: "ok"; tools: { name: string; logCount: number }[] }
   | { status: "error" }
 
 export type AiLogResult =
@@ -110,6 +116,7 @@ export const listClubLogs = cache(
 
     const { data, error, count } = await query
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(0, limit - 1)
 
     if (error) {
@@ -119,6 +126,105 @@ export const listClubLogs = cache(
 
     const logs = (data as unknown as SummaryRow[]).map(toSummary)
     return { status: "ok", logs, total: count ?? logs.length }
+  }
+)
+
+// 걸러 보기에 쓰는 조건들. 조회와 함수 호출 양쪽에 같은 조건을 걸려고 필요한 것만 적는다.
+type Filterable = {
+  eq(column: string, value: string): Filterable
+  is(column: string, value: null): Filterable
+  contains(column: string, value: string): Filterable
+}
+
+// 글자 하나를 Postgres 의 배열 표기로 바꾼다. 따옴표나 중괄호가 든 도구 이름도 그대로 찾으려는 것이다.
+function arrayLiteral(value: string) {
+  return `{"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"}`
+}
+
+// 조건을 건 뒤에도 원래 모양 그대로 이어 쓸 수 있게 받은 형식으로 돌려준다.
+function applyConditions<T>(
+  builder: T,
+  filters: AiLogFilters,
+  userId: string
+): T {
+  let next = builder as unknown as Filterable
+  if (filters.view === "mine") {
+    next = next.eq("author_id", userId)
+  }
+  if (filters.session === NO_SESSION) {
+    next = next.is("session_id", null)
+  } else if (filters.session) {
+    next = next.eq("session_id", filters.session)
+  }
+  if (filters.tool) {
+    next = next.contains("tools", arrayLiteral(filters.tool))
+  }
+  return next as unknown as T
+}
+
+// 조건에 맞는 AI Log 를 읽는다. 찾는 글자가 있으면 데이터베이스의 search_ai_logs 함수가 찾는다.
+// 찾는 글자를 조건 문자열에 끼워 넣지 않고 함수의 값으로 넘기므로, 어떤 글자를 넣어도 조건이 깨지지 않는다.
+export async function searchClubLogs(
+  clubId: string,
+  filters: AiLogFilters,
+  userId: string
+): Promise<AiLogListResult> {
+  const supabase = await createClient()
+  const selected = filters.query
+    ? applyConditions(
+        supabase.rpc(
+          "search_ai_logs",
+          { target_club_id: clubId, search: filters.query },
+          { count: "exact" }
+        ),
+        filters,
+        userId
+      ).select(SUMMARY_COLUMNS)
+    : applyConditions(
+        supabase
+          .from("ai_logs")
+          .select(SUMMARY_COLUMNS, { count: "exact" })
+          .eq("club_id", clubId),
+        filters,
+        userId
+      )
+
+  // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
+  const ascending = filters.sort === "oldest"
+  const { data, error, count } = await selected
+    .order("created_at", { ascending })
+    .order("id", { ascending })
+    .range(0, filters.limit - 1)
+
+  if (error) {
+    console.error("AI Log 를 찾지 못했습니다.", error)
+    return { status: "error" }
+  }
+
+  const logs = (data as unknown as SummaryRow[]).map(toSummary)
+  return { status: "ok", logs, total: count ?? logs.length }
+}
+
+// Club 의 AI Log 에 쓰인 도구 이름을 많이 쓰인 순서로 읽는다. 도구로 고르는 칸에 쓴다.
+export const listClubTools = cache(
+  async (clubId: string): Promise<ClubToolsResult> => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc("club_tool_counts", {
+      target_club_id: clubId,
+    })
+
+    if (error) {
+      console.error("도구 목록을 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      tools: (data as { tool: string; log_count: number }[]).map((row) => ({
+        name: row.tool,
+        logCount: row.log_count,
+      })),
+    }
   }
 )
 
@@ -153,6 +259,7 @@ export const listSessionLogs = cache(
       .eq("club_id", clubId)
       .eq("session_id", sessionId)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(0, SESSION_LOG_LIMIT - 1)
 
     if (error) {

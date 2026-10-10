@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react"
 import Link from "next/link"
-import { Calendar, Check, ChevronDown, CircleAlert } from "lucide-react"
+import { Calendar, Check, CircleAlert } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
@@ -13,9 +13,9 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input, controlClassName } from "@/components/ui/input"
+import { Input } from "@/components/ui/input"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 
 import {
   saveAiLog,
@@ -151,29 +151,21 @@ export function AiLogForm({
           <div className="flex flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
             <Field>
               <FieldLabel htmlFor="log-session">Session</FieldLabel>
-              <div className="relative">
-                <select
-                  id="log-session"
-                  name="sessionId"
-                  value={sessionId}
-                  onChange={(event) => setSessionId(event.target.value)}
-                  aria-invalid={invalid("sessionId")}
-                  aria-describedby="log-session-help"
-                  className={cn(controlClassName, "h-10 appearance-none pr-9")}
-                >
-                  <option value="">Session 없이 남기기</option>
-                  {sessions?.map((session) => (
-                    <option key={session.id} value={session.id}>
-                      {session.title}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  aria-hidden="true"
-                  strokeWidth={1.5}
-                  className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-icon-subtle"
-                />
-              </div>
+              <NativeSelect
+                id="log-session"
+                name="sessionId"
+                value={sessionId}
+                onChange={(event) => setSessionId(event.target.value)}
+                aria-invalid={invalid("sessionId")}
+                aria-describedby="log-session-help"
+              >
+                <option value="">Session 없이 남기기</option>
+                {sessions?.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.title}
+                  </option>
+                ))}
+              </NativeSelect>
               {errors.sessionId ? (
                 <FieldError id="log-session-help">{errors.sessionId}</FieldError>
               ) : (
