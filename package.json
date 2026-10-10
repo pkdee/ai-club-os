@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@lobehub/icons-static-svg": "1.95.1",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
     "class-variance-authority": "^0.7.1",

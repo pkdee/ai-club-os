@@ -1,8 +1,21 @@
 import { toolKey } from "./tool-key"
 
+// 도구의 종류. 로고가 없는 도구에 종류를 나타내는 아이콘을 보여 줄 때 쓴다.
+export type ToolKind =
+  | "assistant"
+  | "coding"
+  | "media"
+  | "model"
+  | "api"
+  | "framework"
+  | "data"
+  | "automation"
+  | "docs"
+
 export type KnownTool = {
   // 저장하고 보여 주는 표기.
   name: string
+  kind: ToolKind
   // 같은 도구를 가리키는 다른 표기. 한글로 적은 이름과 줄여 부르는 이름을 넣는다.
   // 대소문자나 공백만 다른 표기는 자동으로 같게 보므로 넣지 않아도 된다.
   aliases?: string[]
@@ -13,143 +26,143 @@ export type KnownTool = {
 // 여러 도구를 함께 가리키는 말(코파일럿 등)은 넣지 않는다. 그런 말은 고르는 목록에서 직접 고르게 한다.
 export const KNOWN_TOOLS: KnownTool[] = [
   // 가장 많이 쓰는 도구. 칸을 누르면 이 순서대로 먼저 보인다.
-  { name: "ChatGPT", aliases: ["챗지피티", "챗GPT", "쳇지피티", "지피티"] },
-  { name: "Claude", aliases: ["클로드"] },
-  { name: "Gemini", aliases: ["제미나이", "제미니", "재미나이"] },
-  { name: "Claude Code", aliases: ["클로드 코드"] },
-  { name: "Cursor", aliases: ["커서"] },
-  { name: "Codex", aliases: ["코덱스", "OpenAI Codex", "Codex CLI"] },
-  { name: "Antigravity", aliases: ["안티그래비티", "안티그라비티", "Google Antigravity"] },
-  { name: "GitHub Copilot", aliases: ["깃허브 코파일럿", "깃헙 코파일럿", "GH Copilot"] },
+  { name: "ChatGPT", kind: "assistant", aliases: ["챗지피티", "챗GPT", "쳇지피티", "지피티"] },
+  { name: "Claude", kind: "assistant", aliases: ["클로드"] },
+  { name: "Gemini", kind: "assistant", aliases: ["제미나이", "제미니", "재미나이"] },
+  { name: "Claude Code", kind: "coding", aliases: ["클로드 코드"] },
+  { name: "Cursor", kind: "coding", aliases: ["커서"] },
+  { name: "Codex", kind: "coding", aliases: ["코덱스", "OpenAI Codex", "Codex CLI"] },
+  { name: "Antigravity", kind: "coding", aliases: ["안티그래비티", "안티그라비티", "Google Antigravity"] },
+  { name: "GitHub Copilot", kind: "coding", aliases: ["깃허브 코파일럿", "깃헙 코파일럿", "GH Copilot"] },
 
   // 대화형 도우미
-  { name: "Perplexity", aliases: ["퍼플렉시티"] },
-  { name: "Microsoft Copilot", aliases: ["MS Copilot", "마이크로소프트 코파일럿", "MS 코파일럿"] },
-  { name: "Grok", aliases: ["그록"] },
-  { name: "DeepSeek", aliases: ["딥시크"] },
-  { name: "NotebookLM", aliases: ["노트북LM", "노트북엘엠"] },
-  { name: "Le Chat", aliases: ["르샤"] },
-  { name: "Meta AI", aliases: ["메타 AI"] },
-  { name: "뤼튼", aliases: ["wrtn"] },
-  { name: "CLOVA X", aliases: ["클로바 X", "클로바엑스"] },
-  { name: "Genspark", aliases: ["젠스파크"] },
-  { name: "Manus", aliases: ["마누스"] },
+  { name: "Perplexity", kind: "assistant", aliases: ["퍼플렉시티"] },
+  { name: "Microsoft Copilot", kind: "assistant", aliases: ["MS Copilot", "마이크로소프트 코파일럿", "MS 코파일럿"] },
+  { name: "Grok", kind: "assistant", aliases: ["그록"] },
+  { name: "DeepSeek", kind: "assistant", aliases: ["딥시크"] },
+  { name: "NotebookLM", kind: "assistant", aliases: ["노트북LM", "노트북엘엠"] },
+  { name: "Le Chat", kind: "assistant", aliases: ["르샤"] },
+  { name: "Meta AI", kind: "assistant", aliases: ["메타 AI"] },
+  { name: "뤼튼", kind: "assistant", aliases: ["wrtn"] },
+  { name: "CLOVA X", kind: "assistant", aliases: ["클로바 X", "클로바엑스"] },
+  { name: "Genspark", kind: "assistant", aliases: ["젠스파크"] },
+  { name: "Manus", kind: "assistant", aliases: ["마누스"] },
 
   // 코드 작성
-  { name: "Windsurf", aliases: ["윈드서프"] },
-  { name: "Gemini CLI", aliases: ["제미나이 CLI"] },
-  { name: "Cline", aliases: ["클라인"] },
-  { name: "Roo Code", aliases: ["루 코드"] },
-  { name: "Aider", aliases: ["에이더"] },
-  { name: "Continue", aliases: ["컨티뉴"] },
-  { name: "Zed", aliases: ["제드"] },
-  { name: "Kiro", aliases: ["키로"] },
-  { name: "Jules", aliases: ["줄스"] },
-  { name: "Devin", aliases: ["데빈"] },
-  { name: "Replit", aliases: ["레플릿", "Replit Agent"] },
-  { name: "v0", aliases: ["v0.dev", "브이제로"] },
-  { name: "Bolt", aliases: ["bolt.new", "볼트"] },
-  { name: "Lovable", aliases: ["러버블"] },
-  { name: "Amp", aliases: ["앰프"] },
-  { name: "OpenCode", aliases: ["오픈코드"] },
-  { name: "Trae", aliases: ["트레이"] },
-  { name: "Junie", aliases: ["주니", "JetBrains Junie"] },
-  { name: "Warp", aliases: ["워프"] },
-  { name: "Tabnine", aliases: ["탭나인"] },
+  { name: "Windsurf", kind: "coding", aliases: ["윈드서프"] },
+  { name: "Gemini CLI", kind: "coding", aliases: ["제미나이 CLI"] },
+  { name: "Cline", kind: "coding", aliases: ["클라인"] },
+  { name: "Roo Code", kind: "coding", aliases: ["루 코드"] },
+  { name: "Aider", kind: "coding", aliases: ["에이더"] },
+  { name: "Continue", kind: "coding", aliases: ["컨티뉴"] },
+  { name: "Zed", kind: "coding", aliases: ["제드"] },
+  { name: "Kiro", kind: "coding", aliases: ["키로"] },
+  { name: "Jules", kind: "coding", aliases: ["줄스"] },
+  { name: "Devin", kind: "coding", aliases: ["데빈"] },
+  { name: "Replit", kind: "coding", aliases: ["레플릿", "Replit Agent"] },
+  { name: "v0", kind: "coding", aliases: ["v0.dev", "브이제로"] },
+  { name: "Bolt", kind: "coding", aliases: ["bolt.new", "볼트"] },
+  { name: "Lovable", kind: "coding", aliases: ["러버블"] },
+  { name: "Amp", kind: "coding", aliases: ["앰프"] },
+  { name: "OpenCode", kind: "coding", aliases: ["오픈코드"] },
+  { name: "Trae", kind: "coding", aliases: ["트레이"] },
+  { name: "Junie", kind: "coding", aliases: ["주니", "JetBrains Junie"] },
+  { name: "Warp", kind: "coding", aliases: ["워프"] },
+  { name: "Tabnine", kind: "coding", aliases: ["탭나인"] },
 
   // 그림, 영상, 소리
-  { name: "Midjourney", aliases: ["미드저니"] },
-  { name: "DALL·E", aliases: ["DALL-E", "DALLE", "달리"] },
-  { name: "Stable Diffusion", aliases: ["스테이블 디퓨전"] },
-  { name: "FLUX", aliases: ["플럭스"] },
-  { name: "Nano Banana", aliases: ["나노 바나나"] },
-  { name: "Imagen", aliases: ["이마젠"] },
-  { name: "Adobe Firefly", aliases: ["Firefly", "파이어플라이"] },
-  { name: "ComfyUI", aliases: ["컴피UI", "컴피유아이"] },
-  { name: "Sora", aliases: ["소라"] },
-  { name: "Veo", aliases: ["비오"] },
-  { name: "Runway", aliases: ["런웨이"] },
-  { name: "Pika", aliases: ["피카"] },
-  { name: "Kling", aliases: ["클링"] },
-  { name: "ElevenLabs", aliases: ["일레븐랩스"] },
-  { name: "Suno", aliases: ["수노"] },
-  { name: "Udio", aliases: ["유디오"] },
-  { name: "Whisper", aliases: ["위스퍼"] },
+  { name: "Midjourney", kind: "media", aliases: ["미드저니"] },
+  { name: "DALL·E", kind: "media", aliases: ["DALL-E", "DALLE", "달리"] },
+  { name: "Stable Diffusion", kind: "media", aliases: ["스테이블 디퓨전"] },
+  { name: "FLUX", kind: "media", aliases: ["플럭스"] },
+  { name: "Nano Banana", kind: "media", aliases: ["나노 바나나"] },
+  { name: "Imagen", kind: "media", aliases: ["이마젠"] },
+  { name: "Adobe Firefly", kind: "media", aliases: ["Firefly", "파이어플라이"] },
+  { name: "ComfyUI", kind: "media", aliases: ["컴피UI", "컴피유아이"] },
+  { name: "Sora", kind: "media", aliases: ["소라"] },
+  { name: "Veo", kind: "media", aliases: ["비오"] },
+  { name: "Runway", kind: "media", aliases: ["런웨이"] },
+  { name: "Pika", kind: "media", aliases: ["피카"] },
+  { name: "Kling", kind: "media", aliases: ["클링"] },
+  { name: "ElevenLabs", kind: "media", aliases: ["일레븐랩스"] },
+  { name: "Suno", kind: "media", aliases: ["수노"] },
+  { name: "Udio", kind: "media", aliases: ["유디오"] },
+  { name: "Whisper", kind: "media", aliases: ["위스퍼"] },
 
   // 모델과 모델을 돌리는 도구
-  { name: "Ollama", aliases: ["올라마"] },
-  { name: "LM Studio", aliases: ["엘엠 스튜디오"] },
-  { name: "llama.cpp" },
-  { name: "vLLM" },
-  { name: "Hugging Face", aliases: ["허깅페이스", "HF"] },
-  { name: "Llama", aliases: ["라마"] },
-  { name: "Gemma", aliases: ["젬마"] },
-  { name: "Qwen", aliases: ["큐원"] },
-  { name: "Mistral", aliases: ["미스트랄"] },
-  { name: "EXAONE", aliases: ["엑사원"] },
-  { name: "HyperCLOVA X", aliases: ["하이퍼클로바 X", "하이퍼클로바엑스"] },
-  { name: "Solar", aliases: ["솔라", "Upstage Solar"] },
+  { name: "Ollama", kind: "model", aliases: ["올라마"] },
+  { name: "LM Studio", kind: "model", aliases: ["엘엠 스튜디오"] },
+  { name: "llama.cpp", kind: "model" },
+  { name: "vLLM", kind: "model" },
+  { name: "Hugging Face", kind: "model", aliases: ["허깅페이스", "HF"] },
+  { name: "Llama", kind: "model", aliases: ["라마"] },
+  { name: "Gemma", kind: "model", aliases: ["젬마"] },
+  { name: "Qwen", kind: "model", aliases: ["큐원"] },
+  { name: "Mistral", kind: "model", aliases: ["미스트랄"] },
+  { name: "EXAONE", kind: "model", aliases: ["엑사원"] },
+  { name: "HyperCLOVA X", kind: "model", aliases: ["하이퍼클로바 X", "하이퍼클로바엑스"] },
+  { name: "Solar", kind: "model", aliases: ["솔라", "Upstage Solar"] },
 
   // API 와 클라우드
-  { name: "OpenAI API", aliases: ["오픈AI API"] },
-  { name: "Claude API", aliases: ["Anthropic API", "클로드 API"] },
-  { name: "Gemini API", aliases: ["제미나이 API"] },
-  { name: "Google AI Studio", aliases: ["AI Studio", "AI 스튜디오"] },
-  { name: "OpenRouter", aliases: ["오픈라우터"] },
-  { name: "Amazon Bedrock", aliases: ["Bedrock", "베드록"] },
-  { name: "Vertex AI", aliases: ["버텍스 AI"] },
-  { name: "Azure OpenAI", aliases: ["애저 OpenAI"] },
+  { name: "OpenAI API", kind: "api", aliases: ["오픈AI API"] },
+  { name: "Claude API", kind: "api", aliases: ["Anthropic API", "클로드 API"] },
+  { name: "Gemini API", kind: "api", aliases: ["제미나이 API"] },
+  { name: "Google AI Studio", kind: "api", aliases: ["AI Studio", "AI 스튜디오"] },
+  { name: "OpenRouter", kind: "api", aliases: ["오픈라우터"] },
+  { name: "Amazon Bedrock", kind: "api", aliases: ["Bedrock", "베드록"] },
+  { name: "Vertex AI", kind: "api", aliases: ["버텍스 AI"] },
+  { name: "Azure OpenAI", kind: "api", aliases: ["애저 OpenAI"] },
 
   // 만들 때 쓰는 틀과 라이브러리
-  { name: "LangChain", aliases: ["랭체인"] },
-  { name: "LangGraph", aliases: ["랭그래프"] },
-  { name: "LangSmith", aliases: ["랭스미스"] },
-  { name: "LlamaIndex", aliases: ["라마인덱스"] },
-  { name: "CrewAI", aliases: ["크루AI"] },
-  { name: "AutoGen", aliases: ["오토젠"] },
-  { name: "DSPy" },
-  { name: "Haystack", aliases: ["헤이스택"] },
-  { name: "Semantic Kernel", aliases: ["시맨틱 커널"] },
-  { name: "OpenAI Agents SDK" },
-  { name: "Claude Agent SDK" },
-  { name: "Vercel AI SDK", aliases: ["AI SDK"] },
-  { name: "MCP", aliases: ["Model Context Protocol"] },
-  { name: "Streamlit", aliases: ["스트림릿"] },
-  { name: "Gradio", aliases: ["그라디오"] },
-  { name: "PyTorch", aliases: ["파이토치"] },
-  { name: "TensorFlow", aliases: ["텐서플로", "텐서플로우"] },
-  { name: "Transformers", aliases: ["트랜스포머스"] },
-  { name: "scikit-learn", aliases: ["사이킷런", "sklearn"] },
-  { name: "Keras", aliases: ["케라스"] },
+  { name: "LangChain", kind: "framework", aliases: ["랭체인"] },
+  { name: "LangGraph", kind: "framework", aliases: ["랭그래프"] },
+  { name: "LangSmith", kind: "framework", aliases: ["랭스미스"] },
+  { name: "LlamaIndex", kind: "framework", aliases: ["라마인덱스"] },
+  { name: "CrewAI", kind: "framework", aliases: ["크루AI"] },
+  { name: "AutoGen", kind: "framework", aliases: ["오토젠"] },
+  { name: "DSPy", kind: "framework" },
+  { name: "Haystack", kind: "framework", aliases: ["헤이스택"] },
+  { name: "Semantic Kernel", kind: "framework", aliases: ["시맨틱 커널"] },
+  { name: "OpenAI Agents SDK", kind: "framework" },
+  { name: "Claude Agent SDK", kind: "framework" },
+  { name: "Vercel AI SDK", kind: "framework", aliases: ["AI SDK"] },
+  { name: "MCP", kind: "framework", aliases: ["Model Context Protocol"] },
+  { name: "Streamlit", kind: "framework", aliases: ["스트림릿"] },
+  { name: "Gradio", kind: "framework", aliases: ["그라디오"] },
+  { name: "PyTorch", kind: "framework", aliases: ["파이토치"] },
+  { name: "TensorFlow", kind: "framework", aliases: ["텐서플로", "텐서플로우"] },
+  { name: "Transformers", kind: "framework", aliases: ["트랜스포머스"] },
+  { name: "scikit-learn", kind: "framework", aliases: ["사이킷런", "sklearn"] },
+  { name: "Keras", kind: "framework", aliases: ["케라스"] },
 
   // 검색과 저장
-  { name: "Chroma", aliases: ["ChromaDB", "크로마"] },
-  { name: "Pinecone", aliases: ["파인콘"] },
-  { name: "Weaviate", aliases: ["위비에이트"] },
-  { name: "Qdrant", aliases: ["큐드런트"] },
-  { name: "Milvus", aliases: ["밀버스"] },
-  { name: "FAISS", aliases: ["파이스"] },
-  { name: "pgvector" },
-  { name: "Elasticsearch", aliases: ["엘라스틱서치"] },
+  { name: "Chroma", kind: "data", aliases: ["ChromaDB", "크로마"] },
+  { name: "Pinecone", kind: "data", aliases: ["파인콘"] },
+  { name: "Weaviate", kind: "data", aliases: ["위비에이트"] },
+  { name: "Qdrant", kind: "data", aliases: ["큐드런트"] },
+  { name: "Milvus", kind: "data", aliases: ["밀버스"] },
+  { name: "FAISS", kind: "data", aliases: ["파이스"] },
+  { name: "pgvector", kind: "data" },
+  { name: "Elasticsearch", kind: "data", aliases: ["엘라스틱서치"] },
 
   // 자동화와 실험 환경
-  { name: "n8n" },
-  { name: "Dify", aliases: ["디파이"] },
-  { name: "Flowise", aliases: ["플로와이즈"] },
-  { name: "Langflow", aliases: ["랭플로우"] },
-  { name: "Zapier", aliases: ["재피어"] },
-  { name: "Make", aliases: ["메이크"] },
-  { name: "Google Colab", aliases: ["Colab", "코랩"] },
-  { name: "Jupyter", aliases: ["주피터", "Jupyter Notebook"] },
-  { name: "Kaggle", aliases: ["캐글"] },
-  { name: "Weights & Biases", aliases: ["W&B", "wandb"] },
-  { name: "MLflow" },
+  { name: "n8n", kind: "automation" },
+  { name: "Dify", kind: "automation", aliases: ["디파이"] },
+  { name: "Flowise", kind: "automation", aliases: ["플로와이즈"] },
+  { name: "Langflow", kind: "automation", aliases: ["랭플로우"] },
+  { name: "Zapier", kind: "automation", aliases: ["재피어"] },
+  { name: "Make", kind: "automation", aliases: ["메이크"] },
+  { name: "Google Colab", kind: "automation", aliases: ["Colab", "코랩"] },
+  { name: "Jupyter", kind: "automation", aliases: ["주피터", "Jupyter Notebook"] },
+  { name: "Kaggle", kind: "automation", aliases: ["캐글"] },
+  { name: "Weights & Biases", kind: "automation", aliases: ["W&B", "wandb"] },
+  { name: "MLflow", kind: "automation" },
 
   // 문서와 디자인
-  { name: "Notion AI", aliases: ["노션 AI"] },
-  { name: "Gamma", aliases: ["감마"] },
-  { name: "Canva", aliases: ["캔바"] },
-  { name: "Figma Make", aliases: ["피그마 메이크"] },
+  { name: "Notion AI", kind: "docs", aliases: ["노션 AI"] },
+  { name: "Gamma", kind: "docs", aliases: ["감마"] },
+  { name: "Canva", kind: "docs", aliases: ["캔바"] },
+  { name: "Figma Make", kind: "docs", aliases: ["피그마 메이크"] },
 ]
 
 type Entry = { tool: KnownTool; keys: string[] }
@@ -171,6 +184,11 @@ for (const entry of ENTRIES) {
 // 적은 이름이 목록의 도구를 가리키면 그 도구의 표기를 돌려준다. 목록에 없으면 null 이다.
 export function knownToolName(value: string): string | null {
   return BY_KEY.get(toolKey(value))?.name ?? null
+}
+
+// 적은 이름이 목록의 도구를 가리키면 그 도구의 종류를 돌려준다. 목록에 없으면 null 이다.
+export function knownToolKind(value: string): ToolKind | null {
+  return BY_KEY.get(toolKey(value))?.kind ?? null
 }
 
 // 한 도구를 가리키는 모든 표기. 목록에 없는 도구면 받은 이름 하나만 돌려준다.

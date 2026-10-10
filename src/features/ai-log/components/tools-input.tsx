@@ -11,6 +11,7 @@ import {
   canonicalTools,
 } from "../rules"
 import { suggestTools } from "../tool-catalog"
+import { ToolIcon } from "./tool-icon"
 
 // 도구 이름을 하나씩 이름표로 쌓는 입력 칸.
 // 적는 동안 널리 쓰는 도구와 이 Club 에서 쓰는 도구를 아래에 보여 주고, 화살표와 Enter 나 누르기로 고른다.
@@ -62,8 +63,9 @@ export function ToolsInput({
         {tools.map((tool) => (
           <span
             key={tool}
-            className="flex h-6 items-center gap-0.5 rounded-full bg-muted pr-1 pl-2 text-label-s text-muted-foreground"
+            className="flex h-6 items-center gap-1 rounded-full bg-muted pr-1 pl-2 text-label-s text-muted-foreground"
           >
+            <ToolIcon name={tool} className="size-3.5" />
             {tool}
             <input type="hidden" name={name} value={tool} />
             <button
@@ -170,10 +172,11 @@ export function ToolsInput({
               }}
               onMouseEnter={() => setActive(index)}
               className={cn(
-                "flex h-9 cursor-default items-center rounded-md px-2.5 text-label-m select-none",
+                "flex h-9 cursor-default items-center gap-2 rounded-md px-2.5 text-label-m select-none",
                 index === active && "bg-accent"
               )}
             >
+              <ToolIcon name={option} />
               {option}
             </li>
           ))}

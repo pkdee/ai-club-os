@@ -23,8 +23,15 @@ function withExtension(filePath) {
   return filePath
 }
 
+// 그림 파일은 번들러가 주소로 바꿔 주는 것이라 Node 가 읽을 수 없다. 시험에서는 주소가 든 빈 값으로 대신한다.
+const IMAGE_STUB =
+  "data:text/javascript,export default { src: '/stub.svg' }"
+
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith(".svg")) {
+      return { url: IMAGE_STUB, shortCircuit: true }
+    }
     if (specifier.startsWith("@/")) {
       const target = withExtension(path.join(sourceRoot, specifier.slice(2)))
       return nextResolve(pathToFileURL(target).href, context)
