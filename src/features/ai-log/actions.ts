@@ -11,9 +11,11 @@ import { listClubTools } from "./queries"
 import {
   canonicalTools,
   readAiLogForm,
+  readAiLogOptions,
   validateAiLog,
   type AiLogInput,
   type AiLogInputErrors,
+  type AiLogOptions,
 } from "./rules"
 
 export type AiLogFormState = {
@@ -21,6 +23,8 @@ export type AiLogFormState = {
   message?: string
   errors?: AiLogInputErrors
   values?: AiLogInput
+  // 폼에서 고른 선택. 선택 칸이 화면에 있었을 때만 돌려준다.
+  options?: AiLogOptions
   // 저장에 성공했을 때 그 기록의 식별자.
   logId?: string
 }
@@ -84,10 +88,13 @@ export async function saveAiLog(
   }
 
   const values = readAiLogForm(formData)
+  const options = readAiLogOptions(formData)
+  // 다시 그릴 때 적은 값과 고른 선택이 그대로 보이게 함께 돌려준다.
+  const kept = { values, ...(options && { options }) }
 
   const validation = validateAiLog(values)
   if (!validation.ok) {
-    return { status: "error", errors: validation.errors, values }
+    return { status: "error", errors: validation.errors, ...kept }
   }
 
   // 같은 도구가 표기만 달리 쌓이지 않게, Club 에서 이미 쓰는 표기가 있으면 그것에 맞춘다.
@@ -107,6 +114,10 @@ export async function saveAiLog(
   const fields = {
     session_id: values.sessionId || null,
     ...(withProject && { project_id: values.projectId || null }),
+    ...(options && {
+      exclude_from_insight: options.excludeFromInsight,
+      share_in_presentation: options.shareInPresentation,
+    }),
     title: values.title,
     tools,
     attempt: values.attempt,
@@ -120,7 +131,7 @@ export async function saveAiLog(
 
   if (logId) {
     if (!isUuid(logId)) {
-      return { status: "error", message: AUTHOR_ONLY_MESSAGE, values }
+      return { status: "error", message: AUTHOR_ONLY_MESSAGE, ...kept }
     }
 
     const { data, error } = await supabase
@@ -135,12 +146,12 @@ export async function saveAiLog(
       return {
         status: "error",
         message: saveErrorMessage(error, AUTHOR_ONLY_MESSAGE),
-        values,
+        ...kept,
       }
     }
     // 접근 규칙에 막히면 오류 없이 바뀐 행이 0개로 돌아온다.
     if (data.length === 0) {
-      return { status: "error", message: AUTHOR_ONLY_MESSAGE, values }
+      return { status: "error", message: AUTHOR_ONLY_MESSAGE, ...kept }
     }
   } else {
     const { data, error } = await supabase
@@ -154,7 +165,7 @@ export async function saveAiLog(
       return {
         status: "error",
         message: saveErrorMessage(error, MEMBER_ONLY_MESSAGE),
-        values,
+        ...kept,
       }
     }
     logId = (data as { id: string }).id
@@ -163,7 +174,7 @@ export async function saveAiLog(
   // Club 개요, Session 상세, AI Log 화면이 모두 기록을 보여 주므로 Club 아래를 통째로 새로 읽는다.
   revalidatePath(`/clubs/${target.clubId}`, "layout")
   // 이동하기 전에 폼이 처음 값으로 돌아가 보이지 않도록 적은 값을 함께 돌려준다.
-  return { status: "success", logId, values }
+  return { status: "success", logId, ...kept }
 }
 
 // AI Log 를 지운다. 지우면 되살릴 수 없다. 성공하면 AI Log 목록으로 이동한다.

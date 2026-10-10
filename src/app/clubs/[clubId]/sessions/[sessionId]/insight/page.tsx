@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 
 import { generateSessionInsight } from "@/features/ai-insight/actions";
 import { InsightSection } from "@/features/ai-insight/components/insight-section";
-import { getSessionInsight } from "@/features/ai-insight/queries";
-import { listSessionLogs } from "@/features/ai-log/queries";
+import { insightRunsLeft } from "@/features/ai-insight/limit";
+import {
+  countInsightLogs,
+  countTodayInsightRuns,
+  getSessionInsight,
+} from "@/features/ai-insight/queries";
 import { loadSessionPage } from "@/features/session/page-data";
 
 type Props = PageProps<"/clubs/[clubId]/sessions/[sessionId]/insight">;
@@ -28,21 +32,27 @@ export default async function SessionInsightPage(props: Props) {
     return null;
   }
 
-  const [result, logs] = await Promise.all([
+  const now = new Date();
+  const canManage = data.club.role === "admin";
+  // 오늘 만든 횟수는 운영자에게만 보이므로 운영자일 때만 센다.
+  const [result, logs, runs] = await Promise.all([
     getSessionInsight(clubId, sessionId),
-    listSessionLogs(clubId, sessionId),
+    countInsightLogs(clubId, { sessionId }),
+    canManage ? countTodayInsightRuns(clubId, now) : null,
   ]);
 
   return (
     <InsightSection
       clubId={clubId}
-      canManage={data.club.role === "admin"}
+      canManage={canManage}
       result={result}
       targetLabel={data.session.title}
-      logCount={logs.status === "ok" ? logs.total : null}
+      logCount={logs ? logs.usable : null}
+      excludedCount={logs ? logs.excluded : 0}
+      runsLeft={runs === null ? null : insightRunsLeft(runs)}
       retryHref={`/clubs/${clubId}/sessions/${sessionId}/insight`}
       onGenerate={generateSessionInsight.bind(null, clubId, sessionId)}
-      now={new Date()}
+      now={now}
     />
   );
 }

@@ -1,5 +1,6 @@
 import { cache } from "react"
 
+import { kstDateKey, kstToIso } from "@/features/session/time"
 import { createClient } from "@/lib/supabase/server"
 
 import { parseInsightContent, type InsightContent } from "./content"
@@ -71,6 +72,14 @@ export type LogMonth = { month: string; logCount: number }
 function isMissingTable(error: { code?: string }) {
   return error.code === "42P01" || error.code === "PGRST205"
 }
+
+// 열이 아직 없을 때의 오류 번호.
+const MISSING_COLUMN = "42703"
+
+// 정리할 대상. 한 회차이거나 한 기간이다.
+export type InsightLogTarget =
+  | { sessionId: string }
+  | { from: string; to: string }
 
 function toInsight(row: InsightRow): Insight {
   return {
@@ -198,25 +207,38 @@ export const listClubInsights = cache(
 
 // AI 에 보낼 기록을 남긴 순서대로 읽는다. 작성자는 읽지 않는다. 불러오지 못하면 null 이다.
 // 회차를 주면 그 회차의 기록을, 기간을 주면 그 기간에 남긴 Club 의 기록을 읽는다.
+// 작성자가 AI Insight 에 쓰지 말라고 한 기록은 읽지 않는다. 그 기록은 AI 로 나가지 않는다.
 export async function listInsightSourceLogs(
   clubId: string,
-  target: { sessionId: string } | { from: string; to: string }
+  target: InsightLogTarget
 ): Promise<InsightSourceLog[] | null> {
   const supabase = await createClient()
-  let query = supabase
-    .from("ai_logs")
-    .select("id, title, tools, attempt, result, learned, next_action")
-    .eq("club_id", clubId)
-  query =
-    "sessionId" in target
-      ? query.eq("session_id", target.sessionId)
-      : query.gte("created_at", target.from).lt("created_at", target.to)
+  const read = (respectChoice: boolean) => {
+    let query = supabase
+      .from("ai_logs")
+      .select("id, title, tools, attempt, result, learned, next_action")
+      .eq("club_id", clubId)
+    query =
+      "sessionId" in target
+        ? query.eq("session_id", target.sessionId)
+        : query.gte("created_at", target.from).lt("created_at", target.to)
+    if (respectChoice) {
+      query = query.eq("exclude_from_insight", false)
+    }
 
-  // 한도를 넘으면 최근 것을 남기려고 최신순으로 읽은 뒤 뒤집는다.
-  const { data, error } = await query
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(0, SOURCE_LOG_LIMIT - 1)
+    // 한도를 넘으면 최근 것을 남기려고 최신순으로 읽은 뒤 뒤집는다.
+    return query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(0, SOURCE_LOG_LIMIT - 1)
+  }
+
+  let response = await read(true)
+  // 선택을 담는 열이 아직 없으면 빼 달라고 한 기록도 없으므로 모두 읽는다.
+  if (response.error?.code === MISSING_COLUMN) {
+    response = await read(false)
+  }
+  const { data, error } = response
 
   if (error) {
     console.error("AI Insight 에 쓸 AI Log 를 불러오지 못했습니다.", error)
@@ -244,6 +266,72 @@ export async function listInsightSourceLogs(
       learned: row.learned,
       nextAction: row.next_action,
     }))
+}
+
+// 한 대상에서 정리에 쓸 수 있는 AI Log 수와, 작성자가 쓰지 말라고 한 기록 수. 세지 못하면 null 이다.
+// 만들기 전에 몇 개를 보내는지 알릴 때와, 만든 뒤로 기록이 더 생겼는지 볼 때 쓴다.
+export async function countInsightLogs(
+  clubId: string,
+  target: InsightLogTarget
+): Promise<{ usable: number; excluded: number } | null> {
+  const supabase = await createClient()
+  const count = (onlyExcluded: boolean) => {
+    let query = supabase
+      .from("ai_logs")
+      .select("id", { count: "exact" })
+      .eq("club_id", clubId)
+    query =
+      "sessionId" in target
+        ? query.eq("session_id", target.sessionId)
+        : query.gte("created_at", target.from).lt("created_at", target.to)
+    if (onlyExcluded) {
+      query = query.eq("exclude_from_insight", true)
+    }
+    return query.range(0, 0)
+  }
+
+  const [all, excluded] = await Promise.all([count(false), count(true)])
+  if (all.error || all.count === null) {
+    console.error("정리에 쓸 AI Log 수를 세지 못했습니다.", all.error)
+    return null
+  }
+  // 선택을 담는 열이 아직 없으면 빼 달라고 한 기록은 없다.
+  if (excluded.error?.code === MISSING_COLUMN) {
+    return { usable: all.count, excluded: 0 }
+  }
+  if (excluded.error || excluded.count === null) {
+    console.error("AI Insight 에서 뺀 AI Log 수를 세지 못했습니다.", excluded.error)
+    return null
+  }
+  return { usable: all.count - excluded.count, excluded: excluded.count }
+}
+
+// 오늘 이 Club 에서 AI Insight 를 만든 횟수. 하루는 한국 시간의 날짜로 나눈다. 운영자에게만 보인다.
+// 횟수를 두는 구조가 아직 없거나 세지 못하면 null 이다. 그때는 남은 횟수를 보여 주지 않는다.
+export async function countTodayInsightRuns(
+  clubId: string,
+  now: Date
+): Promise<number | null> {
+  const dayStart = kstToIso(kstDateKey(now), "00:00")
+  if (!dayStart) {
+    return null
+  }
+
+  const supabase = await createClient()
+  const { error, count } = await supabase
+    .from("ai_insight_runs")
+    .select("id", { count: "exact" })
+    .eq("club_id", clubId)
+    .gte("created_at", dayStart)
+    .range(0, 0)
+
+  if (error) {
+    if (!isMissingTable(error)) {
+      console.error("오늘 AI Insight 를 만든 횟수를 세지 못했습니다.", error)
+    }
+    return null
+  }
+  return count
 }
 
 // 한 기간에 남긴 AI Log 수. 불러오지 못하면 null 이다.

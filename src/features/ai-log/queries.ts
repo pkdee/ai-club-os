@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
 import { NO_SESSION, type AiLogFilters } from "./filters"
+import type { AiLogOptions } from "./rules"
 import { expandSearch, mergeToolCounts, toolFilterValue } from "./tool-catalog"
 
 export type AiLogAuthor = {
@@ -34,6 +35,8 @@ export type AiLog = AiLogSummary & {
   learned: string
   nextAction: string
   updatedAt: string
+  // 작성자가 정한 선택. 데이터베이스에 그 열이 아직 없으면 null 이다.
+  options: AiLogOptions | null
 }
 
 export type AiLogListResult =
@@ -78,6 +81,9 @@ type DetailRow = SummaryRow & {
   learned: string
   next_action: string
   updated_at: string
+  // 선택을 담는 열이 아직 없는 데이터베이스에서 읽으면 이 값들이 없다.
+  exclude_from_insight?: boolean
+  share_in_presentation?: boolean
 }
 
 // Session 제목과 작성자 이름을 함께 읽는다. 어느 외래 키를 따라갈지 이름으로 정해 둔다.
@@ -87,20 +93,34 @@ const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, result, learned, next_action, update
 // 묶인 Project 의 이름. ai_logs 에 Project 연결이 생긴 뒤에만 읽을 수 있다.
 const PROJECT_EMBED = ", project:projects!ai_logs_project_fkey(id, name)"
 
-// Project 연결이 아직 없을 때 돌아오는 오류. 관계를 찾지 못했거나 열이 없다는 것이다.
-function isMissingProjectLink(error: { code?: string }) {
+// 작성자가 정한 선택 두 가지. 그 열이 생긴 뒤에만 읽을 수 있다.
+const OPTION_COLUMNS = ", exclude_from_insight, share_in_presentation"
+
+// 나중에 더해진 것이 아직 없을 때 돌아오는 오류. 관계를 찾지 못했거나 열이 없다는 것이다.
+function isMissingAddition(error: { code?: string }) {
   return error.code === "PGRST200" || error.code === "42703"
 }
 
-// 먼저 Project 와 함께 읽고, 연결이 아직 없으면 Project 없이 다시 읽는다.
+// additions 를 모두 붙여 읽어 보고, 아직 없는 것이 있으면 늦게 더해진 것부터 하나씩 빼고 다시 읽는다.
 // 사용자가 마이그레이션을 적용하기 전에도 기록 화면이 멈추지 않게 하려는 것이다.
-async function readWithProject<T extends { error: { code?: string } | null }>(
+async function readWithAdditions<T extends { error: { code?: string } | null }>(
+  additions: string[],
+  read: (columns: string) => PromiseLike<T>
+): Promise<T> {
+  for (let count = additions.length; count > 0; count--) {
+    const response = await read(additions.slice(0, count).join(""))
+    if (!(response.error && isMissingAddition(response.error))) {
+      return response
+    }
+  }
+  return read("")
+}
+
+// 먼저 Project 와 함께 읽고, 연결이 아직 없으면 Project 없이 다시 읽는다.
+function readWithProject<T extends { error: { code?: string } | null }>(
   read: (project: string) => PromiseLike<T>
 ): Promise<T> {
-  const response = await read(PROJECT_EMBED)
-  return response.error && isMissingProjectLink(response.error)
-    ? read("")
-    : response
+  return readWithAdditions([PROJECT_EMBED], read)
 }
 
 // 한 Session 이나 한 Project 에서 한 번에 읽는 기록 수. 넉넉히 둔다.
@@ -421,13 +441,15 @@ export const getAiLog = cache(
     }
 
     const supabase = await createClient()
-    const { data, error } = await readWithProject((project) =>
-      supabase
-        .from("ai_logs")
-        .select(DETAIL_COLUMNS + project)
-        .eq("club_id", clubId)
-        .eq("id", logId)
-        .maybeSingle()
+    const { data, error } = await readWithAdditions(
+      [PROJECT_EMBED, OPTION_COLUMNS],
+      (additions) =>
+        supabase
+          .from("ai_logs")
+          .select(DETAIL_COLUMNS + additions)
+          .eq("club_id", clubId)
+          .eq("id", logId)
+          .maybeSingle()
     )
 
     if (error) {
@@ -447,7 +469,27 @@ export const getAiLog = cache(
         learned: row.learned,
         nextAction: row.next_action,
         updatedAt: row.updated_at,
+        options:
+          typeof row.exclude_from_insight === "boolean" &&
+          typeof row.share_in_presentation === "boolean"
+            ? {
+                excludeFromInsight: row.exclude_from_insight,
+                shareInPresentation: row.share_in_presentation,
+              }
+            : null,
       },
     }
   }
 )
+
+// ai_logs 에 작성자의 선택을 담는 열이 있는지 본다. 새 기록을 쓰는 화면이 선택 칸을 그릴지 정하는 데 쓴다.
+// 확인하지 못하면 없는 것으로 본다. 칸을 그렸는데 열이 없으면 저장이 실패하기 때문이다.
+export const hasAiLogOptions = cache(async (): Promise<boolean> => {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("ai_logs")
+    .select("exclude_from_insight, share_in_presentation")
+    .limit(1)
+
+  return !error
+})

@@ -264,6 +264,26 @@ export function AiLogDetail({
                 />
               )}
               <Info label="볼 수 있는 사람" value="Club 의 Member" />
+              {log.options && (
+                <>
+                  <Info
+                    label="AI Insight"
+                    value={
+                      log.options.excludeFromInsight
+                        ? "정리에 쓰지 않음"
+                        : "정리에 쓸 수 있음"
+                    }
+                  />
+                  <Info
+                    label="발표"
+                    value={
+                      log.options.shareInPresentation
+                        ? "넣어도 됨"
+                        : "넣지 않음"
+                    }
+                  />
+                </>
+              )}
             </dl>
           </section>
         </aside>

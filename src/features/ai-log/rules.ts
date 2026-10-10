@@ -26,6 +26,14 @@ export type AiLogInput = {
 
 export type AiLogInputErrors = Partial<Record<keyof AiLogInput, string>>
 
+// 작성자가 기록마다 정하는 두 가지 선택. 둘 다 기본은 꺼짐이다.
+export type AiLogOptions = {
+  // 켜면 AI Insight 를 만들 때 이 기록을 AI 로 보내지 않는다.
+  excludeFromInsight: boolean
+  // 켜면 이 기록이 묶인 Project 의 발표에 들어가 Club 밖에서도 보인다.
+  shareInPresentation: boolean
+}
+
 export type AiLogValidation =
   | { ok: true }
   | { ok: false; errors: AiLogInputErrors }
@@ -86,6 +94,18 @@ export function readAiLogForm(formData: FormData): AiLogInput {
     result: formText(formData, "result"),
     learned: formText(formData, "learned"),
     nextAction: formText(formData, "nextAction"),
+  }
+}
+
+// 폼에서 고른 선택을 읽는다. 선택 칸이 화면에 없었으면 null 이다.
+// 데이터베이스에 그 열이 아직 없을 때는 칸을 그리지 않으므로, null 이면 저장할 때 보내지 않는다.
+export function readAiLogOptions(formData: FormData): AiLogOptions | null {
+  if (formData.get("optionsField") !== "1") {
+    return null
+  }
+  return {
+    excludeFromInsight: formData.get("excludeFromInsight") === "on",
+    shareInPresentation: formData.get("shareInPresentation") === "on",
   }
 }
 

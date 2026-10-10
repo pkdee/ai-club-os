@@ -23,6 +23,8 @@ import type { InsightActionResult } from "../actions"
 export function GenerateInsightDialog({
   targetLabel,
   logCount,
+  excludedCount = 0,
+  runsLeft = null,
   providerLabel,
   replaces = false,
   published = false,
@@ -31,6 +33,10 @@ export function GenerateInsightDialog({
   // 예: 3회차 · RAG 기초 실습, 2026년 10월
   targetLabel: string
   logCount: number
+  // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
+  excludedCount?: number
+  // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이다.
+  runsLeft?: number | null
   // 예: Anthropic 의 Claude
   providerLabel: string
   replaces?: boolean
@@ -73,11 +79,19 @@ export function GenerateInsightDialog({
               {targetLabel}의 AI Log {logCount}개에서 제목, 사용한 도구, 적은
               내용을 {providerLabel} 로 보내 정리합니다. 작성자의 이름과
               이메일은 보내지 않습니다.
+              {excludedCount > 0 &&
+                ` 작성자가 AI Insight 에 쓰지 말라고 한 기록 ${excludedCount}개는 보내지 않습니다.`}
             </p>
             <p>
               만든 내용은 초안으로 저장됩니다. 확인해서 공개하기 전에는
               운영자에게만 보입니다.
             </p>
+            {runsLeft !== null && (
+              <p>
+                오늘 이 Club 에서 {runsLeft}번 더 만들 수 있습니다. 만들지
+                못해도 한 번으로 셉니다.
+              </p>
+            )}
             {replaces && (
               <p>
                 지금 있는 내용은 새로 만든 초안으로 바뀝니다.

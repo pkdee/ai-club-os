@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/empty";
 import { generatePeriodInsight } from "@/features/ai-insight/actions";
 import { InsightSection } from "@/features/ai-insight/components/insight-section";
+import { insightRunsLeft } from "@/features/ai-insight/limit";
 import {
   isMonthKey,
   monthKeyOf,
@@ -21,7 +22,8 @@ import {
   monthRange,
 } from "@/features/ai-insight/period";
 import {
-  countPeriodLogs,
+  countInsightLogs,
+  countTodayInsightRuns,
   getPeriodInsight,
 } from "@/features/ai-insight/queries";
 import { loadClubPage } from "@/features/club/page-data";
@@ -76,10 +78,14 @@ export default async function PeriodInsightPage(props: Props) {
 
   const { start, end } = monthRange(month);
   const label = monthLabel(month);
-  const [result, logCount] = await Promise.all([
+  const canManage = data.club.role === "admin";
+  // 오늘 만든 횟수는 운영자에게만 보이므로 운영자일 때만 센다.
+  const [result, logs, runs] = await Promise.all([
     getPeriodInsight(clubId, start, end),
-    countPeriodLogs(clubId, start, end),
+    countInsightLogs(clubId, { from: start, to: end }),
+    canManage ? countTodayInsightRuns(clubId, now) : null,
   ]);
+  const logCount = logs ? logs.usable + logs.excluded : null;
 
   return (
     <>
@@ -101,10 +107,12 @@ export default async function PeriodInsightPage(props: Props) {
       </div>
       <InsightSection
         clubId={clubId}
-        canManage={data.club.role === "admin"}
+        canManage={canManage}
         result={result}
         targetLabel={label}
-        logCount={logCount}
+        logCount={logs ? logs.usable : null}
+        excludedCount={logs ? logs.excluded : 0}
+        runsLeft={runs === null ? null : insightRunsLeft(runs)}
         retryHref={`${base}/${month}`}
         onGenerate={generatePeriodInsight.bind(null, clubId, month)}
         now={now}

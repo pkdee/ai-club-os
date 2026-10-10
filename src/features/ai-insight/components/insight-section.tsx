@@ -16,6 +16,7 @@ import { formatLogDateTime } from "@/features/ai-log/format"
 
 import type { InsightActionResult } from "../actions"
 import { insightShownLogIds, insightToText } from "../content"
+import { INSIGHT_DAILY_LIMIT } from "../limit"
 import { INSIGHT_MIN_LOGS } from "../prompt"
 import { getInsightProvider } from "../provider"
 import { listLogTitles, type InsightResult } from "../queries"
@@ -32,6 +33,8 @@ export async function InsightSection({
   result,
   targetLabel,
   logCount,
+  excludedCount = 0,
+  runsLeft = null,
   retryHref,
   onGenerate,
   now,
@@ -41,8 +44,12 @@ export async function InsightSection({
   result: InsightResult
   // 예: 3회차 · RAG 기초 실습, 2026년 10월
   targetLabel: string
-  // 지금 이 대상에 있는 AI Log 수. 세지 못했으면 null 이다.
+  // 지금 이 대상에서 정리에 쓸 수 있는 AI Log 수. 세지 못했으면 null 이다.
   logCount: number | null
+  // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
+  excludedCount?: number
+  // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이고 그때는 보여 주지 않는다.
+  runsLeft?: number | null
   retryHref: string
   onGenerate: () => Promise<InsightActionResult>
   now: Date
@@ -94,10 +101,12 @@ export async function InsightSection({
   const enoughLogs = logCount === null || logCount >= INSIGHT_MIN_LOGS
   // 운영자에게만 만드는 버튼을 준다. 만들 수 없을 때는 까닭을 대신 보여 준다.
   const generate = (replaces: boolean) =>
-    provider && enoughLogs ? (
+    provider && enoughLogs && runsLeft !== 0 ? (
       <GenerateInsightDialog
         targetLabel={targetLabel}
         logCount={logCount ?? 0}
+        excludedCount={excludedCount}
+        runsLeft={runsLeft}
         providerLabel={provider.label}
         replaces={replaces}
         published={insight?.status === "published"}
@@ -107,8 +116,14 @@ export async function InsightSection({
   const blocked = !provider
     ? "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 ANTHROPIC_API_KEY 를 넣으면 만들 수 있습니다."
     : !enoughLogs
-      ? `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다. 지금은 ${logCount}개입니다.`
-      : null
+      ? `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다. 지금은 ${logCount}개입니다.${
+          excludedCount > 0
+            ? ` 작성자가 AI Insight 에 쓰지 말라고 한 기록 ${excludedCount}개는 세지 않았습니다.`
+            : ""
+        }`
+      : runsLeft === 0
+        ? `오늘은 이 Club 에서 AI Insight 를 ${INSIGHT_DAILY_LIMIT}번 만들었습니다. 내일 다시 만들 수 있습니다.`
+        : null
 
   if (!insight) {
     return (

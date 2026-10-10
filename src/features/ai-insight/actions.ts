@@ -14,6 +14,7 @@ import {
   parseInsightContent,
   type InsightContent,
 } from "./content"
+import { INSIGHT_DAILY_LIMIT } from "./limit"
 import { isMonthKey, monthKeyOf, monthLabel, monthRange } from "./period"
 import {
   INSIGHT_MIN_LOGS,
@@ -46,6 +47,7 @@ const TARGET_GONE_MESSAGE =
 const TOO_FEW_MESSAGE = `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다.`
 const TOO_SOON_MESSAGE =
   "방금 만들었습니다. 잠시 뒤에 다시 만들어 주세요."
+const DAILY_LIMIT_MESSAGE = `오늘은 이 Club 에서 AI Insight 를 ${INSIGHT_DAILY_LIMIT}번 만들었습니다. 내일 다시 만들 수 있습니다.`
 const GONE_MESSAGE =
   "AI Insight 를 찾을 수 없습니다. 이미 지워졌거나 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 const EMPTY_CONTENT_MESSAGE =
@@ -117,6 +119,28 @@ async function generate(
     return { ok: false, message: TOO_FEW_MESSAGE }
   }
 
+  // 하루 횟수에 한 번을 남긴다. 다 썼으면 데이터베이스가 막는다.
+  // AI 를 부르기 전에 남겨서 실패한 시도도 센다. 횟수를 두는 구조가 아직 없으면 세지 않고 진행한다.
+  const supabase = await createClient()
+  const claimed = await supabase
+    .from("ai_insight_runs")
+    .insert({ club_id: clubId })
+  if (
+    claimed.error &&
+    claimed.error.code !== "42P01" &&
+    claimed.error.code !== "PGRST205"
+  ) {
+    if (claimed.error.code === "P0001") {
+      return { ok: false, message: DAILY_LIMIT_MESSAGE }
+    }
+    console.error("AI Insight 를 만든 횟수를 남기지 못했습니다.", claimed.error)
+    return {
+      ok: false,
+      message:
+        claimed.error.code === "42501" ? ADMIN_ONLY_MESSAGE : RETRY_MESSAGE,
+    }
+  }
+
   const prompt = buildInsightPrompt(target, logs)
   const result = await provider.generate(prompt)
   if (result.status === "error") {
@@ -134,7 +158,6 @@ async function generate(
     provider: provider.name,
     model: result.model,
   }
-  const supabase = await createClient()
   let insightId = existing.insight?.id
 
   if (!insightId) {

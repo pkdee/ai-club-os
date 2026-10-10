@@ -16,6 +16,7 @@ import { Calendar, Check, CircleAlert, History } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { CheckboxField } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -44,6 +45,7 @@ import {
   AI_LOG_TITLE_MAX,
   readAiLogForm,
   type AiLogInput,
+  type AiLogOptions,
 } from "../rules"
 import { ToolsInput } from "./tools-input"
 
@@ -99,6 +101,7 @@ const TEXT_FIELDS = [
 // logId 가 있으면 고치는 화면, 없으면 새로 쓰는 화면이다.
 // sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
 // projects 는 고를 수 있는 Project 다. 내가 참여하는 것만 들어 있고, null 이면 Project 를 고르는 칸을 그리지 않는다.
+// options 는 작성자가 정하는 두 가지 선택의 지금 값이다. null 이면 선택 칸을 그리지 않는다.
 // draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
 export function AiLogForm({
   target,
@@ -106,6 +109,7 @@ export function AiLogForm({
   defaults,
   sessions,
   projects,
+  options,
   knownTools,
   cancelHref,
   draftKey,
@@ -115,6 +119,7 @@ export function AiLogForm({
   defaults: AiLogInput
   sessions: SessionOption[] | null
   projects: { id: string; name: string }[] | null
+  options: AiLogOptions | null
   knownTools: string[]
   cancelHref: string
   draftKey: string
@@ -144,6 +149,8 @@ export function AiLogForm({
   )
   // 상세 화면으로 넘어갈 때까지 버튼을 잠가 둔다.
   const saving = pending || state.status === "success"
+  // 저장하지 못해 다시 그릴 때는 방금 고른 선택을 보여 준다.
+  const shownOptions = options && (state.options ?? options)
 
   // 화면을 열었을 때 맡겨져 있던 내용. 서버에서 그릴 때와 처음 그릴 때는 없는 것으로 본다.
   const subscribe = useCallback(
@@ -502,6 +509,25 @@ export function AiLogForm({
                   {selected.description}
                 </p>
               )}
+            </section>
+          )}
+          {shownOptions && (
+            <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
+              <h2 className="text-h4">이 기록의 쓰임</h2>
+              {/* 이 칸들이 화면에 있었다는 표시. 서버는 이 표시가 있을 때만 선택을 저장한다. */}
+              <input type="hidden" name="optionsField" value="1" />
+              <CheckboxField
+                name="excludeFromInsight"
+                defaultChecked={shownOptions.excludeFromInsight}
+                label="AI Insight 에 쓰지 않기"
+                description="켜면 운영자가 AI Insight 를 만들 때 이 기록을 AI 서비스로 보내지 않습니다."
+              />
+              <CheckboxField
+                name="shareInPresentation"
+                defaultChecked={shownOptions.shareInPresentation}
+                label="발표에 넣어도 됨"
+                description="켜면 이 기록이 묶인 Project 의 발표에 들어가, 링크를 받은 Club 밖의 사람도 볼 수 있습니다. 끄면 발표에서 바로 빠집니다."
+              />
             </section>
           )}
           <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
