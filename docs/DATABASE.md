@@ -48,6 +48,7 @@ User
 | `club_invites`, 참여 함수 | `20261010064838_create_club_invites.sql` | `docs/adr/0007-club-invite-link.md` |
 | `members` 의 사진 주소 열, 사진 맞추기 함수 | `20261010070509_add_member_avatar.sql` | `docs/adr/0008-member-avatar-from-google.md` |
 | 역할 바꾸기, 내보내기와 나가기, Club 정보 수정 규칙 | `20261010071641_manage_members_and_club.sql` | `docs/adr/0009-member-management-and-last-admin.md` |
+| AI Log 검색과 도구 목록 함수 | `20261010075452_add_ai_log_search.sql` | `docs/adr/0011-ai-log-search-functions.md` |
 
 ```mermaid
 erDiagram
@@ -207,6 +208,15 @@ erDiagram
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 내용이 실제로 바뀌었을 때만 바뀐다 |
 
 사용자가 쓴 원본 기록입니다. 이후에 만들 AI Insight 는 이 테이블에 덮어쓰지 않고 따로 둡니다.
+
+### AI Log 를 찾는 함수
+
+두 함수 모두 부른 사람의 권한으로 실행하므로 `ai_logs` 의 접근 규칙이 그대로 적용됩니다. 로그인한 사용자만 부를 수 있습니다.
+
+| 함수 | 하는 일 |
+|---|---|
+| `public.search_ai_logs(target_club_id, search)` | 제목, 내용, 도구 이름에 찾는 글자가 들어 있는 기록을 `ai_logs` 와 같은 모양으로 돌려준다. 대소문자를 가리지 않는다 |
+| `public.club_tool_counts(target_club_id)` | 그 Club 의 기록에 쓰인 도구 이름과 기록 수를 많이 쓰인 순서로 돌려준다 |
 
 ### club_invites
 
