@@ -157,46 +157,60 @@ function applyConditions<T>(
 // 조건에 맞는 AI Log 를 읽는다. 찾는 글자나 도구가 있으면 데이터베이스의 search_ai_logs 함수가 찾는다.
 // 이 함수는 띄어쓰기와 대소문자의 차이를 넘어 찾는다. 사용자가 넣은 글자를 조건 문자열에 끼워 넣지 않고
 // 함수의 값으로 넘기므로, 어떤 글자를 넣어도 조건이 깨지지 않는다.
-// 도구를 가리키는 말은 그 도구의 다른 표기까지 함께 찾도록 넓혀서 넘긴다.
 export async function searchClubLogs(
   clubId: string,
   filters: AiLogFilters,
   userId: string
 ): Promise<AiLogListResult> {
   const supabase = await createClient()
-  const selected =
-    filters.query || filters.tool
-      ? applyConditions(
-          supabase.rpc(
-            "search_ai_logs",
-            {
-              target_club_id: clubId,
-              search: expandSearch(filters.query),
-              tool_name: filters.tool ? toolFilterValue(filters.tool) : null,
-            },
-            { count: "exact" }
-          ),
-          filters,
-          userId
-        ).select(SUMMARY_COLUMNS)
-      : applyConditions(
-          supabase
-            .from("ai_logs")
-            .select(SUMMARY_COLUMNS, { count: "exact" })
-            .eq("club_id", clubId),
-          filters,
-          userId
-        )
-
-  // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
   const ascending = filters.sort === "oldest"
-  const { data, error, count } = await selected
-    .order("created_at", { ascending })
-    .order("id", { ascending })
-    .range(0, filters.limit - 1)
 
+  // search 와 tool 은 함수에 넘길 값이다. 둘 다 비어 있으면 함수를 거치지 않고 바로 읽는다.
+  async function read(search: string, tool: string | null) {
+    const selected =
+      search || tool
+        ? applyConditions(
+            supabase.rpc(
+              "search_ai_logs",
+              { target_club_id: clubId, search, tool_name: tool },
+              { count: "exact" }
+            ),
+            filters,
+            userId
+          ).select(SUMMARY_COLUMNS)
+        : applyConditions(
+            supabase
+              .from("ai_logs")
+              .select(SUMMARY_COLUMNS, { count: "exact" })
+              .eq("club_id", clubId),
+            filters,
+            userId
+          )
+
+    // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
+    return selected
+      .order("created_at", { ascending })
+      .order("id", { ascending })
+      .range(0, filters.limit - 1)
+  }
+
+  // 도구를 가리키는 말은 그 도구의 다른 표기까지 함께 찾도록 넓혀서 넘긴다.
+  const widenedSearch = expandSearch(filters.query)
+  const widenedTool = filters.tool ? toolFilterValue(filters.tool) : null
+  let response = await read(widenedSearch, widenedTool)
+
+  // 넓힌 값으로 아무것도 나오지 않으면 적은 그대로 한 번 더 찾는다.
+  // 데이터베이스의 검색 함수가 여러 표기를 받도록 바뀌기 전이면 넓힌 값이 글자 그대로 읽혀 결과가 빈다.
+  // 그 상태에서도 검색이 멈추지 않게 하려는 것이다. 함수가 바뀐 뒤에는 대부분 같은 빈 결과가 돌아온다.
+  const widened =
+    widenedSearch !== filters.query || widenedTool !== filters.tool
+  if (!response.error && widened && (response.count ?? 0) === 0) {
+    response = await read(filters.query, filters.tool)
+  }
+
+  const { data, error, count } = response
   if (error) {
-    console.error("AI Log 를 찾지 못했습니다.", error)
+    console.error("AI Log 를 찾지 못했습니다.", error.code, error.message)
     return { status: "error" }
   }
 
