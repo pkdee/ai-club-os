@@ -29,6 +29,7 @@
 | `lucide-react` | 아이콘. Figma 아이콘과 같은 Lucide 를 쓴다. |
 | `eslint`, `eslint-config-next`, `typescript`, `@types/*` | 뼈대 기본 구성 |
 | `@supabase/supabase-js` 2.117.3, `@supabase/ssr` 0.12.7 | 2026-10-10 추가. Supabase 연결과 서버 쪽 세션 관리. 공급망 사고에 대비해 버전을 고정한다. |
+| `@lobehub/icons-static-svg` 1.95.1 | 2026-10-10 추가. AI 도구 로고의 SVG 파일. MIT 이고 의존성이 없다. 로고 모양이 모르는 사이에 바뀌지 않게 버전을 고정한다. 로고의 상표는 각 회사에 있다. 근거는 `docs/adr/0014-tool-logos-from-package.md`. |
 
 Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행합니다. 지금은 마이그레이션 파일을 만들 때만 씁니다.
 
