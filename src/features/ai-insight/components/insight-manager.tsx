@@ -87,7 +87,8 @@ export function InsightManager({
                 </p>
                 <p>
                   지우면 되돌릴 수 없습니다. 원본 AI Log 는 그대로 남아 있어 다시
-                  만들 수 있습니다.
+                  만들 수 있습니다. 지웠다는 사실은 Club 설정의 지운 기록에
+                  남습니다.
                 </p>
               </>
             }

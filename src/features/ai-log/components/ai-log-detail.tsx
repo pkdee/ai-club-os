@@ -203,7 +203,10 @@ export function AiLogDetail({
                           ? `내가 쓴 "${log.title}" 기록이 지워집니다.`
                           : `${name} 님이 쓴 "${log.title}" 기록이 지워집니다.`}
                       </p>
-                      <p>지우면 되돌릴 수 없습니다.</p>
+                      <p>
+                        지우면 되돌릴 수 없습니다. 지웠다는 사실과 제목은
+                        운영자가 볼 수 있게 남습니다.
+                      </p>
                     </>
                   }
                   onDelete={deleteAiLog.bind(null, log.clubId, log.id)}

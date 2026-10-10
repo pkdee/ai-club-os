@@ -88,7 +88,7 @@ function deleteNotes(project: Project) {
       : project.logCount === 0
         ? "이 Project 에 묶인 AI Log 는 없습니다."
         : `AI Log ${project.logCount}개는 지워지지 않고, Project 연결만 끊긴 채 Club 의 기록으로 남습니다.`,
-    "지우면 되돌릴 수 없습니다.",
+    "지우면 되돌릴 수 없습니다. 지웠다는 사실과 제목은 운영자가 볼 수 있게 남습니다.",
   ]
 }
 

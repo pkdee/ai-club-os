@@ -17,7 +17,14 @@ import type { MyClub } from "../queries"
 import { ClubSettingsForm } from "./club-settings-form"
 
 // 운영자만 쓰는 화면이다. 구성원이 주소로 들어오면 이유를 알려 준다.
-export function ClubSettingsScreen({ club }: { club: MyClub }) {
+// children 에는 운영자에게만 보이는 다른 영역을 넣는다. 기본 정보와 Club 삭제 사이에 놓인다.
+export function ClubSettingsScreen({
+  club,
+  children,
+}: {
+  club: MyClub
+  children?: React.ReactNode
+}) {
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -40,6 +47,7 @@ export function ClubSettingsScreen({ club }: { club: MyClub }) {
               defaults={{ name: club.name, description: club.description }}
             />
           </section>
+          {children}
           <section className="flex max-w-[720px] flex-col gap-4 rounded-xl border border-danger-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
             <div className="flex flex-col gap-1">
               <h2 className="text-h3">Club 삭제</h2>
@@ -54,7 +62,8 @@ export function ClubSettingsScreen({ club }: { club: MyClub }) {
                 <>
                   <p>
                     Member {club.memberCount}명의 소속과 Session, Attendance,
-                    AI Log, 초대 링크가 모두 함께 지워집니다.
+                    AI Log, AI Insight, Project, 초대 링크가 모두 함께
+                    지워집니다. 지운 기록도 남지 않습니다.
                   </p>
                   <p>지우면 되돌릴 수 없습니다.</p>
                 </>
