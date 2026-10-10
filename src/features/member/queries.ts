@@ -11,6 +11,7 @@ export type Member = {
   role: ClubRole
   name: string
   email: string | null
+  joinedAt: string
 }
 
 export type MemberListResult =
@@ -23,6 +24,7 @@ type MemberRow = {
   role: ClubRole
   display_name: string
   email: string | null
+  created_at: string
 }
 
 // Club 의 Member 를 참여한 순서로 읽는다.
@@ -32,7 +34,7 @@ export const listMembers = cache(
     const supabase = await createClient()
     const { data, error } = await supabase
       .from("members")
-      .select("id, user_id, role, display_name, email")
+      .select("id, user_id, role, display_name, email, created_at")
       .eq("club_id", clubId)
       .order("created_at", { ascending: true })
 
@@ -49,6 +51,7 @@ export const listMembers = cache(
         role: row.role,
         name: memberName(row),
         email: row.email,
+        joinedAt: row.created_at,
       })),
     }
   }
