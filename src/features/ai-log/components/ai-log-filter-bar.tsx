@@ -128,8 +128,11 @@ export function AiLogFilterBar({
       <button type="submit" className="sr-only">
         검색
       </button>
-      <span role="status" className="sr-only">
-        {pending ? "찾는 중입니다." : ""}
+      <span
+        role="status"
+        className="flex h-10 items-center text-body-s text-muted-foreground empty:hidden"
+      >
+        {pending ? "찾는 중" : ""}
       </span>
     </form>
   )

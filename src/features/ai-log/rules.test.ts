@@ -1,7 +1,13 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { normalizeTools, validateAiLog, type AiLogInput } from "./rules"
+import {
+  canonicalTools,
+  normalizeTools,
+  toolKey,
+  validateAiLog,
+  type AiLogInput,
+} from "./rules"
 
 // 두 칸짜리로 저장되는 글자. 데이터베이스처럼 한 글자로 세는지 볼 때 쓴다.
 const astral = "\u{1F600}"
@@ -27,8 +33,28 @@ test("도구 이름을 쉼표로 나누고 다듬는다", () => {
   assert.deepEqual(normalizeTools(["Claude   Code"]), ["Claude Code"])
 })
 
-test("대소문자만 다른 도구 이름은 처음 것 하나로 합친다", () => {
+test("대소문자나 공백만 다른 도구 이름은 처음 것 하나로 합친다", () => {
   assert.deepEqual(normalizeTools(["Claude", "claude", "CLAUDE"]), ["Claude"])
+  assert.deepEqual(normalizeTools(["Claude Code", "ClaudeCode", "claude  code"]), ["Claude Code"])
+})
+
+test("도구 이름을 비교하는 값은 대소문자와 공백의 차이를 없앤다", () => {
+  assert.equal(toolKey("Claude Code"), "claudecode")
+  assert.equal(toolKey(" ChatGPT "), "chatgpt")
+  assert.equal(toolKey("bge-m3"), "bge-m3")
+})
+
+test("입력한 도구 이름을 Club 에서 이미 쓰는 표기에 맞춘다", () => {
+  const known = ["ChatGPT", "Claude Code", "LangChain"]
+  assert.deepEqual(canonicalTools(["chatgpt", "claudecode", "Cursor"], known), ["ChatGPT", "Claude Code", "Cursor"])
+})
+
+test("표기를 맞춘 뒤 같아진 도구는 하나만 남긴다", () => {
+  assert.deepEqual(canonicalTools(["chatgpt", "ChatGPT", "CHAT GPT"], ["ChatGPT"]), ["ChatGPT"])
+})
+
+test("Club 에서 처음 쓰는 도구는 입력한 그대로 둔다", () => {
+  assert.deepEqual(canonicalTools(["bge-m3"], []), ["bge-m3"])
 })
 
 test("필수는 제목과 시도한 내용이다", () => {

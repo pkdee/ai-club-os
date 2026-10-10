@@ -7,7 +7,9 @@ import { getCurrentUser } from "@/features/auth/session"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
+import { listClubTools } from "./queries"
 import {
+  canonicalTools,
   normalizeTools,
   validateAiLog,
   type AiLogInput,
@@ -70,10 +72,21 @@ export async function saveAiLog(
     return { status: "error", errors: validation.errors, values }
   }
 
+  // 같은 도구가 표기만 달리 쌓이지 않게, Club 에서 이미 쓰는 표기가 있으면 그것에 맞춘다.
+  // 목록을 불러오지 못하면 입력한 그대로 저장한다.
+  const known = await listClubTools(target.clubId)
+  const tools =
+    known.status === "ok"
+      ? canonicalTools(
+          values.tools,
+          known.tools.map((tool) => tool.name)
+        )
+      : values.tools
+
   const fields = {
     session_id: values.sessionId || null,
     title: values.title,
-    tools: values.tools,
+    tools,
     attempt: values.attempt,
     result: values.result,
     learned: values.learned,

@@ -5,6 +5,7 @@ import {
   defaultSessionId,
   toSessionOptions,
 } from "@/features/ai-log/session-options";
+import { listClubTools } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { listSessions } from "@/features/session/queries";
 
@@ -23,7 +24,10 @@ export default async function AiLogNewPage(
     return null;
   }
 
-  const result = await listSessions(clubId);
+  const [result, tools] = await Promise.all([
+    listSessions(clubId),
+    listClubTools(clubId),
+  ]);
   const sessions = result.status === "ok" ? result.sessions : null;
   const sessionId = sessions
     ? defaultSessionId(sessions, query.session, new Date())
@@ -43,6 +47,7 @@ export default async function AiLogNewPage(
         nextAction: "",
       }}
       sessions={sessions ? toSessionOptions(sessions) : null}
+      knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       // Session 에서 들어왔으면 취소할 때 그 회차의 AI Log 로 돌아간다.
       cancelHref={
         sessionId && query.session === sessionId

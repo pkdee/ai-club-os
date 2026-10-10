@@ -6,21 +6,24 @@ import { X } from "lucide-react"
 import {
   AI_LOG_TOOL_COUNT_MAX,
   AI_LOG_TOOL_NAME_MAX,
-  normalizeTools,
+  canonicalTools,
 } from "../rules"
 
 // 도구 이름을 하나씩 이름표로 쌓는 입력 칸. Enter 나 쉼표로 넣고, 빈 칸에서 Backspace 로 마지막 것을 뺀다.
 // 이름표는 같은 name 의 숨은 값으로 함께 제출된다. 아직 이름표로 만들지 않은 글자도 그대로 제출되어 서버가 다듬는다.
+// suggestions 는 이 Club 에서 이미 쓰는 도구 이름이다. 적는 동안 보여 주고, 표기만 다르게 적으면 그 표기로 맞춘다.
 export function ToolsInput({
   id,
   name,
   defaultValue,
+  suggestions = [],
   invalid,
   describedBy,
 }: {
   id: string
   name: string
   defaultValue: string[]
+  suggestions?: string[]
   invalid?: boolean
   describedBy?: string
 }) {
@@ -31,7 +34,10 @@ export function ToolsInput({
 
   function add(value: string) {
     setTools((current) =>
-      normalizeTools([...current, value]).slice(0, AI_LOG_TOOL_COUNT_MAX)
+      canonicalTools([...current, value], suggestions).slice(
+        0,
+        AI_LOG_TOOL_COUNT_MAX
+      )
     )
     setDraft("")
   }
@@ -70,6 +76,7 @@ export function ToolsInput({
         maxLength={AI_LOG_TOOL_NAME_MAX}
         autoComplete="off"
         enterKeyHint="done"
+        list={suggestions.length > 0 ? `${id}-suggestions` : undefined}
         disabled={full}
         placeholder={
           full
@@ -103,6 +110,13 @@ export function ToolsInput({
         onBlur={() => add(draft)}
         className="h-6 min-w-32 flex-1 bg-transparent px-1 text-base text-foreground outline-none placeholder:text-tertiary disabled:cursor-not-allowed md:text-body-m"
       />
+      {suggestions.length > 0 && (
+        <datalist id={`${id}-suggestions`}>
+          {suggestions.map((tool) => (
+            <option key={tool} value={tool} />
+          ))}
+        </datalist>
+      )}
     </div>
   )
 }

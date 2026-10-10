@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { AiLogUnavailable } from "@/features/ai-log/components/ai-log-detail";
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
-import { getAiLog } from "@/features/ai-log/queries";
+import { getAiLog, listClubTools } from "@/features/ai-log/queries";
 import { toSessionOptions } from "@/features/ai-log/session-options";
 import { loadClubPage } from "@/features/club/page-data";
 import { listSessions } from "@/features/session/queries";
@@ -32,7 +32,10 @@ export default async function AiLogEditPage(
     return <AiLogUnavailable clubId={clubId} reason="not-author" />;
   }
 
-  const sessions = await listSessions(clubId);
+  const [sessions, tools] = await Promise.all([
+    listSessions(clubId),
+    listClubTools(clubId),
+  ]);
 
   return (
     <AiLogForm
@@ -50,6 +53,7 @@ export default async function AiLogEditPage(
       sessions={
         sessions.status === "ok" ? toSessionOptions(sessions.sessions) : null
       }
+      knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}
     />
   );

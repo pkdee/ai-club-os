@@ -28,20 +28,38 @@ function length(value: string) {
   return Array.from(value).length
 }
 
-// 도구 이름을 다듬는다. 쉼표로 나누고, 빈 값과 대소문자만 다른 중복을 뺀다.
+// 도구 이름을 비교할 때 쓰는 값. 대소문자와 공백의 차이를 없앤다.
+// 데이터베이스의 private.search_key 와 같은 규칙이어야 한다.
+export function toolKey(value: string) {
+  return value.replace(/\s+/g, "").toLowerCase()
+}
+
+// 도구 이름을 다듬는다. 쉼표로 나누고, 빈 값과 표기만 다른 중복을 뺀다.
 export function normalizeTools(values: string[]) {
   const seen = new Set<string>()
   const tools: string[] = []
 
   for (const value of values.flatMap((item) => item.split(","))) {
     const tool = value.trim().replace(/\s+/g, " ")
-    const key = tool.toLowerCase()
-    if (tool && !seen.has(key)) {
+    const key = toolKey(tool)
+    if (key && !seen.has(key)) {
       seen.add(key)
       tools.push(tool)
     }
   }
   return tools
+}
+
+// 입력한 도구 이름을 이 Club 에서 이미 쓰는 표기에 맞춘다.
+// "chatgpt" 라고 적어도 Club 에서 "ChatGPT" 로 쓰고 있으면 그 표기로 바꾼다. 처음 쓰는 도구는 입력한 그대로 둔다.
+export function canonicalTools(entered: string[], known: string[]) {
+  const spelling = new Map<string, string>()
+  for (const tool of known) {
+    if (!spelling.has(toolKey(tool))) {
+      spelling.set(toolKey(tool), tool)
+    }
+  }
+  return normalizeTools(entered.map((tool) => spelling.get(toolKey(tool)) ?? tool))
 }
 
 export function validateAiLog(input: AiLogInput): AiLogValidation {

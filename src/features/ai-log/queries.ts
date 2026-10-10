@@ -133,12 +133,6 @@ export const listClubLogs = cache(
 type Filterable = {
   eq(column: string, value: string): Filterable
   is(column: string, value: null): Filterable
-  contains(column: string, value: string): Filterable
-}
-
-// 글자 하나를 Postgres 의 배열 표기로 바꾼다. 따옴표나 중괄호가 든 도구 이름도 그대로 찾으려는 것이다.
-function arrayLiteral(value: string) {
-  return `{"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"}`
 }
 
 // 조건을 건 뒤에도 원래 모양 그대로 이어 쓸 수 있게 받은 형식으로 돌려준다.
@@ -156,38 +150,41 @@ function applyConditions<T>(
   } else if (filters.session) {
     next = next.eq("session_id", filters.session)
   }
-  if (filters.tool) {
-    next = next.contains("tools", arrayLiteral(filters.tool))
-  }
   return next as unknown as T
 }
 
-// 조건에 맞는 AI Log 를 읽는다. 찾는 글자가 있으면 데이터베이스의 search_ai_logs 함수가 찾는다.
-// 찾는 글자를 조건 문자열에 끼워 넣지 않고 함수의 값으로 넘기므로, 어떤 글자를 넣어도 조건이 깨지지 않는다.
+// 조건에 맞는 AI Log 를 읽는다. 찾는 글자나 도구가 있으면 데이터베이스의 search_ai_logs 함수가 찾는다.
+// 이 함수는 띄어쓰기와 대소문자의 차이를 넘어 찾는다. 사용자가 넣은 글자를 조건 문자열에 끼워 넣지 않고
+// 함수의 값으로 넘기므로, 어떤 글자를 넣어도 조건이 깨지지 않는다.
 export async function searchClubLogs(
   clubId: string,
   filters: AiLogFilters,
   userId: string
 ): Promise<AiLogListResult> {
   const supabase = await createClient()
-  const selected = filters.query
-    ? applyConditions(
-        supabase.rpc(
-          "search_ai_logs",
-          { target_club_id: clubId, search: filters.query },
-          { count: "exact" }
-        ),
-        filters,
-        userId
-      ).select(SUMMARY_COLUMNS)
-    : applyConditions(
-        supabase
-          .from("ai_logs")
-          .select(SUMMARY_COLUMNS, { count: "exact" })
-          .eq("club_id", clubId),
-        filters,
-        userId
-      )
+  const selected =
+    filters.query || filters.tool
+      ? applyConditions(
+          supabase.rpc(
+            "search_ai_logs",
+            {
+              target_club_id: clubId,
+              search: filters.query,
+              tool_name: filters.tool,
+            },
+            { count: "exact" }
+          ),
+          filters,
+          userId
+        ).select(SUMMARY_COLUMNS)
+      : applyConditions(
+          supabase
+            .from("ai_logs")
+            .select(SUMMARY_COLUMNS, { count: "exact" })
+            .eq("club_id", clubId),
+          filters,
+          userId
+        )
 
   // 같은 시각에 만든 기록끼리도 순서가 바뀌지 않게 식별자로 한 번 더 정렬한다. 더 보기에서 빠지거나 겹치지 않게 하려는 것이다.
   const ascending = filters.sort === "oldest"
@@ -205,7 +202,8 @@ export async function searchClubLogs(
   return { status: "ok", logs, total: count ?? logs.length }
 }
 
-// Club 의 AI Log 에 쓰인 도구 이름을 많이 쓰인 순서로 읽는다. 도구로 고르는 칸에 쓴다.
+// Club 의 AI Log 에 쓰인 도구 이름을 많이 쓰인 순서로 읽는다. 표기만 다른 이름은 하나로 합쳐져 온다.
+// 도구로 고르는 칸과, 쓸 때 표기를 맞추는 데 쓴다.
 export const listClubTools = cache(
   async (clubId: string): Promise<ClubToolsResult> => {
     const supabase = await createClient()

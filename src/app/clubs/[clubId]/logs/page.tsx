@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AiLogListScreen } from "@/features/ai-log/components/ai-log-list-screen";
 import { parseLogFilters } from "@/features/ai-log/filters";
+import { toolKey } from "@/features/ai-log/rules";
 import {
   countClubLogs,
   listClubTools,
@@ -24,19 +25,24 @@ export default async function AiLogListPage(
     return null;
   }
 
-  const filters = parseLogFilters(await props.searchParams);
-  const [result, allCount, mineCount, sessions, tools] = await Promise.all([
+  const requested = parseLogFilters(await props.searchParams);
+  const tools = await listClubTools(clubId);
+  const toolNames = tools.status === "ok" ? tools.tools.map((tool) => tool.name) : [];
+  // 주소로 받은 도구를 Club 에서 쓰는 표기에 맞춘다. 목록에 없는 도구도 고른 값이 칸에 보이게 한다.
+  const knownTool = requested.tool
+    ? toolNames.find((name) => toolKey(name) === toolKey(requested.tool ?? ""))
+    : undefined;
+  if (requested.tool && !knownTool) {
+    toolNames.unshift(requested.tool);
+  }
+  const filters = { ...requested, tool: knownTool ?? requested.tool };
+
+  const [result, allCount, mineCount, sessions] = await Promise.all([
     searchClubLogs(clubId, filters, data.user.id),
     countClubLogs(clubId, null),
     countClubLogs(clubId, data.user.id),
     listSessions(clubId),
-    listClubTools(clubId),
   ]);
-  const toolNames = tools.status === "ok" ? tools.tools.map((tool) => tool.name) : [];
-  // 주소로 받은 도구가 목록에 없어도 고른 값이 칸에 보이게 한다.
-  if (filters.tool && !toolNames.includes(filters.tool)) {
-    toolNames.unshift(filters.tool);
-  }
 
   return (
     <AiLogListScreen

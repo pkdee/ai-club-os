@@ -74,18 +74,20 @@ const TEXT_FIELDS = [
 ] as const
 
 // logId 가 있으면 고치는 화면, 없으면 새로 쓰는 화면이다.
-// sessions 가 null 이면 Session 목록을 불러오지 못한 것이다.
+// sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
 export function AiLogForm({
   target,
   clubName,
   defaults,
   sessions,
+  knownTools,
   cancelHref,
 }: {
   target: AiLogTarget
   clubName: string
   defaults: AiLogInput
   sessions: SessionOption[] | null
+  knownTools: string[]
   cancelHref: string
 }) {
   const editing = Boolean(target.logId)
@@ -199,6 +201,7 @@ export function AiLogForm({
                 id="log-tools"
                 name="tools"
                 defaultValue={defaults.tools}
+                suggestions={knownTools}
                 invalid={invalid("tools")}
                 describedBy="log-tools-help"
               />
@@ -206,7 +209,8 @@ export function AiLogForm({
                 <FieldError id="log-tools-help">{errors.tools}</FieldError>
               ) : (
                 <FieldDescription id="log-tools-help">
-                  Enter 나 쉼표로 여러 개를 넣습니다.
+                  Enter 나 쉼표로 여러 개를 넣습니다. Club 에서 이미 쓰는 도구는
+                  같은 표기로 맞춰 저장합니다.
                 </FieldDescription>
               )}
             </Field>
