@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, ChevronsUpDown, LogOut, Settings } from "lucide-react"
+import { ArrowLeft, Bell, ChevronsUpDown, LogOut, Settings } from "lucide-react"
 
 import { Avatar } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -11,13 +11,16 @@ import { ROLE_LABEL } from "../roles"
 import { ClubNav } from "./club-nav"
 
 // Club 안쪽 화면이 함께 쓰는 틀. 넓은 화면은 Sidebar, 좁은 화면은 상단 막대와 아래쪽 메뉴를 쓴다.
+// notificationCount 는 내가 챙길 알림의 수다. null 이면 알림을 아직 쓸 수 없는 것이라 메뉴에 넣지 않는다.
 export function ClubShell({
   club,
   user,
+  notificationCount = null,
   children,
 }: {
   club: MyClub
   user: CurrentUser
+  notificationCount?: number | null
   children: React.ReactNode
 }) {
   return (
@@ -49,6 +52,7 @@ export function ClubShell({
         <ClubNav
           clubId={club.id}
           canManage={club.role === "admin"}
+          notificationCount={notificationCount}
           className="flex-1"
         />
         <div className="flex items-center gap-3 border-t px-2 pt-3">
@@ -84,7 +88,28 @@ export function ClubShell({
         <span className="min-w-0 flex-1 truncate pl-2 text-h4">
           {club.name}
         </span>
-        {/* 좁은 화면에서는 아래쪽 메뉴에 자리가 모자라 설정을 여기에 둔다. */}
+        {/* 좁은 화면에서는 아래쪽 메뉴에 자리가 모자라 알림과 설정을 여기에 둔다. */}
+        {notificationCount !== null && (
+          <Link
+            href={`/clubs/${club.id}/notifications`}
+            aria-label={
+              notificationCount > 0 ? `알림 ${notificationCount}건` : "알림"
+            }
+            className={buttonVariants({
+              variant: "ghost",
+              size: "icon",
+              className: "relative",
+            })}
+          >
+            <Bell aria-hidden="true" strokeWidth={1.5} />
+            {notificationCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary"
+              />
+            )}
+          </Link>
+        )}
         {club.role === "admin" && (
           <Link
             href={`/clubs/${club.id}/settings`}
