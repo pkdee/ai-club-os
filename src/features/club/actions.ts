@@ -6,7 +6,21 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/features/auth/session"
 import { createClient } from "@/lib/supabase/server"
 
+import { getClubAccess } from "./queries"
 import { validateClub, type ClubInput, type ClubInputErrors } from "./rules"
+
+export type ClubDeleteResult = { ok: true } | { ok: false; message: string }
+
+const DELETE_RETRY_MESSAGE =
+  "연결이 끊겼거나 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요."
+// 지우는 권한 자체가 없을 때의 안내. 접근 규칙에 막힌 경우는 오류 없이 0개가 돌아오므로,
+// 이 오류는 데이터베이스에 삭제 규칙이 아직 적용되지 않았다는 뜻이다.
+const DELETE_NOT_READY_MESSAGE =
+  "데이터베이스에 삭제 규칙이 아직 적용되지 않았습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const DELETE_ADMIN_ONLY_MESSAGE =
+  "운영자만 Club 을 지울 수 있습니다. 이미 지워졌거나 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const DELETE_NAME_MISMATCH_MESSAGE =
+  "입력한 이름이 Club 이름과 다릅니다. 이름이 바뀌었을 수 있으니 화면을 새로 고친 뒤 다시 입력해 주세요."
 
 export type ClubSettingsState = {
   status: "idle" | "error" | "success"
@@ -109,4 +123,52 @@ export async function updateClub(
   // 이름은 내 Club 목록과 Club 안쪽 화면 모두에 보이므로 통째로 새로 읽는다.
   revalidatePath("/", "layout")
   return { status: "success", values }
+}
+
+// Club 을 지운다. Member, Session, Attendance, AI Log, 초대 링크가 모두 함께 지워지고 되살릴 수 없다.
+// 성공하면 내 Club 목록으로 이동한다. confirmName 은 화면에서 입력받은 Club 이름이고, 지금 이름과 같아야 지운다.
+// 운영자만 지울 수 있고, 그 판단은 데이터베이스의 접근 규칙이 한다.
+export async function deleteClub(
+  clubId: string,
+  confirmName: string
+): Promise<ClubDeleteResult> {
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+  }
+
+  const access = await getClubAccess(clubId, user.id)
+  if (access.status === "error") {
+    return { ok: false, message: DELETE_RETRY_MESSAGE }
+  }
+  if (access.status !== "ok") {
+    return { ok: false, message: DELETE_ADMIN_ONLY_MESSAGE }
+  }
+  if (String(confirmName).trim() !== access.club.name) {
+    return { ok: false, message: DELETE_NAME_MISMATCH_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("clubs")
+    .delete()
+    .eq("id", clubId)
+    .select("id")
+
+  if (error) {
+    console.error("Club 을 지우지 못했습니다.", error)
+    return {
+      ok: false,
+      message:
+        error.code === "42501" ? DELETE_NOT_READY_MESSAGE : DELETE_RETRY_MESSAGE,
+    }
+  }
+  // 접근 규칙에 막히면 오류 없이 지워진 행이 0개로 돌아온다.
+  if (data.length === 0) {
+    return { ok: false, message: DELETE_ADMIN_ONLY_MESSAGE }
+  }
+
+  // 내 Club 목록과 Club 안쪽 화면이 모두 달라지므로 통째로 새로 읽는다.
+  revalidatePath("/", "layout")
+  redirect("/")
 }

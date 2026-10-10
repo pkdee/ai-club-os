@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Lock } from "lucide-react"
 
+import { DeleteDialog } from "@/components/delete-dialog"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Empty,
@@ -11,6 +12,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 
+import { deleteClub } from "../actions"
 import type { MyClub } from "../queries"
 import { ClubSettingsForm } from "./club-settings-form"
 
@@ -25,18 +27,46 @@ export function ClubSettingsScreen({ club }: { club: MyClub }) {
         </p>
       </div>
       {club.role === "admin" ? (
-        <section className="flex max-w-[720px] flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-h3">기본 정보</h2>
-            <p className="text-body-s text-muted-foreground">
-              Member 가 Club 을 고를 때 보는 정보입니다.
-            </p>
-          </div>
-          <ClubSettingsForm
-            clubId={club.id}
-            defaults={{ name: club.name, description: club.description }}
-          />
-        </section>
+        <>
+          <section className="flex max-w-[720px] flex-col gap-5 rounded-xl border bg-card p-5 sm:p-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-h3">기본 정보</h2>
+              <p className="text-body-s text-muted-foreground">
+                Member 가 Club 을 고를 때 보는 정보입니다.
+              </p>
+            </div>
+            <ClubSettingsForm
+              clubId={club.id}
+              defaults={{ name: club.name, description: club.description }}
+            />
+          </section>
+          <section className="flex max-w-[720px] flex-col gap-4 rounded-xl border border-danger-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-h3">Club 삭제</h2>
+              <p className="text-body-s text-muted-foreground">
+                Club 과 그 안의 모든 기록을 지웁니다. 되돌릴 수 없습니다.
+              </p>
+            </div>
+            <DeleteDialog
+              label="Club 삭제"
+              title={`${club.name} Club 을 지울까요?`}
+              description={
+                <>
+                  <p>
+                    Member {club.memberCount}명의 소속과 Session, Attendance,
+                    AI Log, 초대 링크가 모두 함께 지워집니다.
+                  </p>
+                  <p>지우면 되돌릴 수 없습니다.</p>
+                </>
+              }
+              confirm={{
+                value: club.name,
+                label: "확인을 위해 Club 이름을 그대로 입력해 주세요",
+              }}
+              onDelete={deleteClub.bind(null, club.id)}
+            />
+          </section>
+        </>
       ) : (
         <div className="rounded-xl border bg-card">
           <Empty>

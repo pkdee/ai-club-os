@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Calendar, CircleAlert, Clock, MapPin } from "lucide-react"
 
+import { DeleteDialog } from "@/components/delete-dialog"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -12,6 +13,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 
+import { deleteSession } from "../actions"
 import type { Session } from "../queries"
 import {
   formatKstDate,
@@ -67,18 +69,40 @@ export function SessionUnavailable({
   )
 }
 
+// 지울 때 함께 지워지는 Attendance 와 남는 AI Log 를 알려 주는 글. 수가 null 이면 세지 못한 것이다.
+function deleteNotes(attendanceCount: number | null, logCount: number | null) {
+  return [
+    attendanceCount === null
+      ? "이 회차의 Attendance 기록이 함께 지워집니다."
+      : attendanceCount === 0
+        ? "이 회차에는 Attendance 기록이 없습니다."
+        : `이 회차의 Attendance 기록 ${attendanceCount}건이 함께 지워집니다.`,
+    logCount === null
+      ? "이 회차의 AI Log 는 지워지지 않고, Session 연결만 끊긴 채 Club 의 기록으로 남습니다."
+      : logCount === 0
+        ? "이 회차에 남긴 AI Log 는 없습니다."
+        : `AI Log ${logCount}개는 지워지지 않고, Session 연결만 끊긴 채 Club 의 기록으로 남습니다.`,
+    "지우면 되돌릴 수 없습니다.",
+  ]
+}
+
 // Session 상세의 모든 탭 위에 놓이는 제목 영역.
 // actions 에는 다른 기능이 이 회차에 올리는 버튼을 넣는다.
+// attendanceCount 와 logCount 는 지우기 전에 보여 주는 수다. 다른 기능이 센 값을 받는다.
 export function SessionHeader({
   clubName,
   session,
   canManage,
+  attendanceCount,
+  logCount,
   actions,
   now,
 }: {
   clubName: string
   session: Session
   canManage: boolean
+  attendanceCount: number | null
+  logCount: number | null
   actions?: React.ReactNode
   now: Date
 }) {
@@ -130,6 +154,18 @@ export function SessionHeader({
         </div>
         {(canManage || actions) && (
           <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {canManage && (
+              <DeleteDialog
+                label="삭제"
+                title="이 Session 을 지울까요?"
+                description={deleteNotes(attendanceCount, logCount).map(
+                  (note) => (
+                    <p key={note}>{note}</p>
+                  )
+                )}
+                onDelete={deleteSession.bind(null, session.clubId, session.id)}
+              />
+            )}
             {canManage && (
               <SessionFormDialog
                 target={{ clubId: session.clubId, sessionId: session.id }}

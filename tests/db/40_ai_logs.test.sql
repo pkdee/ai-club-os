@@ -44,7 +44,6 @@ select test.remember('before', $$ select updated_at::text from public.ai_logs wh
 select test.affects($$ update public.ai_logs set title = title, tools = tools, attempt = attempt, result = result, learned = learned, next_action = next_action, session_id = session_id where id = test.get('log')::uuid $$, 1, 'B 가 아무것도 바꾸지 않고 저장한다');
 select test.is($$ select (updated_at::text = test.get('before'))::text from public.ai_logs where id = test.get('log')::uuid $$, 'true', '바뀐 것이 없으면 고친 시각은 그대로다');
 select test.throws($$ update public.ai_logs set club_id = test.get('other_club')::uuid where id = test.get('log')::uuid $$, '42501', '기록을 다른 Club 으로 옮길 수 없다');
-select test.throws($$ delete from public.ai_logs where id = test.get('log')::uuid $$, '42501', '작성자도 기록을 지울 수 없다');
 
 select test.anon();
 select test.throws($$ select count(*) from public.ai_logs $$, '42501', '로그인하지 않으면 기록을 읽지 못한다');

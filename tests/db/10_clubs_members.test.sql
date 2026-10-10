@@ -19,7 +19,6 @@ select test.throws($$ insert into public.clubs (name) values ('   ') $$, '23514'
 select test.throws($$ insert into public.clubs (name) values (repeat('가', 51)) $$, '23514', '51자 이름은 넣을 수 없다');
 select test.throws($$ insert into public.clubs (name, description) values ('소개가 긴 Club', repeat('가', 201)) $$, '23514', '201자 소개는 넣을 수 없다');
 select test.throws($$ insert into public.members (club_id, user_id, role) values (test.get('club')::uuid, test.uid('b'), 'member') $$, '42501', '운영자도 Member 를 직접 넣을 수 없다');
-select test.throws($$ delete from public.clubs $$, '42501', 'Club 은 지울 수 없다');
 
 select test.login('b');
 select test.is($$ select count(*) from public.clubs $$, '0', '다른 사용자 B 에게는 A 의 Club 이 보이지 않는다');

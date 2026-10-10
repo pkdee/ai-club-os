@@ -46,11 +46,14 @@ export default async function AiLogDetailPage(props: Props) {
           .slice(0, RELATED_LIMIT)
       : [];
 
+  const isAuthor = log.author?.userId === data.user.id;
+
   return (
     <AiLogDetail
       clubName={data.club.name}
       log={log}
-      canEdit={log.author?.userId === data.user.id}
+      canEdit={isAuthor}
+      canDelete={isAuthor || data.club.role === "admin"}
       related={related}
       now={new Date()}
     />

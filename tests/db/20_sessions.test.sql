@@ -26,7 +26,6 @@ select test.affects($$ update public.sessions set title = '3회차 · RAG 기초
 select test.is($$ select (updated_at > created_at)::text from public.sessions $$, 'true', '고치면 고친 시각이 바뀐다');
 select test.throws($$ update public.sessions set club_id = gen_random_uuid() $$, '42501', 'Session 을 다른 Club 으로 옮길 수 없다');
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at, created_by) values (test.get('club')::uuid, '남의 이름으로', now(), now() + interval '1 hour', test.uid('b')) $$, '42501', '만든 사람을 직접 적어 넣을 수 없다');
-select test.throws($$ delete from public.sessions $$, '42501', 'Session 은 지울 수 없다');
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('club')::uuid, '거꾸로', now(), now() - interval '1 hour') $$, '23514', '끝나는 시각이 시작보다 앞설 수 없다');
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('club')::uuid, '   ', now(), now() + interval '1 hour') $$, '23514', '빈 제목은 넣을 수 없다');
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('club')::uuid, repeat('가', 81), now(), now() + interval '1 hour') $$, '23514', '81자 제목은 넣을 수 없다');

@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { DeleteDialog } from "@/components/delete-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { buttonVariants } from "@/components/ui/button"
@@ -22,6 +23,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 
+import { deleteAiLog } from "../actions"
 import { authorName, formatLogDate, formatLogDateTime } from "../format"
 import type { AiLog, AiLogSummary } from "../queries"
 import { ToolChips } from "./tool-chips"
@@ -114,16 +116,19 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 // related 에는 같은 Session 의 다른 기록을 넣는다.
+// canEdit 는 작성자 본인, canDelete 는 작성자 본인이거나 운영자라는 뜻이다. 실제 판단은 데이터베이스가 한다.
 export function AiLogDetail({
   clubName,
   log,
   canEdit,
+  canDelete,
   related,
   now,
 }: {
   clubName: string
   log: AiLog
   canEdit: boolean
+  canDelete: boolean
   related: AiLogSummary[]
   now: Date
 }) {
@@ -171,17 +176,35 @@ export function AiLogDetail({
               </div>
             )}
           </div>
-          {canEdit && (
-            <Link
-              href={`${clubHref}/logs/${log.id}/edit`}
-              className={buttonVariants({
-                variant: "outline",
-                className: "self-start",
-              })}
-            >
-              <Pencil aria-hidden="true" strokeWidth={1.5} />
-              수정
-            </Link>
+          {(canEdit || canDelete) && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {canDelete && (
+                <DeleteDialog
+                  label="삭제"
+                  title="이 AI Log 를 지울까요?"
+                  description={
+                    <>
+                      <p>
+                        {canEdit
+                          ? `내가 쓴 "${log.title}" 기록이 지워집니다.`
+                          : `${name} 님이 쓴 "${log.title}" 기록이 지워집니다.`}
+                      </p>
+                      <p>지우면 되돌릴 수 없습니다.</p>
+                    </>
+                  }
+                  onDelete={deleteAiLog.bind(null, log.clubId, log.id)}
+                />
+              )}
+              {canEdit && (
+                <Link
+                  href={`${clubHref}/logs/${log.id}/edit`}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <Pencil aria-hidden="true" strokeWidth={1.5} />
+                  수정
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>
