@@ -6,8 +6,11 @@ import {
   formatKstTimeRange,
   kstDateKey,
   kstMonthDay,
+  kstMonthStart,
   kstTime,
   kstToIso,
+  kstWeekday,
+  kstWeekStart,
   sessionStatus,
 } from "./time"
 
@@ -48,4 +51,27 @@ test("오늘, 예정, 종료를 한국 시간의 날짜로 나눈다", () => {
   assert.equal(sessionStatus("2026-10-08T10:00:00.000Z", now), "today")
   assert.equal(sessionStatus("2026-10-07T10:00:00.000Z", now), "done")
   assert.equal(sessionStatus("2026-10-09T01:00:00.000Z", now), "upcoming")
+})
+
+test("한국 시간의 요일을 읽는다", () => {
+  assert.equal(kstWeekday("2026-10-08T10:00:00.000Z"), "목요일")
+  // 한국 시간으로는 이미 금요일이다.
+  assert.equal(kstWeekday("2026-10-08T15:00:00.000Z"), "금요일")
+})
+
+test("이번 달의 시작은 한국 시간 1일 0시다", () => {
+  assert.equal(kstMonthStart(new Date("2026-10-08T10:00:00.000Z")), "2026-09-30T15:00:00.000Z")
+  // 한국 시간으로는 11월 1일 0시 30분이다.
+  assert.equal(kstMonthStart(new Date("2026-10-31T15:30:00.000Z")), "2026-10-31T15:00:00.000Z")
+  assert.equal(kstMonthStart(new Date("2026-01-01T00:00:00.000Z")), "2025-12-31T15:00:00.000Z")
+})
+
+test("이번 주의 시작은 한국 시간 월요일 0시다", () => {
+  // 2026-10-08 은 목요일이고 그 주의 월요일은 10월 5일이다.
+  assert.equal(kstWeekStart(new Date("2026-10-08T10:00:00.000Z")), "2026-10-04T15:00:00.000Z")
+  // 월요일 0시 정각과 일요일 23시 59분.
+  assert.equal(kstWeekStart(new Date("2026-10-04T15:00:00.000Z")), "2026-10-04T15:00:00.000Z")
+  assert.equal(kstWeekStart(new Date("2026-10-04T14:59:00.000Z")), "2026-09-27T15:00:00.000Z")
+  // 일요일은 그 주의 마지막 날이다.
+  assert.equal(kstWeekStart(new Date("2026-10-11T03:00:00.000Z")), "2026-10-04T15:00:00.000Z")
 })

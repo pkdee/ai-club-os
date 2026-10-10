@@ -20,6 +20,13 @@ const dateLabelFormatter = new Intl.DateTimeFormat("ko-KR", {
   weekday: "long",
 })
 
+const weekdayFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: TIME_ZONE,
+  weekday: "long",
+})
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
 function kstParts(value: string | Date) {
   const parts = Object.fromEntries(
     partsFormatter
@@ -59,6 +66,11 @@ export function formatKstDate(value: string | Date) {
   return dateLabelFormatter.format(new Date(value))
 }
 
+// 예: 목요일
+export function kstWeekday(value: string | Date) {
+  return weekdayFormatter.format(new Date(value))
+}
+
 // 예: 19:00 ~ 21:00
 export function formatKstTimeRange(start: string, end: string) {
   return `${kstTime(start)} ~ ${kstTime(end)}`
@@ -79,6 +91,22 @@ export function kstToIso(date: string, time: string) {
   return kstDateKey(value) === date && kstTime(value) === time
     ? value.toISOString()
     : null
+}
+
+// 그 시각이 든 달의 첫날 0시(한국 시간)를 저장용 시각으로 돌려준다.
+export function kstMonthStart(now: Date) {
+  const { year, month } = kstParts(now)
+  return new Date(`${year}-${month}-01T00:00:00${UTC_OFFSET}`).toISOString()
+}
+
+// 그 시각이 든 주의 월요일 0시(한국 시간)를 저장용 시각으로 돌려준다. 한 주는 월요일에 시작한다.
+export function kstWeekStart(now: Date) {
+  const midnight = new Date(`${kstDateKey(now)}T00:00:00${UTC_OFFSET}`)
+  // 한국 시간으로 본 요일. 일요일이 0 이다.
+  const weekday = new Date(midnight.getTime() + 9 * 60 * 60 * 1000).getUTCDay()
+  const sinceMonday = (weekday + 6) % 7
+
+  return new Date(midnight.getTime() - sinceMonday * DAY_MS).toISOString()
 }
 
 export type SessionStatus = "today" | "upcoming" | "done"

@@ -9,6 +9,8 @@ export type MyClub = {
   name: string
   description: string
   role: ClubRole
+  // 이 Club 에서의 내 Member 식별자.
+  memberId: string | null
   memberCount: number
   adminCount: number
 }
@@ -22,21 +24,22 @@ type ClubRow = {
   id: string
   name: string
   description: string
-  members: { user_id: string; role: ClubRole }[]
+  members: { id: string; user_id: string; role: ClubRole }[]
 }
 
-const CLUB_COLUMNS = "id, name, description, members(user_id, role)"
+const CLUB_COLUMNS = "id, name, description, members(id, user_id, role)"
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function toMyClub(row: ClubRow, userId: string): MyClub {
+  const me = row.members.find((member) => member.user_id === userId)
+
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    role:
-      row.members.find((member) => member.user_id === userId)?.role ??
-      "member",
+    role: me?.role ?? "member",
+    memberId: me?.id ?? null,
     memberCount: row.members.length,
     adminCount: row.members.filter((member) => member.role === "admin")
       .length,

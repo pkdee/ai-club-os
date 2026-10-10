@@ -45,3 +45,40 @@ export function countAttendance(
   }
   return counts
 }
+
+// 출석률을 낼 때 쓰는 수. attended 는 출석과 지각, counted 는 거기에 결석을 더한 것이다.
+// 공결은 사유가 인정된 것이라 계산에서 빼고, 미기록은 아직 알 수 없어서 뺀다.
+export type AttendanceTally = { attended: number; counted: number }
+
+export function tallyAttendance(statuses: AttendanceStatus[]): AttendanceTally {
+  const tally = { attended: 0, counted: 0 }
+  for (const status of statuses) {
+    if (status === "excused") {
+      continue
+    }
+    tally.counted += 1
+    if (status !== "absent") {
+      tally.attended += 1
+    }
+  }
+  return tally
+}
+
+// 여러 Session 의 기록을 모아 평균 출석률을 낸다. 셀 기록이 있는 Session 만 회차 수에 넣는다.
+// 셀 기록이 하나도 없으면 null 이다.
+export function averageAttendance(
+  rows: { sessionId: string; status: AttendanceStatus }[]
+): { percent: number; sessionCount: number } | null {
+  const { attended, counted } = tallyAttendance(rows.map((row) => row.status))
+  if (counted === 0) {
+    return null
+  }
+
+  const sessions = new Set(
+    rows.filter((row) => row.status !== "excused").map((row) => row.sessionId)
+  )
+  return {
+    percent: Math.round((attended / counted) * 100),
+    sessionCount: sessions.size,
+  }
+}
