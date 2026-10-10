@@ -33,7 +33,7 @@ User
 - Attendance는 Member와 Session의 관계를 기록한다.
 - AI Log는 작성자와 Club에 속하며 필요할 때 Session과 연결한다.
 - 사용자가 작성한 원본 AI Log와 이후 생성된 AI Insight를 구분한다.
-- 삭제와 보존 정책은 구현 전에 별도로 결정한다.
+- 지운 것은 바로 없어지고 되살리지 않는다. 숨겨 두는 열이나 보관 기간은 두지 않는다. 2026-10-10 결정.
 
 ## 구현된 구조
 
@@ -258,26 +258,26 @@ erDiagram
 | `clubs` | 조회 | 그 Club 의 Member |
 | `clubs` | 생성 | 로그인한 사용자. 이름과 소개만 넣을 수 있다 |
 | `clubs` | 수정 | 그 Club 의 운영자. 이름과 소개만 고칠 수 있다 |
-| `clubs` | 삭제 | 아직 없음 |
+| `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, 초대 링크가 함께 지워진다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
 | `members` | 조회 | 같은 Club 의 Member |
 | `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
 | `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞춘다 |
 | `members` | 삭제 | 그 Club 의 운영자는 누구든 내보낼 수 있고, 누구나 자기 행을 지워 스스로 나갈 수 있다 |
 | `sessions` | 조회 | 그 Club 의 Member |
 | `sessions` | 생성, 수정 | 그 Club 의 운영자 |
-| `sessions` | 삭제 | 아직 없음 |
+| `sessions` | 삭제 | 그 Club 의 운영자. 그 회차의 Attendance 는 함께 지워지고 AI Log 는 Session 연결만 비워진 채 남는다 |
 | `attendance` | 조회 | 그 Club 의 Member |
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |
 | `ai_logs` | 조회 | 그 Club 의 Member |
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
 | `ai_logs` | 수정 | 작성자 본인. Session 연결과 내용만 고칠 수 있다 |
-| `ai_logs` | 삭제 | 아직 없음 |
+| `ai_logs` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 기록은 운영자만 지운다 |
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 
 ### 마지막 운영자
 
-Club 에는 운영자가 한 명 이상 남아야 합니다. `members` 의 trigger 가 운영자를 구성원으로 내리거나 지우려 할 때 다른 운영자가 있는지 확인하고, 없으면 오류(`P0001`)를 냅니다. 동시에 들어온 요청이 서로를 지나치지 않도록 확인 전에 그 Club 의 행을 잠급니다. Club 이나 사용자 계정이 삭제되면서 함께 지워지는 경우에는 막지 않습니다.
+Club 에는 운영자가 한 명 이상 남아야 합니다. `members` 의 trigger 가 운영자를 구성원으로 내리거나 지우려 할 때 다른 운영자가 있는지 확인하고, 없으면 오류(`P0001`)를 냅니다. 동시에 들어온 요청이 서로를 지나치지 않도록 확인 전에 그 Club 의 행을 잠급니다. Club 이나 사용자 계정이 삭제되면서 함께 지워지는 경우에는 막지 않습니다. 그래서 운영자가 혼자인 Club 도 통째로 지울 수 있습니다.
 
 Member 가 Club 에서 나가면 그 사람의 Attendance 는 함께 삭제되고, AI Log 는 작성자가 비워진 채 남습니다.
 
@@ -285,11 +285,9 @@ Member 가 Club 에서 나가면 그 사람의 Attendance 는 함께 삭제되�
 
 Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
-- Club 삭제 규칙
 - 운영자가 없어진 Club 을 되살리는 방법
 - Member 가 자기 이름을 고치는 방법
-- AI Log 삭제 규칙
 - 이미 저장된 기록의 도구 표기를 한꺼번에 고치는 방법
-- 수정 기록과 보존 기간
+- 수정 기록을 남길지와, 누가 무엇을 지웠는지 남길지
 - 파일 첨부 범위
 - 나머지 테이블의 행 단위 보안 정책
