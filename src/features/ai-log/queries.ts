@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
 import { NO_SESSION, type AiLogFilters } from "./filters"
+import { expandSearch, mergeToolCounts, toolFilterValue } from "./tool-catalog"
 
 export type AiLogAuthor = {
   userId: string
@@ -156,6 +157,7 @@ function applyConditions<T>(
 // 조건에 맞는 AI Log 를 읽는다. 찾는 글자나 도구가 있으면 데이터베이스의 search_ai_logs 함수가 찾는다.
 // 이 함수는 띄어쓰기와 대소문자의 차이를 넘어 찾는다. 사용자가 넣은 글자를 조건 문자열에 끼워 넣지 않고
 // 함수의 값으로 넘기므로, 어떤 글자를 넣어도 조건이 깨지지 않는다.
+// 도구를 가리키는 말은 그 도구의 다른 표기까지 함께 찾도록 넓혀서 넘긴다.
 export async function searchClubLogs(
   clubId: string,
   filters: AiLogFilters,
@@ -169,8 +171,8 @@ export async function searchClubLogs(
             "search_ai_logs",
             {
               target_club_id: clubId,
-              search: filters.query,
-              tool_name: filters.tool,
+              search: expandSearch(filters.query),
+              tool_name: filters.tool ? toolFilterValue(filters.tool) : null,
             },
             { count: "exact" }
           ),
@@ -216,12 +218,15 @@ export const listClubTools = cache(
       return { status: "error" }
     }
 
+    // 널리 쓰는 도구는 정해 둔 표기로 보여 주고, 그래서 같은 도구가 된 것은 합친다.
     return {
       status: "ok",
-      tools: (data as { tool: string; log_count: number }[]).map((row) => ({
-        name: row.tool,
-        logCount: row.log_count,
-      })),
+      tools: mergeToolCounts(
+        (data as { tool: string; log_count: number }[]).map((row) => ({
+          name: row.tool,
+          logCount: row.log_count,
+        }))
+      ),
     }
   }
 )

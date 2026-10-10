@@ -1,5 +1,10 @@
 import { isUuid } from "@/lib/uuid"
 
+import { knownToolName } from "./tool-catalog"
+import { toolKey } from "./tool-key"
+
+export { toolKey }
+
 // AI Log 입력 규칙. 데이터베이스의 check 제약과 같은 값이어야 한다. 입력 항목은 잠정 결정이다.
 export const AI_LOG_TITLE_MAX = 100
 export const AI_LOG_TEXT_MAX = 5000
@@ -28,12 +33,6 @@ function length(value: string) {
   return Array.from(value).length
 }
 
-// 도구 이름을 비교할 때 쓰는 값. 대소문자와 공백의 차이를 없앤다.
-// 데이터베이스의 private.search_key 와 같은 규칙이어야 한다.
-export function toolKey(value: string) {
-  return value.replace(/\s+/g, "").toLowerCase()
-}
-
 // 도구 이름을 다듬는다. 쉼표로 나누고, 빈 값과 표기만 다른 중복을 뺀다.
 export function normalizeTools(values: string[]) {
   const seen = new Set<string>()
@@ -50,16 +49,21 @@ export function normalizeTools(values: string[]) {
   return tools
 }
 
-// 입력한 도구 이름을 이 Club 에서 이미 쓰는 표기에 맞춘다.
-// "chatgpt" 라고 적어도 Club 에서 "ChatGPT" 로 쓰고 있으면 그 표기로 바꾼다. 처음 쓰는 도구는 입력한 그대로 둔다.
-export function canonicalTools(entered: string[], known: string[]) {
+// 입력한 도구 이름의 표기를 맞춘다.
+// 널리 쓰는 도구 목록에 있으면 그 표기로("챗지피티" 는 "ChatGPT" 로), 없으면 이 Club 에서 이미 쓰는 표기로 바꾼다.
+// 어디에도 없는 도구는 입력한 그대로 둔다.
+export function canonicalTools(entered: string[], clubTools: string[]) {
   const spelling = new Map<string, string>()
-  for (const tool of known) {
+  for (const tool of clubTools) {
     if (!spelling.has(toolKey(tool))) {
       spelling.set(toolKey(tool), tool)
     }
   }
-  return normalizeTools(entered.map((tool) => spelling.get(toolKey(tool)) ?? tool))
+  return normalizeTools(
+    entered.map(
+      (tool) => knownToolName(tool) ?? spelling.get(toolKey(tool)) ?? tool
+    )
+  )
 }
 
 export function validateAiLog(input: AiLogInput): AiLogValidation {

@@ -201,7 +201,7 @@ export function AiLogForm({
                 id="log-tools"
                 name="tools"
                 defaultValue={defaults.tools}
-                suggestions={knownTools}
+                clubTools={knownTools}
                 invalid={invalid("tools")}
                 describedBy="log-tools-help"
               />
@@ -209,8 +209,8 @@ export function AiLogForm({
                 <FieldError id="log-tools-help">{errors.tools}</FieldError>
               ) : (
                 <FieldDescription id="log-tools-help">
-                  Enter 나 쉼표로 여러 개를 넣습니다. Club 에서 이미 쓰는 도구는
-                  같은 표기로 맞춰 저장합니다.
+                  목록에서 고르거나, 없는 도구는 적고 Enter 나 쉼표로 넣습니다.
+                  한글로 적어도 같은 도구로 맞춰 저장합니다.
                 </FieldDescription>
               )}
             </Field>
