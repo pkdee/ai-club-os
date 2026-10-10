@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CircleAlert, LinkIcon, Users } from "lucide-react"
+import { Ban, CircleAlert, LinkIcon, Users } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import {
@@ -27,7 +27,28 @@ export function JoinScreen({
 }) {
   return (
     <main className="mx-auto flex w-full max-w-[520px] flex-col gap-6 px-4 py-12 sm:px-8">
-      {result.status === "ok" ? (
+      {result.status === "ok" && result.preview.blocked ? (
+        <div className="rounded-xl border bg-card">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia>
+                <Ban strokeWidth={1.5} />
+              </EmptyMedia>
+              <EmptyTitle>이 Club 에는 다시 참여할 수 없습니다</EmptyTitle>
+              <EmptyDescription>
+                {result.preview.clubName} 의 운영자가 다시 들어오지 못하게 해
+                두었습니다. 참여하려면 그 Club 의 운영자에게 풀어 달라고 요청해
+                주세요.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link href="/" className={buttonVariants({ variant: "outline" })}>
+                내 Club 으로
+              </Link>
+            </EmptyContent>
+          </Empty>
+        </div>
+      ) : result.status === "ok" ? (
         <div className="flex flex-col gap-6 rounded-xl border bg-card p-6 sm:p-8">
           <div className="flex flex-col gap-2">
             <p className="text-overline text-brand">CLUB 초대</p>

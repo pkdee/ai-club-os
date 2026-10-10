@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { countLogsByAuthor } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
+import { listClubBans } from "@/features/member/bans";
 import { InviteDialog } from "@/features/member/components/invite-dialog";
 import {
   MemberListScreen,
@@ -30,11 +31,12 @@ export default async function MemberListPage(
   const view: MemberView =
     query.role === "admin" || query.role === "member" ? query.role : "all";
   const canInvite = data.club.role === "admin";
-  // 초대 링크는 운영자에게만 보이므로 운영자일 때만 읽는다.
-  const [members, logCounts, invite] = await Promise.all([
+  // 초대 링크와 막은 사람은 운영자에게만 보이므로 운영자일 때만 읽는다.
+  const [members, logCounts, invite, bans] = await Promise.all([
     listMembers(clubId),
     countLogsByAuthor(clubId),
     canInvite ? getClubInvite(clubId) : null,
+    canInvite ? listClubBans(clubId) : null,
   ]);
   const current = invite?.status === "ok" ? invite.invite : null;
 
@@ -47,6 +49,7 @@ export default async function MemberListPage(
       logCounts={logCounts}
       currentUserId={data.user.id}
       canManage={canInvite}
+      bans={bans}
       inviteAction={
         invite && (
           <InviteDialog

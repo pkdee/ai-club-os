@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { Ellipsis, LogOut, ShieldCheck, User, UserMinus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { CheckboxField } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -41,11 +42,13 @@ export type ManagedMember = {
 // 한 Member 에게 할 수 있는 일의 목록.
 // 운영자는 역할을 바꾸고 내보낼 수 있고, 본인은 스스로 나갈 수 있다.
 // isLastAdmin 이면 이 Member 가 하나 남은 운영자라서 내리거나 나갈 수 없다.
+// canBlock 이면 내보낼 때 다시 들어오지 못하게 막을지 고를 수 있다.
 export function MemberRowMenu({
   clubId,
   member,
   isMe,
   canManage,
+  canBlock,
   isLastAdmin,
   onError,
 }: {
@@ -53,10 +56,13 @@ export function MemberRowMenu({
   member: ManagedMember
   isMe: boolean
   canManage: boolean
+  canBlock: boolean
   isLastAdmin: boolean
   onError: (message: string | null) => void
 }) {
   const [confirm, setConfirm] = useState<Confirm | null>(null)
+  // 내보내면서 다시 들어오지 못하게 막을지. 창을 열 때마다 꺼진 채로 시작한다.
+  const [block, setBlock] = useState(false)
   const [pending, startTransition] = useTransition()
 
   function run(action: () => Promise<MemberActionResult>) {
@@ -90,11 +96,12 @@ export function MemberRowMenu({
     },
     remove: {
       title: `${member.name} 님을 내보낼까요?`,
-      description:
-        "이 사람의 Attendance 기록은 함께 삭제되고, 쓴 AI Log 는 작성자가 '탈퇴한 Member' 로 바뀐 채 Club 에 남습니다. 되돌릴 수 없습니다. 초대 링크로 다시 들어올 수는 있지만 지워진 기록은 돌아오지 않습니다.",
+      description: canBlock
+        ? "이 사람의 Attendance 기록은 함께 삭제되고, 쓴 AI Log 는 작성자가 '탈퇴한 Member' 로 바뀐 채 Club 에 남습니다. 되돌릴 수 없습니다."
+        : "이 사람의 Attendance 기록은 함께 삭제되고, 쓴 AI Log 는 작성자가 '탈퇴한 Member' 로 바뀐 채 Club 에 남습니다. 되돌릴 수 없습니다. 초대 링크로 다시 들어올 수는 있지만 지워진 기록은 돌아오지 않습니다.",
       action: "내보내기",
       danger: true,
-      run: () => removeMember(clubId, member.id),
+      run: () => removeMember(clubId, member.id, canBlock && block),
     },
     leave: {
       title: "이 Club 에서 나갈까요?",
@@ -157,7 +164,13 @@ export function MemberRowMenu({
               Club 나가기
             </MenuItem>
           ) : (
-            <MenuItem tone="danger" onClick={() => setConfirm("remove")}>
+            <MenuItem
+              tone="danger"
+              onClick={() => {
+                setBlock(false)
+                setConfirm("remove")
+              }}
+            >
               <UserMinus aria-hidden="true" strokeWidth={1.5} />
               Club 에서 내보내기
             </MenuItem>
@@ -185,6 +198,15 @@ export function MemberRowMenu({
                 <DialogTitle>{dialog.title}</DialogTitle>
                 <DialogDescription>{dialog.description}</DialogDescription>
               </DialogHeader>
+              {confirm === "remove" && canBlock && (
+                <CheckboxField
+                  checked={block}
+                  disabled={pending}
+                  onChange={(event) => setBlock(event.target.checked)}
+                  label="다시 들어오지 못하게 막기"
+                  description="켜면 초대 링크가 있어도 참여할 수 없습니다. Member 화면에서 언제든 풀어 줄 수 있습니다. 끄면 초대 링크로 다시 들어올 수 있지만 지워진 기록은 돌아오지 않습니다."
+                />
+              )}
               <DialogFooter>
                 <Button
                   type="button"

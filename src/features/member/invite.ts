@@ -17,6 +17,8 @@ export type InvitePreview = {
   clubDescription: string
   memberCount: number
   alreadyMember: boolean
+  // 운영자가 다시 들어오지 못하게 막아 둔 사람이다.
+  blocked: boolean
 }
 
 export type InvitePreviewResult =
@@ -31,6 +33,8 @@ type PreviewRow = {
   club_description: string
   member_count: number
   already_member: boolean
+  // 막은 사람을 두는 구조를 적용하기 전에는 이 값이 오지 않는다.
+  blocked?: boolean
 }
 
 // 데이터베이스가 만드는 링크 값의 모양. 이 모양이 아니면 조회하지 않는다.
@@ -94,6 +98,7 @@ export const previewInvite = cache(
         clubDescription: row.club_description,
         memberCount: row.member_count,
         alreadyMember: row.already_member,
+        blocked: row.blocked === true,
       },
     }
   }

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { LinkTabs } from "@/components/ui/link-tabs"
 import { ROLE_LABEL } from "@/features/club/roles"
 
+import type { ClubBanListResult } from "../bans"
 import type { MemberListResult } from "../queries"
 import {
   MEMBER_SEARCH_MAX,
@@ -22,12 +23,14 @@ import {
   membersHref,
   type MemberView,
 } from "../search"
+import { BlockedList } from "./blocked-list"
 import { MemberTable } from "./member-table"
 
 export type { MemberView }
 
 // canManage 는 보는 사람이 운영자라는 뜻이다. inviteAction 에는 운영자에게만 보이는 초대 버튼을 넣는다.
 // query 는 이름이나 이메일에서 찾을 글자다. logCounts 는 사용자 식별자별 AI Log 수이고, null 이면 세지 못한 것이다.
+// bans 는 다시 들어오지 못하게 막아 둔 사람이다. 운영자에게만 읽어서 넘기고, 아직 쓸 수 없으면 막는 선택도 감춘다.
 export function MemberListScreen({
   clubId,
   view,
@@ -36,6 +39,7 @@ export function MemberListScreen({
   logCounts,
   currentUserId,
   canManage,
+  bans,
   inviteAction,
 }: {
   clubId: string
@@ -45,6 +49,7 @@ export function MemberListScreen({
   logCounts: Record<string, number> | null
   currentUserId: string
   canManage: boolean
+  bans: ClubBanListResult | null
   inviteAction?: React.ReactNode
 }) {
   const base = `/clubs/${clubId}/members`
@@ -166,6 +171,7 @@ export function MemberListScreen({
               logCounts={logCounts}
               currentUserId={currentUserId}
               canManage={canManage}
+              canBlock={canManage && bans?.status === "ok"}
               adminCount={admins.length}
             />
           ) : (
@@ -176,6 +182,9 @@ export function MemberListScreen({
                   ? "아직 구성원이 없습니다. 운영자가 초대 링크를 공유하면 여기에 보입니다."
                   : "해당하는 Member 가 없습니다."}
             </p>
+          )}
+          {canManage && bans?.status === "ok" && bans.bans.length > 0 && (
+            <BlockedList clubId={clubId} bans={bans.bans} />
           )}
         </>
       )}

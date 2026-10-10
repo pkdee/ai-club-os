@@ -14,12 +14,14 @@ import { MemberRowMenu } from "./member-row-menu"
 
 // adminCount 는 걸러 보기와 상관없이 Club 전체의 운영자 수다. 마지막 운영자를 가려내는 데 쓴다.
 // logCounts 는 사용자 식별자별 AI Log 수다. null 이면 세지 못한 것이라 그 열을 보여 주지 않는다.
+// canBlock 이면 내보낼 때 다시 들어오지 못하게 막을지 고를 수 있다.
 export function MemberTable({
   clubId,
   members,
   logCounts,
   currentUserId,
   canManage,
+  canBlock,
   adminCount,
 }: {
   clubId: string
@@ -27,6 +29,7 @@ export function MemberTable({
   logCounts: Record<string, number> | null
   currentUserId: string
   canManage: boolean
+  canBlock: boolean
   adminCount: number
 }) {
   const [error, setError] = useState<string | null>(null)
@@ -117,6 +120,7 @@ export function MemberTable({
                         }}
                         isMe={isMe}
                         canManage={canManage}
+                        canBlock={canBlock}
                         isLastAdmin={member.role === "admin" && adminCount === 1}
                         onError={setError}
                       />
