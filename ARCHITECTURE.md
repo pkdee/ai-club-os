@@ -87,7 +87,7 @@ src/
 
 ## 요청 처리 흐름
 
-모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 지금 구현된 기능은 `auth`, `club`, `session`, `attendance`, `ai-log` 입니다. `member` 는 아직 Member 목록을 읽는 부분만 있습니다.
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 이때 보려던 경로를 `next` 값으로 넘겨서 로그인한 뒤 그곳으로 돌아옵니다. 지금 구현된 기능은 `auth`, `club`, `member`, `session`, `attendance`, `ai-log` 입니다.
 
 ```mermaid
 flowchart TD
@@ -129,10 +129,40 @@ sequenceDiagram
   browser->>next: GET /auth/callback
   next->>supabase: exchangeCodeForSession
   supabase-->>next: 세션
-  next-->>browser: 세션 쿠키를 저장하고 / 로 이동
+  next-->>browser: 세션 쿠키를 저장하고 보려던 경로나 / 로 이동
 ```
 
 인증에 실패하거나 code 가 없으면 `/login?error=auth_failed` 로 이동해 오류를 알립니다.
+
+로그인 전에 보려던 경로는 Google 인증을 다녀오는 동안 10분짜리 쿠키에 담아 둡니다. 이 앱 안의 경로만 허용하고, 다른 사이트로 보내려는 값은 `src/features/auth/return-path.ts` 가 버립니다.
+
+## 초대 흐름
+
+운영자가 만든 초대 링크로 Club 에 참여합니다. 결정 배경은 `docs/adr/0007-club-invite-link.md` 에 있습니다.
+
+```mermaid
+sequenceDiagram
+  actor admin as 운영자
+  actor guest as 초대받은 사람
+  participant next as Next.js 서버
+  participant db as Supabase PostgreSQL
+
+  admin->>next: Member 화면에서 초대 링크 만들기
+  next->>db: club_invites 의 이전 링크를 지우고 새로 넣기
+  db-->>next: 무작위 링크 값과 7일 뒤 만료 시각
+  admin-->>guest: /join/링크 값 공유
+  guest->>next: 링크 열기
+  Note over next: 로그인하지 않았으면 로그인을 마친 뒤 이 링크로 돌아온다
+  next->>db: preview_club_invite
+  db-->>next: Club 이름, 소개, Member 수
+  guest->>next: 참여하기
+  next->>db: join_club
+  Note over db: 링크 값과 만료를 확인하고 구성원으로 넣는다
+  db-->>next: Club 식별자
+  next-->>guest: Club 개요로 이동
+```
+
+링크가 틀렸거나 만료됐으면 참여 화면이 그 사실을 알리고 새 링크를 받으라고 안내합니다. 이미 Member 인 사람이 링크를 열면 바로 Club 으로 들어갑니다.
 
 ## 데이터 흐름 원칙
 

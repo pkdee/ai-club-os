@@ -37,7 +37,7 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -45,6 +45,7 @@ User
 | `sessions` | `20261009172039_create_sessions.sql` | `docs/adr/0004-session-time-in-korea-standard-time.md` |
 | `attendance`, `members` 의 이름과 이메일 열 | `20261009175244_create_attendance.sql` | `docs/adr/0005-attendance-and-member-display-name.md` |
 | `ai_logs` | `20261009181137_create_ai_logs.sql` | `docs/adr/0006-ai-log-structure-and-authorship.md` |
+| `club_invites`, 참여 함수 | `20261010064838_create_club_invites.sql` | `docs/adr/0007-club-invite-link.md` |
 
 ```mermaid
 erDiagram
@@ -59,6 +60,8 @@ erDiagram
   clubs ||--o{ ai_logs : "기록"
   sessions |o--o{ ai_logs : "회차"
   members |o--o{ ai_logs : "작성"
+  clubs ||--o| club_invites : "초대"
+  auth_users ||--o{ club_invites : "생성"
 
   clubs {
     uuid id PK
@@ -115,6 +118,14 @@ erDiagram
     text next_action
     timestamptz created_at
     timestamptz updated_at
+  }
+
+  club_invites {
+    uuid club_id PK
+    text token UK
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz expires_at
   }
 ```
 
@@ -193,6 +204,27 @@ erDiagram
 
 사용자가 쓴 원본 기록입니다. 이후에 만들 AI Insight 는 이 테이블에 덮어쓰지 않고 따로 둡니다.
 
+### club_invites
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `club_id` | uuid | 기본 키. Club 마다 초대는 하나뿐이다. Club 이 삭제되면 함께 삭제된다 |
+| `token` | text | 링크에 들어가는 값. 데이터베이스가 무작위로 만드는 32자 |
+| `created_by` | uuid | 만든 운영자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 만든 시각 |
+| `expires_at` | timestamptz | 만료 시각. 만든 때부터 7일 뒤 |
+
+새 링크는 이전 행을 지우고 다시 넣어 만듭니다. 링크 값과 만료 시각은 앱이 정하거나 고칠 수 없습니다.
+
+### 초대 링크로 참여하는 함수
+
+아직 Member 가 아닌 사람은 `clubs` 와 `members` 를 읽거나 쓸 수 없어서, 아래 두 함수만 만든 사람의 권한으로 실행합니다. 둘 다 로그인한 사용자만 부를 수 있고 안에서 링크 값과 만료를 확인합니다.
+
+| 함수 | 하는 일 |
+|---|---|
+| `public.preview_club_invite(invite_token)` | 링크가 가리키는 Club 의 이름, 소개, Member 수, 이미 Member 인지를 돌려준다. 링크가 틀렸거나 만료됐으면 아무 행도 돌려주지 않는다 |
+| `public.join_club(invite_token)` | 부른 사용자를 그 Club 의 구성원으로 넣고 Club 식별자를 돌려준다. 이미 Member 이면 그대로 둔다. 링크가 틀렸거나 만료됐으면 null 을 돌려준다 |
+
 ### 시각 저장 규칙
 
 시각은 모두 timestamptz 로 저장합니다. 화면에서 입력받고 보여 줄 때는 한국 시간으로만 해석합니다. Club 마다 시간대를 따로 두지 않습니다. Session 이 오늘인지, 예정인지, 끝났는지도 한국 시간의 날짜로 나눕니다.
@@ -207,7 +239,7 @@ erDiagram
 | `clubs` | 생성 | 로그인한 사용자. 이름과 소개만 넣을 수 있다 |
 | `clubs` | 수정, 삭제 | 아직 없음 |
 | `members` | 조회 | 같은 Club 의 Member |
-| `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록되고 이름과 이메일이 함께 들어간다. 그 밖의 방법은 아직 없음 |
+| `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
 | `members` | 수정, 삭제 | 아직 없음 |
 | `sessions` | 조회 | 그 Club 의 Member |
 | `sessions` | 생성, 수정 | 그 Club 의 운영자 |
@@ -218,12 +250,14 @@ erDiagram
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
 | `ai_logs` | 수정 | 작성자 본인. Session 연결과 내용만 고칠 수 있다 |
 | `ai_logs` | 삭제 | 아직 없음 |
+| `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
+| `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 
 ## 이후 결정 사항
 
 Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
-- 역할별 세부 권한. Club 수정과 삭제, Member 관리
+- 역할별 세부 권한. Club 수정과 삭제, Member 의 역할 바꾸기와 내보내기
 - Member 가 자기 이름을 고치는 방법
 - 탈퇴한 Member 의 Attendance 와 AI Log 를 남길지 여부. 지금은 Attendance 는 함께 삭제되고 AI Log 는 작성자 없이 남는다
 - AI Log 삭제 규칙
