@@ -9,6 +9,10 @@
 -- 참여를 막은 사람
 -- ---------------------------------------------------------------------------
 
+-- 잠금을 오래 기다리지 않는다. 앱의 요청과 엇갈려 기다리게 되면 이 파일이 먼저 물러나고 아무것도 바뀌지 않는다.
+-- 그때는 다시 실행하면 된다.
+set local lock_timeout = '800ms';
+
 -- 운영자가 내보내면서 다시 들어오지 못하게 한 사람. 초대 링크가 있어도 참여할 수 없다.
 create table if not exists public.club_bans (
   club_id uuid not null references public.clubs (id) on delete cascade,

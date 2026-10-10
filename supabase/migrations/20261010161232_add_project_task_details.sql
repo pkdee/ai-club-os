@@ -1,7 +1,15 @@
 -- Project 의 할 일에 담당자와 기한을 더한다.
 -- 결정 배경은 docs/adr/0021-project-requests-and-task-details.md 에 있다.
 
--- 이 파일은 기존 테이블 가운데 project_tasks 하나만 잠근다. 다시 실행해도 결과가 같다.
+-- 이 파일은 project_tasks 를 고치고, 담당자의 외래 키 때문에 members 도 잠근다. 다시 실행해도 결과가 같다.
+
+-- 잠금을 오래 기다리지 않는다. 앱의 요청과 엇갈려 기다리게 되면 이 파일이 먼저 물러나고 아무것도 바뀌지 않는다.
+-- 그때는 다시 실행하면 된다.
+set local lock_timeout = '800ms';
+
+-- members 를 먼저 잠근다. Club 을 지우거나 Member 가 나갈 때 앱은 members 를 잠근 뒤 project_tasks 를 잠그므로,
+-- 같은 순서로 잠가야 그 요청과 서로를 기다리다 멈추지 않는다. 이 잠금은 조회를 막지 않는다.
+lock table public.members in share row exclusive mode;
 
 -- 맡은 사람. 비어 있으면 아직 맡은 사람이 없다.
 alter table public.project_tasks

@@ -4,6 +4,10 @@
 -- 앞 파일(create_operation_records)을 먼저 적용해야 한다. 함수만 바꾸므로 테이블을 잠그지 않는다.
 -- 다시 실행해도 결과가 같다.
 
+-- 잠금을 오래 기다리지 않는다. 앱의 요청과 엇갈려 기다리게 되면 이 파일이 먼저 물러나고 아무것도 바뀌지 않는다.
+-- 그때는 다시 실행하면 된다.
+set local lock_timeout = '800ms';
+
 -- 미리 보기에 막혔는지를 더한다. 돌려주는 열이 바뀌므로 지우고 다시 만든다.
 drop function if exists public.preview_club_invite(text);
 
