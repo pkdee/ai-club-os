@@ -13,15 +13,18 @@ import type { Member } from "../queries"
 import { MemberRowMenu } from "./member-row-menu"
 
 // adminCount 는 걸러 보기와 상관없이 Club 전체의 운영자 수다. 마지막 운영자를 가려내는 데 쓴다.
+// logCounts 는 사용자 식별자별 AI Log 수다. null 이면 세지 못한 것이라 그 열을 보여 주지 않는다.
 export function MemberTable({
   clubId,
   members,
+  logCounts,
   currentUserId,
   canManage,
   adminCount,
 }: {
   clubId: string
   members: Member[]
+  logCounts: Record<string, number> | null
   currentUserId: string
   canManage: boolean
   adminCount: number
@@ -53,6 +56,14 @@ export function MemberTable({
               >
                 합류일
               </th>
+              {logCounts && (
+                <th
+                  scope="col"
+                  className="hidden w-20 px-4 py-2.5 font-medium md:table-cell"
+                >
+                  AI Log
+                </th>
+              )}
               <th scope="col" className="w-12 py-2.5">
                 <span className="sr-only">관리</span>
               </th>
@@ -90,6 +101,11 @@ export function MemberTable({
                   <td className="hidden px-4 py-3 text-body-s text-muted-foreground sm:table-cell">
                     {formatJoinDate(member.joinedAt)}
                   </td>
+                  {logCounts && (
+                    <td className="hidden px-4 py-3 text-body-s text-muted-foreground md:table-cell">
+                      {logCounts[member.userId] ?? 0}개
+                    </td>
+                  )}
                   <td className="py-3 pr-2 text-right">
                     {(canManage || isMe) && (
                       <MemberRowMenu

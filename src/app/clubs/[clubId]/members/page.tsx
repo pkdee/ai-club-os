@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { countLogsByAuthor } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { InviteDialog } from "@/features/member/components/invite-dialog";
 import {
@@ -9,6 +10,7 @@ import {
 import { formatInviteExpiry } from "@/features/member/format";
 import { getClubInvite } from "@/features/member/invite";
 import { listMembers } from "@/features/member/queries";
+import { parseMemberQuery } from "@/features/member/search";
 
 export const metadata: Metadata = {
   title: "Member | AI Club OS",
@@ -29,8 +31,9 @@ export default async function MemberListPage(
     query.role === "admin" || query.role === "member" ? query.role : "all";
   const canInvite = data.club.role === "admin";
   // 초대 링크는 운영자에게만 보이므로 운영자일 때만 읽는다.
-  const [members, invite] = await Promise.all([
+  const [members, logCounts, invite] = await Promise.all([
     listMembers(clubId),
+    countLogsByAuthor(clubId),
     canInvite ? getClubInvite(clubId) : null,
   ]);
   const current = invite?.status === "ok" ? invite.invite : null;
@@ -39,7 +42,9 @@ export default async function MemberListPage(
     <MemberListScreen
       clubId={clubId}
       view={view}
+      query={parseMemberQuery(query.q)}
       result={members}
+      logCounts={logCounts}
       currentUserId={data.user.id}
       canManage={canInvite}
       inviteAction={
