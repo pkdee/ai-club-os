@@ -19,7 +19,7 @@ export type NotificationsResult =
   | { status: "unavailable" }
   | { status: "error" }
 
-// 받아들여진 요청과 공개된 AI Insight 를 소식으로 보여 주는 기간(일).
+// 참여자가 된 Project 와 공개된 AI Insight 를 소식으로 보여 주는 기간(일).
 const RECENT_DAYS = 14
 // 한 번에 읽는 공개된 AI Insight 의 수.
 const INSIGHT_LIMIT = 10
@@ -53,7 +53,7 @@ function rows<T>(
 // 내가 이 Club 에서 봐야 할 것들을 지금의 기록에서 읽어 낸다. 알림을 따로 쌓아 두지 않는다.
 //   내가 참여하는 Project 에 들어온 참여 요청
 //   내가 맡은, 아직 끝내지 않은 할 일
-//   최근에 받아들여진 내 참여 요청
+//   최근에 내가 참여자가 된 Project (요청이 받아들여졌거나 참여자가 나를 넣은 것)
 //   최근에 공개된 AI Insight
 // memberId 는 이 Club 에서의 내 Member 식별자다.
 export const getNotifications = cache(

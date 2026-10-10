@@ -60,8 +60,9 @@ function describe(clubId: string, item: Notification, today: string) {
     case "accepted":
       return {
         href: `${base}/projects/${item.projectId}`,
-        title: "참여 요청이 받아들여졌습니다",
-        detail: `${item.projectName} 의 참여자가 됐습니다.`,
+        // 요청이 받아들여진 것과 참여자가 나를 직접 넣은 것을 가르지 않는다. 둘 다 참여자가 된 것이다.
+        title: "Project 의 참여자가 됐습니다",
+        detail: item.projectName,
       }
     case "insight":
       return {
@@ -235,7 +236,7 @@ export function NotificationScreen({
           />
           <Group
             title="소식"
-            description="내가 맡은 할 일과, 최근 2주 사이에 받아들여진 참여 요청, 공개된 AI Insight 입니다."
+            description="내가 맡은 할 일과, 최근 2주 사이에 참여자가 된 Project, 공개된 AI Insight 입니다."
             clubId={clubId}
             items={news}
             today={today}

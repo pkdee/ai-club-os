@@ -21,7 +21,7 @@ export type NotificationSource =
       title: string
       dueOn: string | null
     }
-  // 내 참여 요청이 받아들여져 참여자가 됐다.
+  // 참여자가 됐다. 내 참여 요청이 받아들여졌거나 참여자가 나를 넣은 것이다.
   | {
       kind: "accepted"
       id: string
