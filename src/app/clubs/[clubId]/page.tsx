@@ -20,10 +20,12 @@ import {
 import { ClubOverview } from "@/features/club/components/club-overview";
 import { MyRecordCard } from "@/features/club/components/my-record-card";
 import { loadClubPage } from "@/features/club/page-data";
+import { SessionFormDialog } from "@/features/session/components/session-form-dialog";
 import { TodaySessionCard } from "@/features/session/components/today-session-card";
 import { UpcomingSessions } from "@/features/session/components/upcoming-sessions";
 import { listSessions } from "@/features/session/queries";
 import {
+  kstDateKey,
   kstMonthStart,
   kstWeekStart,
   sessionStatus,
@@ -117,7 +119,18 @@ export default async function ClubOverviewPage(
             ? { total: logs.total, thisWeek: weekLogCount }
             : null,
       }}
-      actions={<WriteLogLink clubId={club.id} />}
+      actions={
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {club.role === "admin" && (
+            <SessionFormDialog
+              target={{ clubId: club.id }}
+              defaults={{ date: kstDateKey(now) }}
+              quiet
+            />
+          )}
+          <WriteLogLink clubId={club.id} />
+        </div>
+      }
       lead={
         todayCounts.length > 0 && (
           <div className="flex flex-col gap-4">

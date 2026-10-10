@@ -191,12 +191,15 @@ function SessionForm({
 }
 
 // sessionId 가 있으면 수정 창, 없으면 만들기 창이다.
+// 만들기 버튼은 기본이 강조 버튼이다. 옆에 더 중요한 버튼이 있는 곳에서는 quiet 로 한 단계 낮춘다.
 export function SessionFormDialog({
   target,
   defaults,
+  quiet = false,
 }: {
   target: SessionTarget
   defaults: Partial<SessionInput>
+  quiet?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const editing = Boolean(target.sessionId)
@@ -209,7 +212,9 @@ export function SessionFormDialog({
           수정
         </DialogTrigger>
       ) : (
-        <DialogTrigger render={<Button />}>
+        <DialogTrigger
+          render={<Button variant={quiet ? "outline" : "default"} />}
+        >
           <Plus aria-hidden="true" strokeWidth={1.5} />
           Session 만들기
         </DialogTrigger>
