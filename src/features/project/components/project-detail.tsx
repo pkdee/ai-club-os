@@ -15,7 +15,11 @@ import {
 } from "@/components/ui/empty"
 
 import { deleteProject } from "../actions"
-import type { Project } from "../queries"
+import type {
+  Project,
+  ProjectJoinRequest,
+  ProjectTaskDetail,
+} from "../queries"
 import { ProjectFormDialog } from "./project-form-dialog"
 import { ProjectLinks } from "./project-links"
 import { ProjectParticipants } from "./project-participants"
@@ -94,7 +98,9 @@ function deleteNotes(project: Project) {
 
 // Project 하나의 화면. 참여자와 운영자는 고치고, 다른 Member 는 읽기만 한다.
 // canEdit 는 참여자이거나 운영자, canDelete 는 만든 사람이거나 운영자라는 뜻이다. 실제 판단은 데이터베이스가 한다.
-// candidates 는 참여자로 넣을 수 있는 Member 다. actions 와 children 에는 다른 기능이 올리는 버튼과 영역을 넣는다.
+// candidates 는 참여자로 넣을 수 있는 Member 다. actions 와 children, aside 에는 다른 기능이 올리는 버튼과 영역을 넣는다.
+// taskDetails 는 할 일의 담당자와 기한, today 는 한국 시간의 오늘 날짜다.
+// requests 는 들어온 참여 요청, myRequest 는 참여자가 아닌 내가 요청해 둔 상태다.
 export function ProjectDetail({
   clubName,
   project,
@@ -102,7 +108,12 @@ export function ProjectDetail({
   canDelete,
   currentUserId,
   candidates,
+  taskDetails,
+  today,
+  requests,
+  myRequest,
   actions,
+  aside,
   children,
 }: {
   clubName: string
@@ -111,7 +122,12 @@ export function ProjectDetail({
   canDelete: boolean
   currentUserId: string
   candidates: { memberId: string; name: string }[] | null
+  taskDetails: Record<string, ProjectTaskDetail> | null
+  today: string
+  requests: ProjectJoinRequest[]
+  myRequest: "none" | "pending" | null
   actions?: React.ReactNode
+  aside?: React.ReactNode
   children?: React.ReactNode
 }) {
   const clubHref = `/clubs/${project.clubId}`
@@ -177,6 +193,8 @@ export function ProjectDetail({
             projectId={project.id}
             participants={project.participants}
             candidates={candidates}
+            requests={requests}
+            myRequest={myRequest}
             currentUserId={currentUserId}
             canEdit={canEdit}
           />
@@ -186,12 +204,19 @@ export function ProjectDetail({
             links={project.links}
             canEdit={canEdit}
           />
+          {aside}
         </aside>
         <div className="flex min-w-0 flex-col gap-6 xl:col-start-1">
           <ProjectTasks
             clubId={project.clubId}
             projectId={project.id}
             tasks={project.tasks}
+            details={taskDetails}
+            participants={project.participants.map((item) => ({
+              memberId: item.memberId,
+              name: item.name,
+            }))}
+            today={today}
             canEdit={canEdit}
           />
           {children}

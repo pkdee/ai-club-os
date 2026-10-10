@@ -10,6 +10,7 @@ import { isUuid } from "@/lib/uuid"
 import {
   PROJECT_LINK_LIMIT,
   PROJECT_TASK_LIMIT,
+  isDueDate,
   isProjectStatus,
   linkLabelError,
   linkUrlError,
@@ -53,6 +54,17 @@ const NOT_READY_MESSAGE =
 const ALREADY_PARTICIPANT_MESSAGE = "이미 참여하고 있는 Member 입니다."
 const MEMBER_GONE_MESSAGE =
   "그 Member 를 찾을 수 없습니다. Club 에서 나갔을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const ASSIGNEE_NOT_PARTICIPANT_MESSAGE =
+  "이 Project 의 참여자에게만 할 일을 맡길 수 있습니다. 담당자를 다시 골라 주세요."
+const DUE_DATE_MESSAGE = "기한은 날짜로 골라 주세요."
+const TASK_DETAILS_NOT_READY_MESSAGE =
+  "데이터베이스에 할 일의 담당자와 기한이 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const REQUEST_NOT_READY_MESSAGE =
+  "데이터베이스에 참여 요청의 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const REQUEST_NOT_ALLOWED_MESSAGE =
+  "참여를 요청할 수 없습니다. 이미 참여하고 있거나 이 Club 의 Member 가 아닐 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const REQUEST_GONE_MESSAGE =
+  "그 요청을 찾을 수 없습니다. 요청한 사람이 거뒀거나 다른 사람이 먼저 처리했을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 
 function isMissingTable(error: { code?: string }) {
   return error.code === "42P01" || error.code === "PGRST205"
@@ -237,7 +249,146 @@ export async function addProjectParticipant(
     }
   }
 
+  // 그 사람이 보내 둔 참여 요청이 있으면 함께 치운다. 치우지 못해도 참여는 이미 됐으므로 성공으로 본다.
+  await clearJoinRequest(clubId, projectId, memberId)
+
   revalidatePath(`/clubs/${clubId}`, "layout")
+  return { ok: true }
+}
+
+// 참여 요청 한 줄을 지운다. 구조가 아직 없을 때의 오류는 남기지 않는다.
+async function clearJoinRequest(
+  clubId: string,
+  projectId: string,
+  memberId: string
+) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("project_join_requests")
+    .delete()
+    .eq("club_id", clubId)
+    .eq("project_id", projectId)
+    .eq("member_id", memberId)
+    .select("member_id")
+
+  if (error && !isMissingTable(error)) {
+    console.error("참여 요청을 치우지 못했습니다.", error)
+  }
+  return { error, removed: data?.length ?? 0 }
+}
+
+// 내 Member 식별자를 읽는다. 이 Club 의 Member 가 아니면 null 이다.
+async function myMemberId(clubId: string, userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("members")
+    .select("id")
+    .eq("club_id", clubId)
+    .eq("user_id", userId)
+    .maybeSingle()
+  return (data as { id: string } | null)?.id ?? null
+}
+
+// Project 에 참여하고 싶다고 요청한다. 참여자나 운영자가 받아 주면 참여자가 된다.
+export async function requestToJoinProject(
+  clubId: string,
+  projectId: string
+): Promise<ProjectActionResult> {
+  const user = await requireUser()
+  if (!isUuid(projectId)) {
+    return { ok: false, message: REQUEST_NOT_ALLOWED_MESSAGE }
+  }
+
+  const memberId = await myMemberId(clubId, user.id)
+  if (!memberId) {
+    return { ok: false, message: REQUEST_NOT_ALLOWED_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("project_join_requests")
+    .insert({ project_id: projectId, club_id: clubId, member_id: memberId })
+
+  // 23505 는 이미 요청해 둔 경우다. 바라는 상태가 됐으므로 성공으로 본다.
+  if (error && error.code !== "23505") {
+    if (isMissingTable(error)) {
+      return { ok: false, message: REQUEST_NOT_READY_MESSAGE }
+    }
+    console.error("참여를 요청하지 못했습니다.", error)
+    return {
+      ok: false,
+      message:
+        isDenied(error) || error.code === "23503"
+          ? REQUEST_NOT_ALLOWED_MESSAGE
+          : RETRY_MESSAGE,
+    }
+  }
+
+  revalidatePath(`/clubs/${clubId}/projects/${projectId}`)
+  return { ok: true }
+}
+
+// 내가 보낸 참여 요청을 거둔다.
+export async function cancelJoinRequest(
+  clubId: string,
+  projectId: string
+): Promise<ProjectActionResult> {
+  const user = await requireUser()
+  if (!isUuid(projectId)) {
+    return { ok: false, message: REQUEST_GONE_MESSAGE }
+  }
+
+  const memberId = await myMemberId(clubId, user.id)
+  if (!memberId) {
+    return { ok: false, message: REQUEST_GONE_MESSAGE }
+  }
+
+  const { error } = await clearJoinRequest(clubId, projectId, memberId)
+  if (error) {
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+
+  revalidatePath(`/clubs/${clubId}/projects/${projectId}`)
+  return { ok: true }
+}
+
+// 참여 요청을 받아 준다. 요청한 사람을 참여자로 넣고 요청을 치운다. 참여자와 운영자만 할 수 있다.
+export async function acceptJoinRequest(
+  clubId: string,
+  projectId: string,
+  memberId: string
+): Promise<ProjectActionResult> {
+  const result = await addProjectParticipant(clubId, projectId, memberId)
+  // 이미 참여자인 사람의 요청이 남아 있던 것이면 요청만 치우면 된다.
+  if (!result.ok && result.message === ALREADY_PARTICIPANT_MESSAGE) {
+    await clearJoinRequest(clubId, projectId, memberId)
+    revalidatePath(`/clubs/${clubId}`, "layout")
+    return { ok: true }
+  }
+  return result
+}
+
+// 참여 요청을 거절한다. 요청만 지우고 요청한 사람에게 따로 알리지는 않는다. 참여자와 운영자만 할 수 있다.
+export async function declineJoinRequest(
+  clubId: string,
+  projectId: string,
+  memberId: string
+): Promise<ProjectActionResult> {
+  await requireUser()
+  if (!isUuid(projectId) || !isUuid(memberId)) {
+    return { ok: false, message: REQUEST_GONE_MESSAGE }
+  }
+
+  const { error, removed } = await clearJoinRequest(clubId, projectId, memberId)
+  if (error) {
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+  // 접근 규칙에 막혔거나 이미 없는 요청이면 오류 없이 0개가 돌아온다.
+  if (removed === 0) {
+    return { ok: false, message: REQUEST_GONE_MESSAGE }
+  }
+
+  revalidatePath(`/clubs/${clubId}/projects/${projectId}`)
   return { ok: true }
 }
 
@@ -449,6 +600,67 @@ export async function removeProjectTask(
   if (error) {
     console.error("할 일을 지우지 못했습니다.", error)
     return { ok: false, message: RETRY_MESSAGE }
+  }
+  if (data.length === 0) {
+    return { ok: false, message: EDITOR_ONLY_MESSAGE }
+  }
+
+  revalidatePath(`/clubs/${clubId}`, "layout")
+  return { ok: true }
+}
+
+// 할 일의 글, 담당자, 기한을 고친다. 담당자는 그 Project 의 참여자여야 하고, 그 판단은 데이터베이스가 한다.
+// assigneeMemberId 와 dueOn 은 비어 있으면 비운다.
+export async function updateProjectTask(
+  clubId: string,
+  taskId: string,
+  input: { title: string; assigneeMemberId: string; dueOn: string }
+): Promise<ProjectActionResult> {
+  await requireUser()
+  if (!isUuid(taskId)) {
+    return { ok: false, message: EDITOR_ONLY_MESSAGE }
+  }
+
+  const title = String(input.title ?? "").trim()
+  const invalid = taskTitleError(title)
+  if (invalid) {
+    return { ok: false, message: invalid }
+  }
+  const assigneeMemberId = String(input.assigneeMemberId ?? "")
+  if (assigneeMemberId && !isUuid(assigneeMemberId)) {
+    return { ok: false, message: ASSIGNEE_NOT_PARTICIPANT_MESSAGE }
+  }
+  const dueOn = String(input.dueOn ?? "")
+  if (dueOn && !isDueDate(dueOn)) {
+    return { ok: false, message: DUE_DATE_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("project_tasks")
+    .update({
+      title,
+      assignee_member_id: assigneeMemberId || null,
+      due_on: dueOn || null,
+    })
+    .eq("club_id", clubId)
+    .eq("id", taskId)
+    .select("id")
+
+  if (error) {
+    // PGRST204 와 42703 은 담당자와 기한 열이 아직 없을 때다.
+    if (error.code === "PGRST204" || error.code === "42703") {
+      return { ok: false, message: TASK_DETAILS_NOT_READY_MESSAGE }
+    }
+    // 23514 는 참여자가 아닌 사람에게 맡기려 한 경우, 23503 은 그 Member 가 그사이 나간 경우다.
+    if (error.code === "23514" || error.code === "23503") {
+      return { ok: false, message: ASSIGNEE_NOT_PARTICIPANT_MESSAGE }
+    }
+    console.error("할 일을 고치지 못했습니다.", error)
+    return {
+      ok: false,
+      message: isDenied(error) ? EDITOR_ONLY_MESSAGE : RETRY_MESSAGE,
+    }
   }
   if (data.length === 0) {
     return { ok: false, message: EDITOR_ONLY_MESSAGE }

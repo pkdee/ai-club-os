@@ -104,3 +104,25 @@ export function linkHost(url: string) {
     return url
   }
 }
+
+// 기한은 날짜만 받는다. 예: 2026-10-20. 없는 날짜(2월 31일 같은 것)는 받지 않는다.
+export function isDueDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+
+// 기한이 지났는지 본다. today 는 한국 시간의 오늘 날짜(YYYY-MM-DD)다.
+// 기한 당일은 지난 것이 아니고, 끝낸 일은 기한이 지나도 지난 것으로 치지 않는다.
+export function isOverdue(dueOn: string | null, done: boolean, today: string) {
+  return !done && dueOn !== null && dueOn < today
+}
+
+// 예: 10월 20일. 올해가 아니면 해도 붙인다. 예: 2027년 1월 5일
+export function formatDueDate(dueOn: string, today: string) {
+  const [year, month, day] = dueOn.split("-").map(Number)
+  const label = `${month}월 ${day}일`
+  return dueOn.slice(0, 4) === today.slice(0, 4) ? label : `${year}년 ${label}`
+}

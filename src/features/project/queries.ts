@@ -20,6 +20,28 @@ export type ProjectTask = {
   done: boolean
 }
 
+// 할 일에 딸린 담당자와 기한.
+export type ProjectTaskDetail = {
+  // 맡은 Member. 맡은 사람이 없거나 그 사람이 Club 에서 나갔으면 null 이다.
+  assignee: { memberId: string; name: string } | null
+  // 끝내기로 한 날(YYYY-MM-DD). 없으면 null 이다.
+  dueOn: string | null
+}
+
+export type ProjectJoinRequest = {
+  memberId: string
+  userId: string
+  name: string
+  avatarUrl: string | null
+  requestedAt: string
+}
+
+// unavailable 은 데이터베이스에 참여 요청을 두는 구조가 아직 없다는 뜻이다.
+export type ProjectJoinRequestsResult =
+  | { status: "ok"; requests: ProjectJoinRequest[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
 export type ProjectLink = {
   id: string
   label: string
@@ -201,5 +223,110 @@ export const getProject = cache(
     return data
       ? { status: "ok", project: toProject(data as unknown as ProjectRow) }
       : { status: "not-found" }
+  }
+)
+
+// 할 일의 담당자와 기한을 할 일의 식별자별로 읽는다.
+// 그 열이 아직 없거나 읽지 못하면 null 이다. 그때는 담당자와 기한을 보여 주지도 고치지도 않는다.
+export const getProjectTaskDetails = cache(
+  async (
+    clubId: string,
+    projectId: string
+  ): Promise<Record<string, ProjectTaskDetail> | null> => {
+    if (!isUuid(projectId)) {
+      return null
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("project_tasks")
+      .select(
+        "id, due_on, assignee:members!project_tasks_assignee_fkey(id, display_name, email)"
+      )
+      .eq("club_id", clubId)
+      .eq("project_id", projectId)
+
+    if (error) {
+      // 열이나 관계가 아직 없을 때의 오류는 남기지 않는다.
+      if (error.code !== "42703" && error.code !== "PGRST200") {
+        console.error("할 일의 담당자와 기한을 불러오지 못했습니다.", error)
+      }
+      return null
+    }
+
+    const rows = data as unknown as {
+      id: string
+      due_on: string | null
+      assignee: { id: string; display_name: string; email: string | null } | null
+    }[]
+    return Object.fromEntries(
+      rows.map((row) => [
+        row.id,
+        {
+          assignee: row.assignee
+            ? { memberId: row.assignee.id, name: memberName(row.assignee) }
+            : null,
+          dueOn: row.due_on,
+        },
+      ])
+    )
+  }
+)
+
+// Project 에 들어온 참여 요청을 요청한 순서로 읽는다.
+// 그 Project 를 고칠 수 있는 사람에게는 모두 보이고, 다른 Member 에게는 자기 요청만 보인다.
+export const listProjectJoinRequests = cache(
+  async (
+    clubId: string,
+    projectId: string
+  ): Promise<ProjectJoinRequestsResult> => {
+    if (!isUuid(projectId)) {
+      return { status: "ok", requests: [] }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("project_join_requests")
+      .select(
+        "created_at, member:members!project_join_requests_member_fkey(id, user_id, display_name, email, avatar_url)"
+      )
+      .eq("club_id", clubId)
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      if (isMissingTable(error)) {
+        return { status: "unavailable" }
+      }
+      console.error("참여 요청을 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    const rows = data as unknown as {
+      created_at: string
+      member: {
+        id: string
+        user_id: string
+        display_name: string
+        email: string | null
+        avatar_url: string | null
+      } | null
+    }[]
+    return {
+      status: "ok",
+      requests: rows.flatMap((row) =>
+        row.member
+          ? [
+              {
+                memberId: row.member.id,
+                userId: row.member.user_id,
+                name: memberName(row.member),
+                avatarUrl: googleAvatarUrl(row.member.avatar_url),
+                requestedAt: row.created_at,
+              },
+            ]
+          : []
+      ),
+    }
   }
 )

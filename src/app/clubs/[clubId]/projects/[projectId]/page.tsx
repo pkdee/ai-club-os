@@ -5,11 +5,18 @@ import { WriteLogLink } from "@/features/ai-log/components/write-log-link";
 import { listProjectLogs } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { listMembers } from "@/features/member/queries";
+import { ProjectSessionsCard } from "@/features/project/components/linked-cards";
 import {
   ProjectDetail,
   ProjectUnavailable,
 } from "@/features/project/components/project-detail";
-import { getProject } from "@/features/project/queries";
+import { sessionsOfLogs } from "@/features/project/links";
+import {
+  getProject,
+  getProjectTaskDetails,
+  listProjectJoinRequests,
+} from "@/features/project/queries";
+import { kstDateKey } from "@/features/session/time";
 
 type Props = PageProps<"/clubs/[clubId]/projects/[projectId]">;
 
@@ -45,13 +52,22 @@ export default async function ProjectDetailPage(props: Props) {
     (participant) => participant.userId === data.user.id
   );
   const canEdit = isParticipant || isAdmin;
+  const now = new Date();
   // 참여자로 넣을 사람을 고르는 목록은 고칠 수 있는 사람에게만 필요하다.
-  const [members, logs] = await Promise.all([
+  const [members, logs, taskDetails, joinRequests] = await Promise.all([
     canEdit ? listMembers(clubId) : null,
     // 기록 수를 세지 못했다면 AI Log 와의 연결이 아직 없는 것이라 기록을 읽지 않는다.
     project.logCount === null ? null : listProjectLogs(clubId, projectId),
+    getProjectTaskDetails(clubId, projectId),
+    // 고칠 수 있는 사람에게는 들어온 요청이 모두, 다른 Member 에게는 자기 요청만 돌아온다.
+    listProjectJoinRequests(clubId, projectId),
   ]);
   const joined = new Set(project.participants.map((item) => item.memberId));
+  // 이미 참여자가 된 사람의 요청이 남아 있으면 보여 주지 않는다.
+  const requests =
+    joinRequests.status === "ok"
+      ? joinRequests.requests.filter((item) => !joined.has(item.memberId))
+      : [];
 
   return (
     <ProjectDetail
@@ -66,6 +82,25 @@ export default async function ProjectDetailPage(props: Props) {
               .filter((member) => !joined.has(member.id))
               .map((member) => ({ memberId: member.id, name: member.name }))
           : null
+      }
+      taskDetails={taskDetails}
+      today={kstDateKey(now)}
+      requests={canEdit ? requests : []}
+      // 참여자도 운영자도 아닌 Member 만 참여를 요청한다. 운영자는 스스로를 참여자로 넣을 수 있다.
+      myRequest={
+        canEdit || joinRequests.status !== "ok"
+          ? null
+          : requests.some((item) => item.userId === data.user.id)
+            ? "pending"
+            : "none"
+      }
+      aside={
+        logs?.status === "ok" && (
+          <ProjectSessionsCard
+            clubId={clubId}
+            sessions={sessionsOfLogs(logs.logs)}
+          />
+        )
       }
       // 참여자만 자기 기록을 이 Project 에 묶을 수 있다.
       actions={
@@ -84,7 +119,7 @@ export default async function ProjectDetailPage(props: Props) {
               ? "아직 묶인 AI Log 가 없습니다. 위의 AI Log 쓰기로 이 Project 의 실험을 남겨 보세요."
               : "아직 묶인 AI Log 가 없습니다. 참여자가 기록을 남기면 여기에 보입니다."
           }
-          now={new Date()}
+          now={now}
         />
       )}
     </ProjectDetail>

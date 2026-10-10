@@ -7,6 +7,9 @@ import {
   PROJECT_LINK_URL_MAX,
   PROJECT_NAME_MAX,
   PROJECT_TASK_TITLE_MAX,
+  formatDueDate,
+  isDueDate,
+  isOverdue,
   isProjectStatus,
   linkHost,
   linkLabelError,
@@ -73,4 +76,29 @@ test("주소에서 보여 줄 이름을 꺼낸다", () => {
   assert.equal(linkHost("https://github.com/ai-club/rag"), "github.com")
   assert.equal(linkHost("http://localhost:3000/demo"), "localhost:3000")
   assert.equal(linkHost("주소가 아님"), "주소가 아님")
+})
+
+test("기한은 있는 날짜만 받는다", () => {
+  assert.equal(isDueDate("2026-10-20"), true)
+  assert.equal(isDueDate("2026-02-31"), false)
+  assert.equal(isDueDate("2026-13-01"), false)
+  assert.equal(isDueDate("2026-1-5"), false)
+  assert.equal(isDueDate("20261020"), false)
+  assert.equal(isDueDate(""), false)
+})
+
+test("기한이 지났는지는 오늘 날짜와 견준다", () => {
+  assert.equal(isOverdue("2026-10-19", false, "2026-10-20"), true)
+  assert.equal(isOverdue("2026-10-20", false, "2026-10-20"), false)
+  assert.equal(isOverdue("2026-10-21", false, "2026-10-20"), false)
+})
+
+test("끝낸 일과 기한이 없는 일은 지난 것으로 치지 않는다", () => {
+  assert.equal(isOverdue("2026-10-01", true, "2026-10-20"), false)
+  assert.equal(isOverdue(null, false, "2026-10-20"), false)
+})
+
+test("기한은 올해면 달과 날만, 다른 해면 해도 보여 준다", () => {
+  assert.equal(formatDueDate("2026-10-05", "2026-10-20"), "10월 5일")
+  assert.equal(formatDueDate("2027-01-05", "2026-10-20"), "2027년 1월 5일")
 })

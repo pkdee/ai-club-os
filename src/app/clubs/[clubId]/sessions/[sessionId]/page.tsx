@@ -9,6 +9,8 @@ import { AttendanceOverviewCard } from "@/features/attendance/components/attenda
 import { listAttendance } from "@/features/attendance/queries";
 import { countAttendance } from "@/features/attendance/status";
 import { getCurrentUser } from "@/features/auth/session";
+import { SessionProjectsCard } from "@/features/project/components/linked-cards";
+import { projectsOfLogs } from "@/features/project/links";
 import { listMembers } from "@/features/member/queries";
 import { SessionOverview } from "@/features/session/components/session-overview";
 import { loadSessionPage } from "@/features/session/page-data";
@@ -79,6 +81,12 @@ export default async function SessionOverviewPage(props: Props) {
               logIds={logs.logs
                 .filter((log) => log.author?.userId === user.id)
                 .map((log) => log.id)}
+            />
+          )}
+          {logs.status === "ok" && (
+            <SessionProjectsCard
+              clubId={clubId}
+              projects={projectsOfLogs(logs.logs)}
             />
           )}
         </>

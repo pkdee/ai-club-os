@@ -23,6 +23,8 @@ import {
 import { ClubOverview } from "@/features/club/components/club-overview";
 import { MyRecordCard } from "@/features/club/components/my-record-card";
 import { loadClubPage } from "@/features/club/page-data";
+import { MyProjectsCard } from "@/features/project/components/linked-cards";
+import { listProjects } from "@/features/project/queries";
 import { SessionFormDialog } from "@/features/session/components/session-form-dialog";
 import { TodaySessionCard } from "@/features/session/components/today-session-card";
 import { UpcomingSessions } from "@/features/session/components/upcoming-sessions";
@@ -81,6 +83,7 @@ export default async function ClubOverviewPage(
     recentAttendance,
     myAttendance,
     latestInsight,
+    projectList,
     todayCounts,
   ] = await Promise.all([
     listClubLogs(club.id, RECENT_LOG_LIMIT, null),
@@ -90,6 +93,7 @@ export default async function ClubOverviewPage(
     sessions ? listSessionsAttendance(club.id, recentIds) : null,
     club.memberId ? listMemberAttendance(club.id, club.memberId) : null,
     getLatestPublishedInsight(club.id),
+    listProjects(club.id),
     Promise.all(
       today.map(async (session) => {
         const [recorded, sessionLogs] = await Promise.all([
@@ -110,6 +114,22 @@ export default async function ClubOverviewPage(
       ).length
     : 0;
   const lastLog = myLogs.status === "ok" ? myLogs.logs[0] : undefined;
+  // 내가 참여하는 Project 가운데 아직 끝나지 않은 것. 불러오지 못했거나 아직 쓸 수 없으면 보여 주지 않는다.
+  const myProjects =
+    projectList.status === "ok"
+      ? projectList.projects
+          .filter(
+            (project) =>
+              project.status !== "done" &&
+              project.participants.some((item) => item.userId === user.id)
+          )
+          .map((project) => ({
+            id: project.id,
+            name: project.name,
+            status: project.status,
+            remainingTasks: project.tasks.filter((task) => !task.done).length,
+          }))
+      : [];
   // 공개된 것이 없거나 아직 준비되지 않았으면 그 영역을 그리지 않는다.
   const insight = latestInsight.status === "ok" ? latestInsight.insight : null;
 
@@ -175,6 +195,7 @@ export default async function ClubOverviewPage(
               }
             />
           )}
+          <MyProjectsCard clubId={club.id} projects={myProjects} />
           <MyRecordCard
             monthLogCount={monthLogCount}
             attendance={myAttendance ? tallyAttendance(myAttendance) : null}
