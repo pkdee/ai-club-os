@@ -49,7 +49,7 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 
 초기 공급자를 제품 핵심 영역에 직접 결합하지 않습니다. AI Insight 단계에서 공급자별 구현과 제품 기능 사이에 교체 가능한 경계를 둡니다.
 
-2026-10-10 에 경계를 `src/features/ai-insight/provider/` 에 두고 첫 구현으로 Claude 를 붙였습니다. 제품 쪽은 지킬 것, 자료, 답의 모양을 주고 JSON 을 받는다는 약속만 압니다. 키(`ANTHROPIC_API_KEY`)와 모델(`AI_INSIGHT_MODEL`, 기본값 `claude-opus-5-5`)은 서버의 환경 변수로 받고, 키가 없어도 기록 기능은 그대로 동작합니다. 근거는 `docs/adr/0018-ai-provider-boundary-and-claude.md` 에 있습니다.
+2026-10-10 에 경계를 `src/features/ai-insight/provider/` 에 두고 첫 구현으로 Claude 를 붙였습니다. 제품 쪽은 지킬 것, 자료, 답의 모양을 주고 JSON 을 받는다는 약속만 압니다. 키(`ANTHROPIC_API_KEY`)와 모델(`AI_INSIGHT_MODEL`, 기본값 `claude-sonnet-5-5`)은 서버의 환경 변수로 받고, 키가 없어도 기록 기능은 그대로 동작합니다. 키를 다루는 파일은 `server-only` 로 표시해 브라우저 코드가 불러오면 빌드가 실패하게 했고, 남기는 글에서는 키를 가립니다. 근거는 `docs/adr/0018-ai-provider-boundary-and-claude.md` 에 있습니다.
 
 ## 아직 정하지 않은 항목
 
