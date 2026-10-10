@@ -42,11 +42,14 @@ export function forgetOpenedDraft(key: string) {
   opened.delete(key)
 }
 
+// 맡겨 둔 시각을 돌려준다. 저장소가 가득 찼거나 막혀 있어 맡기지 못했으면 null 이다. 쓰는 일은 그대로 할 수 있다.
 export function writeDraft(key: string, values: AiLogInput) {
+  const now = new Date()
   try {
-    window.localStorage.setItem(key, serializeDraft(values, new Date()))
+    window.localStorage.setItem(key, serializeDraft(values, now))
+    return now.toISOString()
   } catch {
-    // 저장소가 가득 찼거나 막혀 있으면 맡겨 두지 못한다. 쓰는 일은 그대로 할 수 있다.
+    return null
   }
 }
 

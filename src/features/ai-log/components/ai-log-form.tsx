@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { NativeSelect } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
+import { kstTime } from "@/features/session/time"
 
 import {
   saveAiLog,
@@ -151,6 +152,10 @@ export function AiLogForm({
     () => null
   )
   const [discarded, setDiscarded] = useState(false)
+  // 이 화면에서 마지막으로 맡기거나 지운 결과. 아직 아무 일도 없었으면 null 이다.
+  const [draftChange, setDraftChange] = useState<{
+    savedAt: string | null
+  } | null>(null)
   const restored =
     opened && !discarded && hasDraftContent(opened.values, defaults)
       ? opened
@@ -189,9 +194,10 @@ export function AiLogForm({
 
     const current = readAiLogForm(new FormData(form))
     if (hasDraftContent(current, defaults)) {
-      writeDraft(draftKey, current)
+      setDraftChange({ savedAt: writeDraft(draftKey, current) })
     } else {
       removeDraft(draftKey)
+      setDraftChange({ savedAt: null })
     }
   }, [defaults, draftKey])
 
@@ -239,8 +245,29 @@ export function AiLogForm({
     }
     removeDraft(draftKey)
     setDiscarded(true)
+    setDraftChange({ savedAt: null })
     setPickedSession(null)
   }
+
+  // 맡겨 둔 것이 있으면 그 시각을 알려 준다. 저장하는 동안에는 감춘다.
+  const draftSavedAt = saving
+    ? null
+    : draftChange
+      ? draftChange.savedAt
+      : (restored?.savedAt ?? null)
+  const draftStatus = draftSavedAt && (
+    <p
+      role="status"
+      className="flex items-center gap-1.5 text-caption text-muted-foreground"
+    >
+      <Check
+        aria-hidden="true"
+        strokeWidth={1.5}
+        className="size-4 shrink-0 text-icon-success"
+      />
+      임시 저장됨 · {kstTime(draftSavedAt)}
+    </p>
+  )
 
   const actions = (
     <>
@@ -274,7 +301,10 @@ export function AiLogForm({
         />
         <div className="flex items-start justify-between gap-6">
           <h1 className="text-h1">{editing ? "AI Log 수정" : "AI Log 쓰기"}</h1>
-          <div className="hidden items-center gap-2 sm:flex">{actions}</div>
+          <div className="hidden items-center gap-3 sm:flex">
+            {draftStatus}
+            <div className="flex items-center gap-2">{actions}</div>
+          </div>
         </div>
       </div>
       {restored && state.status === "idle" && (
@@ -408,7 +438,10 @@ export function AiLogForm({
               </Field>
             ))}
           </div>
-          <div className="flex gap-2 sm:hidden">{actions}</div>
+          <div className="flex flex-col gap-2 sm:hidden">
+            {draftStatus}
+            <div className="flex gap-2">{actions}</div>
+          </div>
         </div>
         <aside className="flex flex-col gap-6">
           {selected && (
