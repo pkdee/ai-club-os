@@ -1,7 +1,17 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Ellipsis, LogOut, ShieldCheck, User, UserMinus } from "lucide-react"
+import {
+  CircleAlert,
+  Ellipsis,
+  LogOut,
+  Pencil,
+  ShieldCheck,
+  User,
+  UserMinus,
+} from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import { Button } from "@/components/ui/button"
 import { CheckboxField } from "@/components/ui/checkbox"
@@ -21,14 +31,18 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import type { ClubRole } from "@/features/club/roles"
 
 import {
   changeMemberRole,
   leaveClub,
   removeMember,
+  renameMyself,
   type MemberActionResult,
 } from "../actions"
+import { MEMBER_NAME_MAX } from "../name"
 
 // 누르기 전에 한 번 더 묻는 일의 종류.
 type Confirm = "demote-self" | "remove" | "leave"
@@ -63,6 +77,9 @@ export function MemberRowMenu({
   const [confirm, setConfirm] = useState<Confirm | null>(null)
   // 내보내면서 다시 들어오지 못하게 막을지. 창을 열 때마다 꺼진 채로 시작한다.
   const [block, setBlock] = useState(false)
+  // 내 이름을 고치는 창에 적은 값. null 이면 창이 닫혀 있다.
+  const [newName, setNewName] = useState<string | null>(null)
+  const [renameError, setRenameError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function run(action: () => Promise<MemberActionResult>) {
@@ -153,7 +170,18 @@ export function MemberRowMenu({
                 구성원으로 변경
               </MenuItem>
             ))}
-          {canManage && <MenuSeparator />}
+          {isMe && (
+            <MenuItem
+              onClick={() => {
+                setRenameError(null)
+                setNewName(member.name)
+              }}
+            >
+              <Pencil aria-hidden="true" strokeWidth={1.5} />
+              내 이름 고치기
+            </MenuItem>
+          )}
+          {(canManage || isMe) && <MenuSeparator />}
           {isMe ? (
             <MenuItem
               tone="danger"
@@ -226,6 +254,81 @@ export function MemberRowMenu({
                 </Button>
               </DialogFooter>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={newName !== null}
+        onOpenChange={(open) => {
+          if (!open && !pending) {
+            setNewName(null)
+          }
+        }}
+      >
+        <DialogContent>
+          {newName !== null && (
+            <form
+              className="flex flex-col gap-5"
+              onSubmit={(event) => {
+                event.preventDefault()
+                setRenameError(null)
+                startTransition(async () => {
+                  const result = await renameMyself(clubId, newName)
+                  if (result.ok) {
+                    setNewName(null)
+                  } else {
+                    setRenameError(result.message)
+                  }
+                })
+              }}
+            >
+              <DialogHeader>
+                <DialogTitle>내 이름 고치기</DialogTitle>
+                <DialogDescription>
+                  이 Club 안에서 보이는 이름입니다. 다른 Club 에서의 이름과
+                  Google 계정의 이름은 바뀌지 않습니다.
+                </DialogDescription>
+              </DialogHeader>
+              {renameError && (
+                <Alert tone="danger">
+                  <CircleAlert aria-hidden="true" strokeWidth={1.5} />
+                  <AlertTitle>고치지 못했습니다</AlertTitle>
+                  <AlertDescription>{renameError}</AlertDescription>
+                </Alert>
+              )}
+              <Field>
+                <FieldLabel htmlFor="member-name">이름</FieldLabel>
+                <Input
+                  id="member-name"
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                  maxLength={MEMBER_NAME_MAX}
+                  autoComplete="off"
+                  aria-describedby="member-name-help"
+                  required
+                />
+                <FieldDescription id="member-name-help">
+                  내가 남긴 AI Log 와 Attendance, Project 에 이 이름으로
+                  보입니다. 이메일 대신 불리고 싶은 이름을 적어 주세요.
+                </FieldDescription>
+              </Field>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => setNewName(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={pending || newName.trim() === ""}
+                >
+                  {pending ? "저장하는 중" : "저장"}
+                </Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>

@@ -10,6 +10,7 @@ import { isUuid } from "@/lib/uuid"
 
 import { isMissingTable } from "./bans"
 import { isInviteToken } from "./invite"
+import { cleanMemberName, memberNameError } from "./name"
 
 export type InviteActionResult = { ok: true } | { ok: false; message: string }
 
@@ -30,6 +31,10 @@ const NOT_ALLOWED_MESSAGE =
   "운영자만 할 수 있는 일입니다. 내 역할이 바뀌었거나 이미 나간 Member 일 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 const BLOCK_UNAVAILABLE_MESSAGE =
   "다시 들어오지 못하게 막는 기능을 아직 쓸 수 없습니다. 데이터베이스에 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const RENAME_NOT_READY_MESSAGE =
+  "이름을 고치는 기능을 아직 쓸 수 없습니다. 데이터베이스에 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const RENAME_NOT_MEMBER_MESSAGE =
+  "이 Club 의 Member 만 이름을 고칠 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 const INVALID_INVITE_MESSAGE =
   "이 초대 링크는 쓸 수 없습니다. 만료됐거나 운영자가 새 링크를 만들었습니다. 초대한 사람에게 새 링크를 받아 주세요."
 
@@ -295,4 +300,50 @@ export async function leaveClub(clubId: string): Promise<MemberActionResult> {
 
   revalidatePath("/", "layout")
   redirect("/")
+}
+
+// 내가 이 Club 안에서 쓰는 이름을 고친다. 자기 이름만 고칠 수 있고 운영자도 남의 이름은 고치지 못한다.
+// 이름은 Club 마다 따로라서 다른 Club 에서의 이름은 그대로다.
+export async function renameMyself(
+  clubId: string,
+  name: string
+): Promise<MemberActionResult> {
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+  }
+
+  const invalid = memberNameError(String(name ?? ""))
+  if (invalid) {
+    return { ok: false, message: invalid }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("set_my_display_name", {
+    target_club_id: clubId,
+    new_name: cleanMemberName(String(name)),
+  })
+
+  if (error) {
+    // PGRST202 는 함수가 아직 없을 때, 22023 은 데이터베이스가 이름을 받아들이지 않았을 때다.
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { ok: false, message: RENAME_NOT_READY_MESSAGE }
+    }
+    if (error.code === "22023") {
+      return {
+        ok: false,
+        message: "이 이름은 쓸 수 없습니다. 다른 이름을 적어 주세요.",
+      }
+    }
+    console.error("이름을 고치지 못했습니다.", error)
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+  // Member 가 아니면 함수가 아무것도 돌려주지 않는다.
+  if (typeof data !== "string") {
+    return { ok: false, message: RENAME_NOT_MEMBER_MESSAGE }
+  }
+
+  // 이름은 기록, 출석, Project 등 여러 화면에 보이므로 Club 아래를 통째로 새로 읽는다.
+  revalidatePath(`/clubs/${clubId}`, "layout")
+  return { ok: true }
 }
