@@ -8,11 +8,12 @@
 | 언어 | TypeScript | 5.9 도입 |
 | 스타일 | Tailwind CSS | 4.3 도입 |
 | 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty, Avatar, Breadcrumb, LinkTabs, Menu, Skeleton, NativeSelect |
-| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites` 정의 |
+| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
 | 패키지 관리 | npm | 도입 |
+| AI Provider | Anthropic 의 Claude | 도입. 새 패키지 없이 Messages API 를 `fetch` 로 부른다. 키와 모델은 서버의 환경 변수 |
 | 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
 
 ## 도입한 패키지와 근거
@@ -48,11 +49,12 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 
 초기 공급자를 제품 핵심 영역에 직접 결합하지 않습니다. AI Insight 단계에서 공급자별 구현과 제품 기능 사이에 교체 가능한 경계를 둡니다.
 
+2026-10-10 에 경계를 `src/features/ai-insight/provider/` 에 두고 첫 구현으로 Claude 를 붙였습니다. 제품 쪽은 지킬 것, 자료, 답의 모양을 주고 JSON 을 받는다는 약속만 압니다. 키(`ANTHROPIC_API_KEY`)와 모델(`AI_INSIGHT_MODEL`, 기본값 `claude-opus-5-5`)은 서버의 환경 변수로 받고, 키가 없어도 기록 기능은 그대로 동작합니다. 근거는 `docs/adr/0018-ai-provider-boundary-and-claude.md` 에 있습니다.
+
 ## 아직 정하지 않은 항목
 
 - 테스트 도구와 테스트 범위
 - 상태 관리 방식
 - 관측성과 오류 수집 도구
-- AI Provider와 모델
 
 이 항목은 해당 기능을 구현하는 마일스톤에서 필요 근거와 함께 정합니다.

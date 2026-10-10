@@ -37,7 +37,7 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -51,6 +51,8 @@ User
 | AI Log 검색과 도구 목록 함수 | `20261010075452_add_ai_log_search.sql` | `docs/adr/0011-ai-log-search-functions.md` |
 | 검색과 도구 이름을 느슨하게 맞추도록 두 함수 교체 | `20261010080736_loosen_ai_log_search.sql` | `docs/adr/0012-loose-matching-for-search-and-tools.md` |
 | 검색이 한 도구의 여러 표기를 함께 찾도록 함수 교체 | `20261010082852_search_tool_spellings.sql` | `docs/adr/0013-known-tool-catalog.md` |
+| AI Log, Session, Club 을 지우는 규칙 | `20261010091458_add_delete_rules.sql` | `docs/adr/0015-delete-rules.md` |
+| `ai_insights` | `20261010141008_create_ai_insights.sql` | `docs/adr/0017-ai-insight-draft-and-publish.md` |
 
 ```mermaid
 erDiagram
@@ -67,6 +69,9 @@ erDiagram
   members |o--o{ ai_logs : "작성"
   clubs ||--o| club_invites : "초대"
   auth_users ||--o{ club_invites : "생성"
+  clubs ||--o{ ai_insights : "정리"
+  sessions |o--o| ai_insights : "회차"
+  auth_users ||--o{ ai_insights : "생성"
 
   clubs {
     uuid id PK
@@ -132,6 +137,24 @@ erDiagram
     uuid created_by FK
     timestamptz created_at
     timestamptz expires_at
+  }
+
+  ai_insights {
+    uuid id PK
+    uuid club_id FK
+    text scope
+    uuid session_id FK
+    timestamptz period_start
+    timestamptz period_end
+    text status
+    jsonb content
+    uuid[] source_log_ids
+    text provider
+    text model
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz published_at
   }
 ```
 
@@ -209,7 +232,7 @@ erDiagram
 | `created_at` | timestamptz | 작성한 시각 |
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 내용이 실제로 바뀌었을 때만 바뀐다 |
 
-사용자가 쓴 원본 기록입니다. 이후에 만들 AI Insight 는 이 테이블에 덮어쓰지 않고 따로 둡니다.
+사용자가 쓴 원본 기록입니다. AI Insight 는 이 테이블에 덮어쓰지 않고 `ai_insights` 에 따로 둡니다.
 
 ### AI Log 를 찾는 함수
 
@@ -245,6 +268,26 @@ erDiagram
 | `public.preview_club_invite(invite_token)` | 링크가 가리키는 Club 의 이름, 소개, Member 수, 이미 Member 인지를 돌려준다. 링크가 틀렸거나 만료됐으면 아무 행도 돌려주지 않는다 |
 | `public.join_club(invite_token)` | 부른 사용자를 그 Club 의 구성원으로 넣고 Club 식별자를 돌려준다. 이미 Member 이면 그대로 둔다. 링크가 틀렸거나 만료됐으면 null 을 돌려준다 |
 
+### ai_insights
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다. 만든 뒤에는 바꿀 수 없다 |
+| `scope` | text | `session` 은 한 회차를, `period` 는 한 기간의 Club 전체 기록을 정리한 것 |
+| `session_id` | uuid | 회차를 정리한 것일 때의 Session. 같은 Club 의 것이어야 하고, Session 이 삭제되면 함께 삭제된다 |
+| `period_start`, `period_end` | timestamptz | 기간을 정리한 것일 때의 시작과 끝. 끝은 기간에 들지 않는다. 앱은 한국 시간의 한 달을 넣는다 |
+| `status` | text | `draft` 는 운영자에게만 보이는 초안, `published` 는 Member 에게 공개된 것. 만들 때는 항상 `draft` |
+| `content` | jsonb | 정리한 내용. 객체여야 하고 40000바이트 이하. 모양은 앱의 `src/features/ai-insight/content.ts` 가 정한다 |
+| `source_log_ids` | uuid[] | AI 에 보낸 AI Log 의 식별자. 500개 이하. 그 뒤에 기록이 지워져도 고치지 않는다 |
+| `provider`, `model` | text | 정리한 AI Provider 와 모델 |
+| `created_by` | uuid | 만든 운영자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 만든 시각 |
+| `updated_at` | timestamptz | 마지막으로 내용이나 공개 상태를 바꾼 시각 |
+| `published_at` | timestamptz | 공개한 시각. 데이터베이스가 정한다. 초안으로 되돌리면 비워진다 |
+
+한 회차에는 하나, 한 Club 의 같은 기간에도 하나만 둘 수 있습니다. 다시 만들면 같은 행의 내용, 보낸 기록, 모델을 고쳐 쓰고 초안으로 되돌립니다. AI 가 만든 것이라 `ai_logs` 와 달리 원본이 아닙니다.
+
 ### 시각 저장 규칙
 
 시각은 모두 timestamptz 로 저장합니다. 화면에서 입력받고 보여 줄 때는 한국 시간으로만 해석합니다. Club 마다 시간대를 따로 두지 않습니다. Session 이 오늘인지, 예정인지, 끝났는지도 한국 시간의 날짜로 나눕니다.
@@ -272,6 +315,10 @@ erDiagram
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
 | `ai_logs` | 수정 | 작성자 본인. Session 연결과 내용만 고칠 수 있다 |
 | `ai_logs` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 기록은 운영자만 지운다 |
+| `ai_insights` | 조회 | 그 Club 의 운영자는 모두, 구성원은 공개된 것만 |
+| `ai_insights` | 생성 | 그 Club 의 운영자. 만든 사람은 본인으로, 상태는 초안으로 정해진다 |
+| `ai_insights` | 수정 | 그 Club 의 운영자. 내용, 공개 상태, 보낸 기록, Provider 와 모델만 고칠 수 있다 |
+| `ai_insights` | 삭제 | 그 Club 의 운영자 |
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 

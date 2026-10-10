@@ -12,6 +12,8 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, �
 
 v0.1 구현 중입니다. Next.js 뼈대, 디자인 토큰, Google Login, Club 만들기, 내 Club 목록, Club 개요, Session 목록과 만들기, 수정, 상세, Session 별 Attendance 기록, AI Log 쓰기와 목록, 상세, 수정, Member 목록과 초대 링크, 역할 바꾸기와 내보내기, Club 설정이 들어 있습니다. AI Log 는 찾는 글자와 Session, 도구로 걸러 볼 수 있고, 쓰다 만 내용은 브라우저에 임시로 저장됩니다. Club 개요와 Session 개요, AI Log 목록에는 출석과 기록의 요약이 보입니다. AI Log, Session, Club 은 확인을 거쳐 지울 수 있습니다. v0.1 에 넣기로 한 기능은 모두 들어갔습니다.
 
+v0.2 의 AI Insight 는 첫 단계가 들어 있습니다. 운영자가 한 회차나 한 달의 AI Log 를 AI 로 정리해 초안을 만들고, 확인한 뒤 공개합니다.
+
 ## 실행
 
 Node.js 24 와 npm 이 필요합니다.
@@ -26,6 +28,8 @@ npm run dev
 
 - Authentication 의 Providers 에서 Google 을 켜고 Google OAuth 클라이언트 ID 와 비밀 값을 입력한다.
 - Authentication 의 URL Configuration 에서 Site URL 이 `http://localhost:3000` 이거나 Redirect URLs 에 `http://localhost:3000/**` 가 들어 있다.
+
+AI Insight 를 만들려면 `.env.local` 에 `ANTHROPIC_API_KEY` 도 채웁니다. 비워 두면 AI Insight 만 만들 수 없고 나머지는 그대로 동작합니다. 키 없이 화면만 확인하려면 `AI_INSIGHT_PROVIDER=mock` 으로 둡니다. 쓰는 모델은 `AI_INSIGHT_MODEL` 로 바꿉니다.
 
 데이터베이스 구조는 `supabase/migrations/` 의 SQL 파일에 있습니다. 새 Supabase 프로젝트에는 이 파일들을 이름 순서대로 적용해야 합니다. 대시보드의 SQL Editor 에 붙여 넣어 실행하거나 Supabase CLI 의 `supabase db push` 를 씁니다.
 

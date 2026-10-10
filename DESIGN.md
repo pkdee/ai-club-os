@@ -30,16 +30,20 @@ AI는 사용자의 기록을 대신 소유하지 않습니다. 요약, 연결, �
 - 내 Club
 - Club 개요
 - Session
-  - Session 상세: 개요, Attendance, AI Log
+  - Session 상세: 개요, Attendance, AI Log, AI Insight
 - AI Log
+- AI Insight
+  - 한 달 정리
 - Member
 - Club 설정
 
 Attendance 는 따로 메뉴를 두지 않고 Session 상세의 탭으로 둡니다. 한 회차의 맥락 안에서 참여하고 기록한다는 원칙을 따른 것입니다.
 
+AI Insight 는 v0.2 에서 더했습니다. 한 회차를 정리한 것은 그 Session 의 탭에서, 한 달을 정리한 것은 AI Insight 메뉴에서 만들고 봅니다. "AI는 이해를 돕는다" 는 원칙에 따라 항목마다 근거가 된 원본 AI Log 로 갈 수 있고, 운영자가 고치거나 빼거나 통째로 지울 수 있습니다. AI 가 정리한 것임을 항상 밝힙니다.
+
 ## 화면 설계
 
-v0.1 화면 설계는 Figma 파일에서 관리합니다. 제품 이름은 화면에서도 AI Club OS 로 씁니다.
+화면 설계는 Figma 파일에서 관리합니다. v0.1 화면과 v0.2 의 AI Insight 화면이 들어 있습니다. 제품 이름은 화면에서도 AI Club OS 로 씁니다.
 
 - 파일: https://www.figma.com/design/pSj712D4ia1bJZ1FytvzQ8/AI-DO
 - 기준일: 2026-10-08. 2026-10-10 에 구현하면서 바뀐 부분을 반영했습니다.
@@ -48,7 +52,7 @@ v0.1 화면 설계는 Figma 파일에서 관리합니다. 제품 이름은 화�
 |---|---|
 | Foundations | 색, 글자, 간격, 모서리, 그림자 토큰과 견본 |
 | Components | Icon, Action, Form, Display, Navigation, Domain 여섯 묶음의 컴포넌트 |
-| Screens | 안내, Auth, Club, Member, Session, AI Log, 기본 상태, 작은 화면, Dark 모드 예시 |
+| Screens | 안내, Auth, Club, Member, Session, AI Log, 기본 상태, 작은 화면, Dark 모드 예시, AI Insight |
 
 화면은 모두 컴포넌트 인스턴스로 조립합니다. 화면에 쓴 역할, Attendance 상태, AI Log 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정을 따릅니다.
 
@@ -100,6 +104,7 @@ v0.1 화면 설계는 Figma 파일에서 관리합니다. 제품 이름은 화�
 - AI Log 쓰기의 임시 저장(`06-6`). 다시 열면 불러온 내용과 맡긴 시각을 알리고 지우는 버튼을 둡니다. 쓰기 화면들의 기록 안내에 임시 저장 줄을 더했습니다.
 - 삭제. AI Log 상세(`06-2`)와 Session 상세의 머리말에 삭제 버튼을, Club 설정(`03-1`)에 Club 삭제 영역을 더했습니다. 확인 창은 `06-7`, `05-5`, `03-2` 입니다. Club 은 이름을 입력해야 지울 수 있습니다.
 - Member 검색 결과(`04-5`). 찾는 글자에 맞는 Member 수와 검색 지우기를 보여 줍니다.
+- AI Insight(`10` 부터 `10-6`). v0.2 에서 새로 그린 화면입니다. 목록(`10`), Session 의 AI Insight 탭의 빈 상태(`10-1`), 만들기 확인(`10-2`), 초안(`10-3`), 고치기(`10-4`), 구성원이 보는 공개된 모습(`10-5`), 한 달 정리(`10-6`)입니다. Sidebar 와 좁은 화면의 아래쪽 메뉴에 AI Insight 를, Session 상세의 탭에 AI Insight 를 더했습니다. 쓰기 화면들의 기록 안내에는 기록이 AI 서비스로 보내질 수 있다는 줄을 더했습니다.
 - Club 개요, Session 개요, Member 표는 처음 설계대로 만들어서 Figma 를 고치지 않았습니다. 다가오는 Session 은 옆 칸으로, Attendance 요약은 Session 개요의 옆 칸으로 옮겼습니다.
 
 ## 기본 상태

@@ -24,6 +24,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - 2026-10-10 에 사용자가 검색과 도구 이름의 한계를 해결하자고 했다. 띄어쓰기와 대소문자를 넘어 찾게 하고, 널리 쓰는 AI 도구 목록을 두어 도구 이름을 그 표기에 맞추게 했다.
 - 2026-10-10 에 사용자가 도구 이름에 아이콘을 넣자고 했고 실제 로고를 패키지로 설치해 쓰기로 정했다. `@lobehub/icons-static-svg` 를 더하고 도구 이름표와 고르는 목록에 로고를 넣었다.
 - 2026-10-10 에 사용자가 그려 둔 요약 채우기, AI Log 임시 저장, 삭제 기능을 다음 일로 골랐다. 삭제는 AI Log 를 작성자와 운영자가, Session 과 Club 을 운영자가 지우고 되살리지 않기로 정했다. 세 가지를 모두 구현했다.
+- 2026-10-10 에 사용자가 v0.2 AI Insight 를 시작하기로 했다. AI Provider 는 Claude, 단위는 Session 과 한 달 둘 다, 만드는 사람은 운영자, 운영자가 확인한 뒤 공개하기로 정했다. `ai_insights` 테이블과 AI Provider 경계, AI Insight 화면을 구현했다.
 - 승인된 범위를 넘는 구현은 사용자가 다음 단계를 승인한 뒤에 진행한다.
 - 패키지 설치, 외부 서비스 연결, 데이터베이스 변경, 배포 설정을 임의로 진행하지 않는다.
 - 기존 파일을 삭제하거나 덮어쓰기 전에 반드시 상태와 사용자 변경 사항을 확인한다.
@@ -45,13 +46,13 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - Supabase PostgreSQL, Auth, Storage
 - Vercel
 - MVP에서는 별도 Spring Boot 서버를 두지 않는다.
-- AI Provider는 교체 가능한 경계 뒤에 둔다.
+- AI Provider는 교체 가능한 경계 뒤에 둔다. 경계는 `src/features/ai-insight/provider/` 이고 지금은 Claude 를 쓴다. 키는 서버의 환경 변수로만 받는다.
 - Next.js 16 은 이전 버전과 달라진 점이 많다. Next.js 코드를 쓰기 전에 `node_modules/next/dist/docs/` 의 해당 문서를 확인한다.
 
 ## 구조 원칙
 
 - 기능 단위 경계를 우선한다.
-- `auth`, `club`, `member`, `session`, `attendance`, `ai-log`를 서로 구분한다.
+- `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`를 서로 구분한다.
 - 화면, 데이터 접근, 외부 서비스 연결이 한 파일에 섞이지 않게 한다.
 - 아직 필요하지 않은 기능과 추상화는 미리 구현하지 않는다.
 - 중요한 기술 선택은 `docs/adr/`에 기록한다.
