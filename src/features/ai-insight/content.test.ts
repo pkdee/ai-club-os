@@ -7,6 +7,7 @@ import {
   INSIGHT_THEME_MAX,
   insightFromAiOutput,
   insightShownLogIds,
+  insightToText,
   parseInsightContent,
 } from "./content"
 
@@ -115,4 +116,39 @@ test("한도를 모두 채운 내용도 데이터베이스의 크기 제한 안�
   const many = Array.from({ length: 20 }, () => ({ title: "가".repeat(100), summary: "나".repeat(1000), text: "다".repeat(1000), logIds: ids }))
   const content = parseInsightContent({ v: 1, overview: "라".repeat(2000), themes: many, lessons: many, nextActions: many })
   assert.ok(Buffer.byteLength(JSON.stringify(content)) <= 40000, String(Buffer.byteLength(JSON.stringify(content))))
+})
+
+test("붙여 넣을 수 있는 글로 바꾼다", () => {
+  const content = parseInsightContent({
+    v: 1,
+    overview: "청크 크기를 여러 사람이 비교했다.",
+    themes: [{ title: "청크 크기", summary: "500 토큰이 안정적이었다.", logIds: [A] }, { title: "임베딩 모델" }],
+    lessons: [{ text: "작다고 정확해지지 않는다." }],
+    nextActions: [{ text: "겹침을 바꿔 본다." }, { text: "질문을 고정한다." }],
+  })
+  assert.equal(
+    insightToText("3회차", content!),
+    [
+      "3회차 AI Insight",
+      "",
+      "요약",
+      "청크 크기를 여러 사람이 비교했다.",
+      "",
+      "반복된 주제",
+      "- 청크 크기: 500 토큰이 안정적이었다.",
+      "- 임베딩 모델",
+      "",
+      "배운 점",
+      "- 작다고 정확해지지 않는다.",
+      "",
+      "다음 행동",
+      "- 겹침을 바꿔 본다.",
+      "- 질문을 고정한다.",
+    ].join("\n")
+  )
+})
+
+test("붙여 넣을 글에는 비어 있는 묶음과 근거 기록을 싣지 않는다", () => {
+  const content = parseInsightContent({ v: 1, lessons: [{ text: "배운 점", logIds: [A, B] }] })
+  assert.equal(insightToText("2026년 10월", content!), "2026년 10월 AI Insight\n\n배운 점\n- 배운 점")
 })

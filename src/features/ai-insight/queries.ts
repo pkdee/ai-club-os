@@ -145,6 +145,31 @@ export const getPeriodInsight = cache(
   }
 )
 
+// 가장 최근에 공개된 AI Insight. 없으면 insight 가 null 이다. Club 개요에 쓴다.
+export const getLatestPublishedInsight = cache(
+  async (clubId: string): Promise<InsightResult> => {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("ai_insights")
+      .select(INSIGHT_COLUMNS)
+      .eq("club_id", clubId)
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(0, 0)
+
+    if (error) {
+      if (isMissingTable(error)) {
+        return { status: "unavailable" }
+      }
+      console.error("최근 AI Insight 를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+    const row = (data as unknown as InsightRow[])[0]
+    return { status: "ok", insight: row ? toInsight(row) : null }
+  }
+)
+
 // Club 의 AI Insight 를 최근에 만든 순서로 읽는다.
 export const listClubInsights = cache(
   async (clubId: string): Promise<InsightListResult> => {

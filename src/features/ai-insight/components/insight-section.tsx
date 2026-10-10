@@ -15,10 +15,11 @@ import {
 import { formatLogDateTime } from "@/features/ai-log/format"
 
 import type { InsightActionResult } from "../actions"
-import { insightShownLogIds } from "../content"
+import { insightShownLogIds, insightToText } from "../content"
 import { INSIGHT_MIN_LOGS } from "../prompt"
 import { getInsightProvider } from "../provider"
 import { listLogTitles, type InsightResult } from "../queries"
+import { CopyInsightButton } from "./copy-insight-button"
 import { GenerateInsightDialog } from "./generate-insight-dialog"
 import { InsightManager } from "./insight-manager"
 import { InsightView } from "./insight-view"
@@ -167,6 +168,13 @@ export async function InsightSection({
           AI 가 정리한 내용이라 원본 기록과 다를 수 있습니다. 근거 기록을 눌러
           원본을 확인할 수 있습니다.
         </p>
+        {insight.content && (
+          <div className="flex flex-wrap items-center gap-2">
+            <CopyInsightButton
+              text={insightToText(targetLabel, insight.content)}
+            />
+          </div>
+        )}
       </div>
       {canManage && added > 0 && (
         <Alert tone="info">

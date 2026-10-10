@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { LatestInsightCard } from "@/features/ai-insight/components/latest-insight-card";
+import { monthKeyOf, monthLabel } from "@/features/ai-insight/period";
+import { getLatestPublishedInsight } from "@/features/ai-insight/queries";
 import { AiLogSection } from "@/features/ai-log/components/ai-log-section";
 import { WriteLogLink } from "@/features/ai-log/components/write-log-link";
 import { formatLogDate } from "@/features/ai-log/format";
@@ -77,6 +80,7 @@ export default async function ClubOverviewPage(
     myLogs,
     recentAttendance,
     myAttendance,
+    latestInsight,
     todayCounts,
   ] = await Promise.all([
     listClubLogs(club.id, RECENT_LOG_LIMIT, null),
@@ -85,6 +89,7 @@ export default async function ClubOverviewPage(
     listClubLogs(club.id, 1, user.id),
     sessions ? listSessionsAttendance(club.id, recentIds) : null,
     club.memberId ? listMemberAttendance(club.id, club.memberId) : null,
+    getLatestPublishedInsight(club.id),
     Promise.all(
       today.map(async (session) => {
         const [recorded, sessionLogs] = await Promise.all([
@@ -105,6 +110,8 @@ export default async function ClubOverviewPage(
       ).length
     : 0;
   const lastLog = myLogs.status === "ok" ? myLogs.logs[0] : undefined;
+  // 공개된 것이 없거나 아직 준비되지 않았으면 그 영역을 그리지 않는다.
+  const insight = latestInsight.status === "ok" ? latestInsight.insight : null;
 
   return (
     <ClubOverview
@@ -153,6 +160,21 @@ export default async function ClubOverviewPage(
       aside={
         <>
           {sessions && <UpcomingSessions sessions={sessions} now={now} />}
+          {insight?.content && (
+            <LatestInsightCard
+              title={
+                insight.session
+                  ? insight.session.title
+                  : monthLabel(monthKeyOf(insight.periodStart ?? insight.createdAt))
+              }
+              overview={insight.content.overview}
+              href={
+                insight.session
+                  ? `/clubs/${club.id}/sessions/${insight.session.id}/insight`
+                  : `/clubs/${club.id}/insights/${monthKeyOf(insight.periodStart ?? insight.createdAt)}`
+              }
+            />
+          )}
           <MyRecordCard
             monthLogCount={monthLogCount}
             attendance={myAttendance ? tallyAttendance(myAttendance) : null}

@@ -153,6 +153,28 @@ export function insightFromAiOutput(
   })
 }
 
+// 메신저나 문서에 붙여 넣을 수 있는 글로 바꾼다. title 은 회차의 제목이나 기간의 이름이다.
+// 근거 기록은 싣지 않는다. 비어 있는 묶음은 뺀다.
+export function insightToText(title: string, content: InsightContent) {
+  const lines = [`${title} AI Insight`]
+  const section = (heading: string, items: string[]) => {
+    if (items.length > 0) {
+      lines.push("", heading, ...items)
+    }
+  }
+
+  section("요약", content.overview ? [content.overview] : [])
+  section(
+    "반복된 주제",
+    content.themes.map((theme) =>
+      theme.summary ? `- ${theme.title}: ${theme.summary}` : `- ${theme.title}`
+    )
+  )
+  section("배운 점", content.lessons.map((item) => `- ${item.text}`))
+  section("다음 행동", content.nextActions.map((item) => `- ${item.text}`))
+  return lines.join("\n")
+}
+
 // 화면에 제목으로 보여 줄 근거 기록의 식별자를 겹치지 않게 모은다. 항목마다 앞의 몇 개만 든다.
 export function insightShownLogIds(content: InsightContent) {
   const ids = new Set<string>()

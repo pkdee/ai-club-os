@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { PreviousActionsCard } from "@/features/ai-insight/components/previous-actions-card";
+import { getSessionInsight } from "@/features/ai-insight/queries";
 import { AiLogSection } from "@/features/ai-log/components/ai-log-section";
 import { MySessionLogCard } from "@/features/ai-log/components/my-session-log-card";
 import { listSessionLogs } from "@/features/ai-log/queries";
@@ -10,6 +12,7 @@ import { getCurrentUser } from "@/features/auth/session";
 import { listMembers } from "@/features/member/queries";
 import { SessionOverview } from "@/features/session/components/session-overview";
 import { loadSessionPage } from "@/features/session/page-data";
+import { listSessions } from "@/features/session/queries";
 
 type Props = PageProps<"/clubs/[clubId]/sessions/[sessionId]">;
 
@@ -38,6 +41,18 @@ export default async function SessionOverviewPage(props: Props) {
     listAttendance(clubId, sessionId),
     listSessionLogs(clubId, sessionId),
   ]);
+  // 바로 앞 회차의 공개된 AI Insight 에 다음 행동이 있으면 이 회차의 개요에 이어서 보여 준다.
+  const sessions = await listSessions(clubId);
+  const order = sessions.status === "ok" ? sessions.sessions : [];
+  const previous = order[order.findIndex((item) => item.id === sessionId) - 1];
+  const previousInsight = previous
+    ? await getSessionInsight(clubId, previous.id)
+    : null;
+  const carried =
+    previousInsight?.status === "ok" &&
+    previousInsight.insight?.status === "published"
+      ? (previousInsight.insight.content?.nextActions ?? [])
+      : [];
   const counts =
     members.status === "ok" && attendance.status === "ok"
       ? countAttendance(
@@ -69,6 +84,13 @@ export default async function SessionOverviewPage(props: Props) {
         </>
       }
     >
+      {previous && (
+        <PreviousActionsCard
+          sessionTitle={previous.title}
+          href={`/clubs/${clubId}/sessions/${previous.id}/insight`}
+          actions={carried.map((action) => action.text)}
+        />
+      )}
       <AiLogSection
         title="이 회차의 AI Log"
         href={`${base}/logs`}
