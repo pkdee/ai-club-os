@@ -40,6 +40,7 @@ import {
   removeDraft,
   writeDraft,
 } from "../draft-storage"
+import { AI_LOG_REVISION_LIMIT } from "../revisions"
 import {
   AI_LOG_TEXT_MAX,
   AI_LOG_TITLE_MAX,
@@ -68,6 +69,10 @@ const GUIDE = [
   "필수 항목은 제목과 시도한 내용입니다.",
   "쓰는 동안 이 브라우저에 임시로 저장됩니다.",
   "저장한 뒤에도 고칠 수 있습니다.",
+]
+// 수정 기록을 남기는 구조가 있을 때만 보여 준다. 고치기 전에 알 수 있어야 한다.
+const REVISION_GUIDE = `고치면 고치기 전의 내용이 수정 기록으로 남습니다. 나와 운영자만 보고, 최근 ${AI_LOG_REVISION_LIMIT}번까지 남습니다.`
+const INSIGHT_GUIDE = [
   "운영자가 AI Insight 를 만들 때 기록 내용이 AI 서비스로 보내질 수 있습니다. 이름과 이메일은 보내지 않습니다.",
 ]
 
@@ -102,6 +107,7 @@ const TEXT_FIELDS = [
 // sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
 // projects 는 고를 수 있는 Project 다. 내가 참여하는 것만 들어 있고, null 이면 Project 를 고르는 칸을 그리지 않는다.
 // options 는 작성자가 정하는 두 가지 선택의 지금 값이다. null 이면 선택 칸을 그리지 않는다.
+// keepsRevisions 는 고치기 전의 내용이 수정 기록으로 남는다는 뜻이다. 그럴 때만 안내에 적는다.
 // draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
 export function AiLogForm({
   target,
@@ -110,6 +116,7 @@ export function AiLogForm({
   sessions,
   projects,
   options,
+  keepsRevisions = false,
   knownTools,
   cancelHref,
   draftKey,
@@ -120,6 +127,7 @@ export function AiLogForm({
   sessions: SessionOption[] | null
   projects: { id: string; name: string }[] | null
   options: AiLogOptions | null
+  keepsRevisions?: boolean
   knownTools: string[]
   cancelHref: string
   draftKey: string
@@ -533,7 +541,11 @@ export function AiLogForm({
           <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
             <h2 className="text-h4">기록 안내</h2>
             <ul className="flex flex-col gap-2 text-body-s">
-              {GUIDE.map((line) => (
+              {[
+                ...GUIDE,
+                ...(keepsRevisions ? [REVISION_GUIDE] : []),
+                ...INSIGHT_GUIDE,
+              ].map((line) => (
                 <li key={line} className="flex items-start gap-2">
                   <Check
                     aria-hidden="true"

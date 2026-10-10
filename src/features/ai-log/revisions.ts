@@ -1,5 +1,8 @@
 // AI Log 의 수정 기록. 고치기 전의 내용들을 한 번의 수정에서 무엇이 바뀌었는지로 풀어 보여 준다.
 
+// 한 기록에 남겨 두는 수정의 수. 데이터베이스의 private.ai_log_revision_limit() 과 같은 값이어야 한다.
+export const AI_LOG_REVISION_LIMIT = 20
+
 export type AiLogContent = {
   title: string
   tools: string[]

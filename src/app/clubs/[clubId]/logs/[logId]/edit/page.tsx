@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { AiLogUnavailable } from "@/features/ai-log/components/ai-log-detail";
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
 import { draftKey } from "@/features/ai-log/draft";
-import { getAiLog, listClubTools } from "@/features/ai-log/queries";
+import {
+  getAiLog,
+  keepsAiLogRevisions,
+  listClubTools,
+} from "@/features/ai-log/queries";
 import { toSessionOptions } from "@/features/ai-log/session-options";
 import { loadClubPage } from "@/features/club/page-data";
 import { listProjects } from "@/features/project/queries";
@@ -34,10 +38,11 @@ export default async function AiLogEditPage(
     return <AiLogUnavailable clubId={clubId} reason="not-author" />;
   }
 
-  const [sessions, tools, projectList] = await Promise.all([
+  const [sessions, tools, projectList, keepsRevisions] = await Promise.all([
     listSessions(clubId),
     listClubTools(clubId),
     listProjects(clubId),
+    keepsAiLogRevisions(),
   ]);
   // 내가 참여하는 Project 와, 이미 묶여 있는 Project 를 고를 수 있다.
   // 참여를 그만둔 뒤에도 묶어 둔 것은 그대로 둘 수 있어야 해서 함께 넣는다.
@@ -72,6 +77,7 @@ export default async function AiLogEditPage(
       }
       projects={projects}
       options={log.options}
+      keepsRevisions={keepsRevisions}
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}
       draftKey={draftKey(data.user.id, clubId, log.id)}

@@ -10,7 +10,10 @@ import {
   listAiLogRevisions,
   listSessionLogs,
 } from "@/features/ai-log/queries";
-import { editsFromRevisions } from "@/features/ai-log/revisions";
+import {
+  AI_LOG_REVISION_LIMIT,
+  editsFromRevisions,
+} from "@/features/ai-log/revisions";
 import { loadClubPage } from "@/features/club/page-data";
 
 type Props = PageProps<"/clubs/[clubId]/logs/[logId]">;
@@ -18,7 +21,6 @@ type Props = PageProps<"/clubs/[clubId]/logs/[logId]">;
 // 옆에 보여 주는 같은 Session 의 기록 수.
 const RELATED_LIMIT = 5;
 // 남겨 두는 수정의 수. 데이터베이스의 private.ai_log_revision_limit 과 같은 값이어야 한다.
-const REVISION_LIMIT = 20;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { clubId, logId } = await props.params;
@@ -73,7 +75,7 @@ export default async function AiLogDetailPage(props: Props) {
       {revisions?.status === "ok" && (
         <AiLogRevisions
           edits={editsFromRevisions(log, revisions.revisions)}
-          limit={REVISION_LIMIT}
+          limit={AI_LOG_REVISION_LIMIT}
           now={now}
         />
       )}

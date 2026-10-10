@@ -496,6 +496,15 @@ export const hasAiLogOptions = cache(async (): Promise<boolean> => {
   return !error
 })
 
+// 고치기 전의 내용을 수정 기록으로 남기는 구조가 있는지 본다. 쓰는 화면이 그 사실을 알릴지 정하는 데 쓴다.
+// 확인하지 못하면 없는 것으로 본다.
+export const keepsAiLogRevisions = cache(async (): Promise<boolean> => {
+  const supabase = await createClient()
+  const { error } = await supabase.from("ai_log_revisions").select("id").limit(1)
+
+  return !error
+})
+
 // unavailable 은 데이터베이스에 수정 기록을 두는 구조가 아직 없다는 뜻이다.
 export type AiLogRevisionsResult =
   | { status: "ok"; revisions: AiLogRevision[] }
