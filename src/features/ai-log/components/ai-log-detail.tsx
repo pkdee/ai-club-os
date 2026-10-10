@@ -118,6 +118,7 @@ function Info({ label, value }: { label: string; value: string }) {
 
 // related 에는 같은 Session 의 다른 기록을 넣는다.
 // canEdit 는 작성자 본인, canDelete 는 작성자 본인이거나 운영자라는 뜻이다. 실제 판단은 데이터베이스가 한다.
+// children 에는 본문 아래에 놓을 영역을 넣는다. 수정 기록이 여기에 온다.
 export function AiLogDetail({
   clubName,
   log,
@@ -125,6 +126,7 @@ export function AiLogDetail({
   canDelete,
   related,
   now,
+  children,
 }: {
   clubName: string
   log: AiLog
@@ -132,6 +134,7 @@ export function AiLogDetail({
   canDelete: boolean
   related: AiLogSummary[]
   now: Date
+  children?: React.ReactNode
 }) {
   const clubHref = `/clubs/${log.clubId}`
   const name = authorName(log.author)
@@ -226,12 +229,19 @@ export function AiLogDetail({
         </div>
       </div>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <article className="flex flex-col gap-8 rounded-xl border bg-card p-6 sm:p-8">
-          <Part icon={FlaskConical} title="시도한 내용" text={log.attempt} />
-          <Part icon={Target} title="결과" text={log.result} />
-          <Part icon={Lightbulb} title="배운 점" text={log.learned} />
-          <Part icon={CircleArrowRight} title="다음 행동" text={log.nextAction} />
-        </article>
+        <div className="flex min-w-0 flex-col gap-6">
+          <article className="flex flex-col gap-8 rounded-xl border bg-card p-6 sm:p-8">
+            <Part icon={FlaskConical} title="시도한 내용" text={log.attempt} />
+            <Part icon={Target} title="결과" text={log.result} />
+            <Part icon={Lightbulb} title="배운 점" text={log.learned} />
+            <Part
+              icon={CircleArrowRight}
+              title="다음 행동"
+              text={log.nextAction}
+            />
+          </article>
+          {children}
+        </div>
         <aside className="flex flex-col gap-6">
           {related.length > 0 && (
             <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">

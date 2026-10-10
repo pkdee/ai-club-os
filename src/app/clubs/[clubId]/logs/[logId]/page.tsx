@@ -4,13 +4,21 @@ import {
   AiLogDetail,
   AiLogUnavailable,
 } from "@/features/ai-log/components/ai-log-detail";
-import { getAiLog, listSessionLogs } from "@/features/ai-log/queries";
+import { AiLogRevisions } from "@/features/ai-log/components/ai-log-revisions";
+import {
+  getAiLog,
+  listAiLogRevisions,
+  listSessionLogs,
+} from "@/features/ai-log/queries";
+import { editsFromRevisions } from "@/features/ai-log/revisions";
 import { loadClubPage } from "@/features/club/page-data";
 
 type Props = PageProps<"/clubs/[clubId]/logs/[logId]">;
 
 // 옆에 보여 주는 같은 Session 의 기록 수.
 const RELATED_LIMIT = 5;
+// 남겨 두는 수정의 수. 데이터베이스의 private.ai_log_revision_limit 과 같은 값이어야 한다.
+const REVISION_LIMIT = 20;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { clubId, logId } = await props.params;
@@ -47,15 +55,28 @@ export default async function AiLogDetailPage(props: Props) {
       : [];
 
   const isAuthor = log.author?.userId === data.user.id;
+  const isAdmin = data.club.role === "admin";
+  const now = new Date();
+  // 수정 기록은 작성자와 운영자에게만 보이므로 그 두 경우에만 읽는다.
+  const revisions =
+    isAuthor || isAdmin ? await listAiLogRevisions(clubId, logId) : null;
 
   return (
     <AiLogDetail
       clubName={data.club.name}
       log={log}
       canEdit={isAuthor}
-      canDelete={isAuthor || data.club.role === "admin"}
+      canDelete={isAuthor || isAdmin}
       related={related}
-      now={new Date()}
-    />
+      now={now}
+    >
+      {revisions?.status === "ok" && (
+        <AiLogRevisions
+          edits={editsFromRevisions(log, revisions.revisions)}
+          limit={REVISION_LIMIT}
+          now={now}
+        />
+      )}
+    </AiLogDetail>
   );
 }

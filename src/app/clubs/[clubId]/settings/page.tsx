@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { ToolMergeCard } from "@/features/ai-log/components/tool-merge-card";
+import { listToolSpellings } from "@/features/ai-log/queries";
+import { toolMergeGroups } from "@/features/ai-log/tool-merge";
 import { ClubSettingsScreen } from "@/features/club/components/club-settings-screen";
 import { DeletionLogCard } from "@/features/club/components/deletion-log-card";
 import { listDeletionLogs } from "@/features/club/deletions";
@@ -23,9 +26,10 @@ export default async function ClubSettingsPage(
 
   // 지운 기록과 Club 발표는 운영자만 다루므로 운영자일 때만 읽는다.
   const isAdmin = data.club.role === "admin";
-  const [deletions, presentation] = await Promise.all([
+  const [deletions, presentation, tools] = await Promise.all([
     isAdmin ? listDeletionLogs(clubId) : null,
     isAdmin ? getClubPresentation(clubId) : null,
+    isAdmin ? listToolSpellings(clubId) : null,
   ]);
 
   return (
@@ -44,6 +48,14 @@ export default async function ClubSettingsPage(
             "AI Log 의 내용과 AI Insight 는 보이지 않습니다.",
           ]}
           className="max-w-[720px] sm:p-6"
+        />
+      )}
+      {/* 도구 표기를 세는 함수가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
+      {tools?.status === "ok" && (
+        <ToolMergeCard
+          clubId={clubId}
+          groups={toolMergeGroups(tools.spellings)}
+          spellings={tools.spellings}
         />
       )}
       {deletions && <DeletionLogCard result={deletions} />}

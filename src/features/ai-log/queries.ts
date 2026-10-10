@@ -6,7 +6,9 @@ import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
 import { NO_SESSION, type AiLogFilters } from "./filters"
+import type { AiLogRevision } from "./revisions"
 import type { AiLogOptions } from "./rules"
+import type { ToolSpelling } from "./tool-merge"
 import { expandSearch, mergeToolCounts, toolFilterValue } from "./tool-catalog"
 
 export type AiLogAuthor = {
@@ -493,3 +495,94 @@ export const hasAiLogOptions = cache(async (): Promise<boolean> => {
 
   return !error
 })
+
+// unavailable 은 데이터베이스에 수정 기록을 두는 구조가 아직 없다는 뜻이다.
+export type AiLogRevisionsResult =
+  | { status: "ok"; revisions: AiLogRevision[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
+// 한 기록의 수정 기록을 최근에 남은 것부터 읽는다.
+// 그 기록의 작성자와 운영자에게만 보이고, 다른 Member 에게는 빈 목록이 돌아온다.
+export const listAiLogRevisions = cache(
+  async (clubId: string, logId: string): Promise<AiLogRevisionsResult> => {
+    if (!isUuid(logId)) {
+      return { status: "ok", revisions: [] }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("ai_log_revisions")
+      .select("id, title, tools, attempt, result, learned, next_action, replaced_at")
+      .eq("club_id", clubId)
+      .eq("log_id", logId)
+      .order("replaced_at", { ascending: false })
+      .order("id", { ascending: false })
+
+    if (error) {
+      if (error.code === "42P01" || error.code === "PGRST205") {
+        return { status: "unavailable" }
+      }
+      console.error("AI Log 의 수정 기록을 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      revisions: (
+        data as {
+          id: string
+          title: string
+          tools: string[]
+          attempt: string
+          result: string
+          learned: string
+          next_action: string
+          replaced_at: string
+        }[]
+      ).map((row) => ({
+        id: row.id,
+        title: row.title,
+        tools: row.tools,
+        attempt: row.attempt,
+        result: row.result,
+        learned: row.learned,
+        nextAction: row.next_action,
+        replacedAt: row.replaced_at,
+      })),
+    }
+  }
+)
+
+// unavailable 은 데이터베이스에 도구 표기를 세는 함수가 아직 없다는 뜻이다.
+export type ToolSpellingsResult =
+  | { status: "ok"; spellings: ToolSpelling[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
+// 이 Club 의 기록에 쓰인 도구 이름을 적힌 그대로, 많이 쓴 순서로 읽는다.
+// listClubTools 와 달리 표기만 다른 이름을 합치지 않는다. 같은 도구의 다른 표기를 찾아 합칠 때 쓴다.
+export const listToolSpellings = cache(
+  async (clubId: string): Promise<ToolSpellingsResult> => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc("club_tool_spellings", {
+      target_club_id: clubId,
+    })
+
+    if (error) {
+      if (error.code === "PGRST202" || error.code === "42883") {
+        return { status: "unavailable" }
+      }
+      console.error("도구 표기를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      spellings: (data as { tool: string; log_count: number }[]).map((row) => ({
+        tool: row.tool,
+        logCount: Number(row.log_count),
+      })),
+    }
+  }
+)

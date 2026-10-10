@@ -9,7 +9,9 @@ import { isUuid } from "@/lib/uuid"
 
 import { listClubTools } from "./queries"
 import {
+  AI_LOG_TOOL_NAME_MAX,
   canonicalTools,
+  normalizeTools,
   readAiLogForm,
   readAiLogOptions,
   validateAiLog,
@@ -30,6 +32,11 @@ export type AiLogFormState = {
 }
 
 export type AiLogDeleteResult = { ok: true } | { ok: false; message: string }
+
+export type ToolMergeResult =
+  // changed 는 도구 이름이 바뀐 기록의 수다.
+  | { ok: true; changed: number }
+  | { ok: false; message: string }
 
 export type AiLogTarget = {
   clubId: string
@@ -214,4 +221,56 @@ export async function deleteAiLog(
 
   revalidatePath(`/clubs/${clubId}`, "layout")
   redirect(`/clubs/${clubId}/logs`)
+}
+
+const TOOL_MERGE_ADMIN_ONLY_MESSAGE =
+  "운영자만 도구 표기를 합칠 수 있습니다. 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const TOOL_MERGE_NOT_READY_MESSAGE =
+  "도구 표기를 합치는 기능을 아직 쓸 수 없습니다. 데이터베이스에 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+
+// 이 Club 의 모든 기록에서 도구 이름 from 을 to 로 바꾼다. 운영자만 할 수 있고, 그 판단은 데이터베이스가 한다.
+// 남의 기록의 도구 이름도 바뀌지만 내용을 고친 것이 아니어서 고친 시각과 수정 기록은 그대로다.
+export async function mergeToolSpelling(
+  clubId: string,
+  from: string,
+  to: string
+): Promise<ToolMergeResult> {
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+  }
+
+  const [target] = normalizeTools([String(to ?? "")])
+  if (!target || Array.from(target).length > AI_LOG_TOOL_NAME_MAX) {
+    return {
+      ok: false,
+      message: `도구 이름은 쉼표 없이 1자 이상 ${AI_LOG_TOOL_NAME_MAX}자 이하로 적어 주세요.`,
+    }
+  }
+  const source = String(from ?? "")
+  if (source === "" || source === target) {
+    return { ok: true, changed: 0 }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("rename_club_tool", {
+    target_club_id: clubId,
+    from_name: source,
+    to_name: target,
+  })
+
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { ok: false, message: TOOL_MERGE_NOT_READY_MESSAGE }
+    }
+    if (error.code === "42501") {
+      return { ok: false, message: TOOL_MERGE_ADMIN_ONLY_MESSAGE }
+    }
+    console.error("도구 표기를 합치지 못했습니다.", error)
+    return { ok: false, message: DELETE_RETRY_MESSAGE }
+  }
+
+  // 도구 이름은 기록 목록과 요약, 걸러 보기에 모두 쓰이므로 Club 아래를 통째로 새로 읽는다.
+  revalidatePath(`/clubs/${clubId}`, "layout")
+  return { ok: true, changed: typeof data === "number" ? data : 0 }
 }
