@@ -46,6 +46,7 @@ User
 | `attendance`, `members` 의 이름과 이메일 열 | `20261009175244_create_attendance.sql` | `docs/adr/0005-attendance-and-member-display-name.md` |
 | `ai_logs` | `20261009181137_create_ai_logs.sql` | `docs/adr/0006-ai-log-structure-and-authorship.md` |
 | `club_invites`, 참여 함수 | `20261010064838_create_club_invites.sql` | `docs/adr/0007-club-invite-link.md` |
+| `members` 의 사진 주소 열, 사진 맞추기 함수 | `20261010070509_add_member_avatar.sql` | `docs/adr/0008-member-avatar-from-google.md` |
 
 ```mermaid
 erDiagram
@@ -78,6 +79,7 @@ erDiagram
     text role
     text display_name
     text email
+    text avatar_url
     timestamptz created_at
   }
 
@@ -151,9 +153,10 @@ erDiagram
 | `role` | text | `admin` 은 운영자, `member` 는 구성원 |
 | `display_name` | text | Club 안에서 보이는 이름. 참여할 때 Google 계정의 이름을 옮겨 적는다. 이름이 없으면 이메일을 쓴다 |
 | `email` | text | 참여할 때의 이메일. 같은 Club 의 Member 에게만 보인다 |
+| `avatar_url` | text | Google 계정의 프로필 사진 주소. Google 의 사진 주소만 들어갈 수 있고, 없으면 비어 있다. 로그인할 때 지금 값으로 맞춘다 |
 | `created_at` | timestamptz | 소속된 시각 |
 
-한 사용자는 한 Club 에 한 번만 소속됩니다. 이름과 이메일은 참여한 시점의 값이며 Google 계정에서 바꿔도 따라 바뀌지 않습니다.
+한 사용자는 한 Club 에 한 번만 소속됩니다. 이름과 이메일은 참여한 시점의 값이며 Google 계정에서 바꿔도 따라 바뀌지 않습니다. 사진 주소만 로그인할 때 `public.sync_my_avatar()` 가 지금 값으로 맞춥니다. 이 함수는 부른 사용자의 행에서 사진 주소만 바꾸고, 로그인한 사용자만 부를 수 있습니다.
 
 ### sessions
 
@@ -240,7 +243,8 @@ erDiagram
 | `clubs` | 수정, 삭제 | 아직 없음 |
 | `members` | 조회 | 같은 Club 의 Member |
 | `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
-| `members` | 수정, 삭제 | 아직 없음 |
+| `members` | 수정 | 직접 고칠 수 없다. 본인의 사진 주소만 `sync_my_avatar` 로 맞춘다 |
+| `members` | 삭제 | 아직 없음 |
 | `sessions` | 조회 | 그 Club 의 Member |
 | `sessions` | 생성, 수정 | 그 Club 의 운영자 |
 | `sessions` | 삭제 | 아직 없음 |
