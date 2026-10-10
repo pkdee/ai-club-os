@@ -41,6 +41,7 @@ export default async function MemberListPage(
       view={view}
       result={members}
       currentUserId={data.user.id}
+      canManage={canInvite}
       inviteAction={
         invite && (
           <InviteDialog

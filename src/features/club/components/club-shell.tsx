@@ -46,7 +46,11 @@ export function ClubShell({
           />
           <span className="sr-only">내 Club 목록으로 이동</span>
         </Link>
-        <ClubNav clubId={club.id} className="flex-1" />
+        <ClubNav
+          clubId={club.id}
+          canManage={club.role === "admin"}
+          className="flex-1"
+        />
         <div className="flex items-center gap-3 border-t px-2 pt-3">
           <Avatar name={user.name} src={user.avatarUrl} />
           <div className="flex min-w-0 flex-1 flex-col">
@@ -96,6 +100,7 @@ export function ClubShell({
       </main>
       <ClubNav
         clubId={club.id}
+        canManage={club.role === "admin"}
         variant="tabbar"
         className="sticky bottom-0 lg:hidden"
       />

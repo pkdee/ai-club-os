@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   LayoutDashboard,
+  Settings,
   Users,
   type LucideIcon,
 } from "lucide-react"
@@ -18,19 +19,30 @@ type NavItem = {
   icon: LucideIcon
   // true 면 주소가 정확히 같을 때만 선택된 것으로 본다.
   exact?: boolean
+  // true 면 왼쪽 메뉴에서 맨 아래로 내려 보낸다.
+  bottom?: boolean
 }
 
 // 기능을 만들 때마다 메뉴를 더한다.
-// Attendance 는 Session 안에서 다루므로 메뉴에 따로 두지 않는다.
-function navItems(clubId: string): NavItem[] {
+// Attendance 는 Session 안에서 다루므로 메뉴에 따로 두지 않는다. 설정은 운영자에게만 보인다.
+function navItems(clubId: string, canManage: boolean): NavItem[] {
   const base = `/clubs/${clubId}`
-
-  return [
+  const items: NavItem[] = [
     { href: base, label: "개요", icon: LayoutDashboard, exact: true },
     { href: `${base}/sessions`, label: "Session", icon: Calendar },
     { href: `${base}/logs`, label: "AI Log", icon: FileText },
     { href: `${base}/members`, label: "Member", icon: Users },
   ]
+
+  if (canManage) {
+    items.push({
+      href: `${base}/settings`,
+      label: "설정",
+      icon: Settings,
+      bottom: true,
+    })
+  }
+  return items
 }
 
 function isActive(pathname: string, item: NavItem) {
@@ -42,10 +54,12 @@ function isActive(pathname: string, item: NavItem) {
 // sidebar 는 넓은 화면의 왼쪽 메뉴, tabbar 는 좁은 화면의 아래쪽 메뉴다.
 export function ClubNav({
   clubId,
+  canManage,
   variant = "sidebar",
   className,
 }: {
   clubId: string
+  canManage: boolean
   variant?: "sidebar" | "tabbar"
   className?: string
 }) {
@@ -62,7 +76,7 @@ export function ClubNav({
         className
       )}
     >
-      {navItems(clubId).map((item) => {
+      {navItems(clubId, canManage).map((item) => {
         const active = isActive(pathname, item)
         const Icon = item.icon
 
@@ -75,7 +89,10 @@ export function ClubNav({
               "transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
               tabbar
                 ? "flex flex-1 flex-col items-center justify-center gap-1 text-label-s"
-                : "flex h-9 items-center gap-3 rounded-md px-3 text-label-m",
+                : cn(
+                    "flex h-9 items-center gap-3 rounded-md px-3 text-label-m",
+                    item.bottom && "mt-auto"
+                  ),
               active
                 ? cn("text-brand", !tabbar && "bg-primary-subtle")
                 : cn(

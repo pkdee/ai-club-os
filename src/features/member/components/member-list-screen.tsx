@@ -1,8 +1,6 @@
 import Link from "next/link"
 import { CircleAlert, RefreshCw } from "lucide-react"
 
-import { Avatar } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Empty,
@@ -15,86 +13,25 @@ import {
 import { LinkTabs } from "@/components/ui/link-tabs"
 import { ROLE_LABEL, type ClubRole } from "@/features/club/roles"
 
-import { formatJoinDate } from "../format"
-import type { Member, MemberListResult } from "../queries"
+import type { MemberListResult } from "../queries"
+import { MemberTable } from "./member-table"
 
 export type MemberView = "all" | ClubRole
 
-function MemberTable({
-  members,
-  currentUserId,
-}: {
-  members: Member[]
-  currentUserId: string
-}) {
-  return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <table className="w-full table-fixed">
-        <thead>
-          <tr className="border-b text-left text-label-s text-muted-foreground">
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              Member
-            </th>
-            <th scope="col" className="w-24 px-4 py-2.5 font-medium">
-              역할
-            </th>
-            <th
-              scope="col"
-              className="hidden w-36 px-4 py-2.5 font-medium sm:table-cell"
-            >
-              합류일
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((member) => (
-            <tr key={member.id} className="border-b last:border-b-0">
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <Avatar name={member.name} src={member.avatarUrl} />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-label-m">
-                        {member.name}
-                      </span>
-                      {member.userId === currentUserId && <Badge>나</Badge>}
-                    </span>
-                    {member.email && (
-                      <span className="truncate text-caption text-muted-foreground">
-                        {member.email}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                <Badge tone={member.role === "admin" ? "brand" : "neutral"}>
-                  {ROLE_LABEL[member.role]}
-                </Badge>
-              </td>
-              <td className="hidden px-4 py-3 text-body-s text-muted-foreground sm:table-cell">
-                {formatJoinDate(member.joinedAt)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// inviteAction 에는 운영자에게만 보이는 초대 버튼을 넣는다.
+// canManage 는 보는 사람이 운영자라는 뜻이다. inviteAction 에는 운영자에게만 보이는 초대 버튼을 넣는다.
 export function MemberListScreen({
   clubId,
   view,
   result,
   currentUserId,
+  canManage,
   inviteAction,
 }: {
   clubId: string
   view: MemberView
   result: MemberListResult
   currentUserId: string
+  canManage: boolean
   inviteAction?: React.ReactNode
 }) {
   const base = `/clubs/${clubId}/members`
@@ -109,7 +46,9 @@ export function MemberListScreen({
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-h1">Member</h1>
           <p className="text-muted-foreground">
-            이 Club 의 구성원과 역할을 확인합니다.
+            {canManage
+              ? "Club 구성원과 역할을 관리합니다."
+              : "이 Club 의 구성원과 역할을 확인합니다."}
           </p>
         </div>
         {inviteAction}
@@ -161,7 +100,13 @@ export function MemberListScreen({
             ]}
           />
           {shown.length > 0 ? (
-            <MemberTable members={shown} currentUserId={currentUserId} />
+            <MemberTable
+              clubId={clubId}
+              members={shown}
+              currentUserId={currentUserId}
+              canManage={canManage}
+              adminCount={admins.length}
+            />
           ) : (
             <p className="rounded-xl border bg-card p-5 text-muted-foreground">
               {view === "member"
