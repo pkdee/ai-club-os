@@ -27,8 +27,14 @@ function withExtension(filePath) {
 const IMAGE_STUB =
   "data:text/javascript,export default { src: '/stub.svg' }"
 
+// Next.js 는 "server-only" 를 서버에서만 불러올 수 있다는 표시로 직접 다룬다. 시험에서는 빈 모듈로 대신한다.
+const EMPTY_MODULE = "data:text/javascript,export {}"
+
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === "server-only") {
+      return { url: EMPTY_MODULE, shortCircuit: true }
+    }
     if (specifier.endsWith(".svg")) {
       return { url: IMAGE_STUB, shortCircuit: true }
     }

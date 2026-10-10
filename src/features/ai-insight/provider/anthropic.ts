@@ -1,3 +1,5 @@
+import "server-only"
+
 import type {
   InsightProvider,
   InsightProviderFailure,
@@ -6,11 +8,13 @@ import type {
 } from "./types"
 
 // Anthropic 의 Messages API 로 Claude 를 부른다. 패키지 없이 fetch 로 직접 보낸다.
+// 키를 다루는 파일이라 서버에서만 불러올 수 있게 막아 둔다. 브라우저로 가는 코드가 이 파일을 불러오면 빌드가 실패한다.
+// 키는 요청의 머리말에만 싣는다. 돌려주는 값, 남기는 글, 저장하는 값 어디에도 넣지 않는다.
 
 const API_URL = "https://api.anthropic.com/v1/messages"
 const API_VERSION = "2023-06-01"
 // 환경 변수로 모델을 정하지 않았을 때 쓰는 모델.
-export const ANTHROPIC_DEFAULT_MODEL = "claude-opus-5-5"
+export const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5-5"
 const MAX_TOKENS = 4096
 // 이 시간 안에 답이 오지 않으면 그만둔다. 화면의 서버 동작 제한 시간보다 짧게 둔다.
 const TIMEOUT_MS = 50_000
@@ -38,6 +42,15 @@ export function extractJson(text: string): unknown {
   } catch {
     return undefined
   }
+}
+
+// 남기는 글에 키가 섞여 들어가지 않게 가린다. 지금 쓰는 키와, 키처럼 생긴 글자를 모두 가린다.
+// Provider 의 오류 설명에는 원래 키가 없지만, 중간의 다른 서버가 요청을 되돌려 적는 경우까지 막는다.
+export function redactSecrets(text: string, apiKey: string) {
+  return text
+    .split(apiKey)
+    .join("[가림]")
+    .replace(/sk-ant-[A-Za-z0-9_-]{8,}/g, "[가림]")
 }
 
 function fail(reason: InsightProviderFailure): InsightProviderResult {
@@ -98,7 +111,12 @@ export function createAnthropicProvider({
           response = await send(request, false)
         }
       } catch (error) {
-        console.error("AI Provider 에 닿지 못했습니다.", error)
+        // 오류를 통째로 남기지 않는다. 종류와 설명만, 키를 가린 뒤에 남긴다.
+        console.error(
+          "AI Provider 에 닿지 못했습니다.",
+          error instanceof Error ? error.name : "알 수 없는 오류",
+          redactSecrets(error instanceof Error ? error.message : "", apiKey)
+        )
         return fail("busy")
       }
 
@@ -111,12 +129,12 @@ export function createAnthropicProvider({
 
       if (!response.ok) {
         const message = String(body?.error?.message ?? "")
-        // 오류 내용에는 키가 들어 있지 않다. 원인을 찾을 수 있게 종류와 설명만 남긴다.
+        // 원인을 찾을 수 있게 종류와 설명만 남긴다. 설명은 키를 가린 뒤에 남긴다.
         console.error(
           "AI Provider 가 오류를 돌려줬습니다.",
           response.status,
-          body?.error?.type,
-          message
+          redactSecrets(String(body?.error?.type ?? ""), apiKey),
+          redactSecrets(message, apiKey)
         )
         if (response.status === 400 && /too long|too large|context/i.test(message)) {
           return fail("too-long")

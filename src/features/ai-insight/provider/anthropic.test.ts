@@ -151,3 +151,37 @@ test("시험용 Provider 는 받은 자료로 정해진 모양의 답을 만든�
   assert.deepEqual(output.lessons, [{ text: "배웠다", logs: [1] }])
   assert.deepEqual(output.next_actions, [{ text: "더 해 본다", logs: [2] }])
 })
+
+test("남기는 글에서 키와 키처럼 생긴 글자를 가린다", async () => {
+  const { redactSecrets } = await import("./anthropic")
+  assert.equal(redactSecrets("x-api-key: sk-test-key 가 틀렸습니다", "sk-test-key"), "x-api-key: [가림] 가 틀렸습니다")
+  assert.equal(redactSecrets("다른 키 sk-ant-api03-AbCdEfGh_1234-xyz 도 보인다", "sk-test-key"), "다른 키 [가림] 도 보인다")
+  assert.equal(redactSecrets("키가 없는 글", "sk-test-key"), "키가 없는 글")
+})
+
+test("오류가 나도 키는 돌려주는 값과 남기는 글 어디에도 들어가지 않는다", async (t) => {
+  const logged: string[] = []
+  t.mock.method(console, "error", (...parts: unknown[]) => {
+    logged.push(parts.map((part) => (part instanceof Error ? `${part.name} ${part.message} ${part.stack}` : String(part))).join(" "))
+  })
+
+  // 중간의 다른 서버가 요청의 머리말을 오류 설명에 되돌려 적은 경우를 흉내 낸다.
+  const echoed = () => apiError(400, "invalid_request_error", "bad header x-api-key: sk-test-key")
+  const cases: (Response | Error)[][] = [
+    [echoed(), echoed()],
+    [apiError(401, "authentication_error", "invalid x-api-key sk-test-key")],
+    [new Error("fetch failed for sk-test-key")],
+    [message("JSON 이 아닌 답 sk-test-key")],
+  ]
+  for (const responses of cases) {
+    const { provider: claude } = provider(responses)
+    const result = await claude.generate(request)
+    assert.equal(result.status, "error")
+    assert.doesNotMatch(JSON.stringify(result), /sk-test-key/)
+  }
+
+  assert.ok(logged.length >= 4)
+  for (const line of logged) {
+    assert.doesNotMatch(line, /sk-test-key/)
+  }
+})
