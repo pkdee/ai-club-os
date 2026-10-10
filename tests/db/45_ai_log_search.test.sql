@@ -51,6 +51,22 @@ select test.is($$ select title from public.search_ai_logs(test.get('club')::uuid
 select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', '') $$, '5', '도구가 비어 있으면 고르지 않은 것으로 본다');
 select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', 'cursor') where session_id is null $$, '1', '결과에 Session 조건을 이어서 걸 수 있다');
 
+-- 한 도구의 여러 표기를 함께 찾기.
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '클로드|claude') $$, '5', '| 로 이은 표기 가운데 하나만 있어도 찾는다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '없는말|rag langchain') $$, '1', '여러 표기를 가진 낱말과 다른 낱말을 함께 걸 수 있다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '없는말|또없는말') $$, '0', '이은 표기가 모두 없으면 나오지 않는다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '클로드 코드|claudecode') $$, '0', '공백으로 나뉜 낱말은 따로 본다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '클로드코드|claudecode') $$, '3', '붙여 쓴 표기로 띄어 쓴 도구 이름을 찾는다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '|') $$, '5', '| 만 적으면 찾는 글자가 없는 것으로 본다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, 'rag|') $$, '1', '끝에 | 가 붙어도 빈 표기는 버린다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', 'ChatGPT|챗지피티') $$, '3', '도구도 여러 표기를 이어서 고를 수 있다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', '없는도구|Cursor') $$, '1', '이은 도구 표기 가운데 하나를 쓴 기록이 나온다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', '|') $$, '5', '도구에 | 만 적으면 고르지 않은 것으로 본다');
+select test.sudo($$ update public.ai_logs set tools = array['챗지피티'] where title = '다시 요약' $$);
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, '', 'ChatGPT|챗지피티') $$, '3', '한글로 적어 둔 예전 기록도 같은 도구로 함께 고른다');
+select test.is($$ select count(*) from public.search_ai_logs(test.get('club')::uuid, 'chatgpt|챗지피티') $$, '3', '찾는 글자로도 한글로 적어 둔 기록이 함께 나온다');
+select test.sudo($$ update public.ai_logs set tools = array['chatgpt', 'claudecode'] where title = '다시 요약' $$);
+
 -- 도구 목록.
 select test.login('b');
 select test.is($$ select tool || '|' || log_count from public.club_tool_counts(test.get('club')::uuid) limit 1 $$, 'ChatGPT|3', '표기만 다른 이름은 합쳐서 세고 가장 많이 쓰인 표기를 보여 준다');
