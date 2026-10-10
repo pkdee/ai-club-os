@@ -34,6 +34,8 @@ AI는 사용자의 기록을 대신 소유하지 않습니다. 요약, 연결, �
 - AI Log
 - AI Insight
   - 한 달 정리
+- Project
+  - Project 상세: 목표, 할 일, 이 Project 의 AI Log, 진행 상태, 참여자, 결과물 링크
 - Member
 - Club 설정
 
@@ -41,18 +43,20 @@ Attendance 는 따로 메뉴를 두지 않고 Session 상세의 탭으로 둡니
 
 AI Insight 는 v0.2 에서 더했습니다. 한 회차를 정리한 것은 그 Session 의 탭에서, 한 달을 정리한 것은 AI Insight 메뉴에서 만들고 봅니다. "AI는 이해를 돕는다" 는 원칙에 따라 항목마다 근거가 된 원본 AI Log 로 갈 수 있고, 운영자가 고치거나 빼거나 통째로 지울 수 있습니다. AI 가 정리한 것임을 항상 밝힙니다.
 
+Project 는 v0.3 에서 더했습니다. "결과보다 과정도 보인다" 는 원칙에 따라 Project 화면은 결과물 링크만이 아니라 거기까지 온 할 일과 AI Log 를 함께 보여 줍니다. 참여자와 운영자에게만 고치는 버튼이 보이고, 다른 Member 는 같은 화면을 읽기만 합니다. AI Log 를 Project 에 묶는 일은 AI Log 를 쓰는 화면에서 하므로 기록하는 흐름이 끊기지 않습니다.
+
 ## 화면 설계
 
-화면 설계는 Figma 파일에서 관리합니다. v0.1 화면과 v0.2 의 AI Insight 화면이 들어 있습니다. 제품 이름은 화면에서도 AI Club OS 로 씁니다.
+화면 설계는 Figma 파일에서 관리합니다. v0.1 화면과 v0.2 의 AI Insight 화면, v0.3 의 Project 화면이 들어 있습니다. 제품 이름은 화면에서도 AI Club OS 로 씁니다.
 
 - 파일: https://www.figma.com/design/pSj712D4ia1bJZ1FytvzQ8/AI-DO
-- 기준일: 2026-10-08. 2026-10-10 에 구현하면서 바뀐 부분을 반영했습니다.
+- 기준일: 2026-10-08. 2026-10-10 과 2026-10-11 에 구현하면서 바뀐 부분을 반영했습니다.
 
 | 페이지 | 내용 |
 |---|---|
 | Foundations | 색, 글자, 간격, 모서리, 그림자 토큰과 견본 |
 | Components | Icon, Action, Form, Display, Navigation, Domain 여섯 묶음의 컴포넌트 |
-| Screens | 안내, Auth, Club, Member, Session, AI Log, 기본 상태, 작은 화면, Dark 모드 예시, AI Insight |
+| Screens | 안내, Auth, Club, Member, Session, AI Log, 기본 상태, 작은 화면, Dark 모드 예시, AI Insight, Project |
 
 화면은 모두 컴포넌트 인스턴스로 조립합니다. 화면에 쓴 역할, Attendance 상태, AI Log 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정을 따릅니다.
 
@@ -77,6 +81,7 @@ AI Insight 는 v0.2 에서 더했습니다. 한 회차를 정리한 것은 그 S
 - 상태는 색, 아이콘, 글자를 함께 써서 나타냅니다. Attendance 상태와 알림이 이 규칙을 따릅니다.
 - 기본 상태는 AI Log 화면을 기준으로 그렸습니다. 권한이 없는 상태는 역할이 모자란 경우와 Club 소속이 아닌 경우를 나눕니다.
 - 작은 화면은 390px 폭 기준이며 Club 개요, Attendance 기록, AI Log 쓰기를 그렸습니다.
+- 작은 화면의 아래쪽 메뉴는 개요, Session, AI Log, AI Insight, Project, Member 여섯 칸입니다. 설정은 자리가 모자라 위쪽 막대의 버튼으로 두고 운영자에게만 보입니다. 칸 너비는 글자 길이에 맞춰서 320px 폭에서도 이름이 한 줄에 들어갑니다.
 
 ### 설계에는 있고 아직 만들지 않은 것
 
@@ -88,7 +93,7 @@ AI Insight 는 v0.2 에서 더했습니다. 한 회차를 정리한 것은 그 S
 
 ### 구현하면서 바꾸고 Figma 에 반영한 것
 
-2026-10-10 에 아래 변경을 Figma 에도 반영했습니다. 지금은 구현과 Figma 가 같습니다.
+2026-10-10 과 2026-10-11 에 아래 변경을 Figma 에도 반영했습니다. 지금은 구현과 Figma 가 같습니다.
 
 - Avatar. Google 계정의 프로필 사진을 보여 줍니다. 컴포넌트에 `Show photo` 속성을 더했고 기본값은 켜짐입니다. 사진이 없거나 불러오지 못할 때는 이 속성을 끈 모습, 곧 이름의 첫 글자가 보입니다. Figma 의 사진은 사람 모양의 자리 표시입니다.
 - Member 초대 창(`04-1`). "참여할 때 역할" 고르기를 빼고 만료 시각과 "새 링크 만들기" 를 넣었습니다. 참여하면 항상 구성원이 되고 링크는 7일 뒤 만료됩니다.
@@ -106,6 +111,10 @@ AI Insight 는 v0.2 에서 더했습니다. 한 회차를 정리한 것은 그 S
 - Member 검색 결과(`04-5`). 찾는 글자에 맞는 Member 수와 검색 지우기를 보여 줍니다.
 - AI Insight(`10` 부터 `10-6`). v0.2 에서 새로 그린 화면입니다. 목록(`10`), Session 의 AI Insight 탭의 빈 상태(`10-1`), 만들기 확인(`10-2`), 초안(`10-3`), 고치기(`10-4`), 구성원이 보는 공개된 모습(`10-5`), 한 달 정리(`10-6`)입니다. Sidebar 와 좁은 화면의 아래쪽 메뉴에 AI Insight 를, Session 상세의 탭에 AI Insight 를 더했습니다. 쓰기 화면들의 기록 안내에는 기록이 AI 서비스로 보내질 수 있다는 줄을 더했습니다. 목록의 한 달 정리에는 AI Log 가 실제로 있는 달만 기록 수와 함께 나옵니다.
 - Club 개요, Session 개요, Member 표는 처음 설계대로 만들어서 Figma 를 고치지 않았습니다. 다가오는 Session 은 옆 칸으로, Attendance 요약은 Session 개요의 옆 칸으로 옮겼습니다.
+- AI Insight 다듬기. Club 개요(`03`)의 옆 칸에 가장 최근에 공개된 AI Insight 의 요약 카드를, Session 개요(`05-2`)에 지난 회차의 AI Insight 에 정리된 다음 행동 카드를 더했습니다. AI Insight 화면(`10-3`, `10-5`, `10-6`)에는 "글로 복사" 버튼을, 고치기(`10-4`)에는 묶음마다 항목을 더하는 버튼을 더했습니다.
+- Project(`11` 부터 `11-5`). v0.3 에서 새로 그린 화면입니다. 목록(`11`), 빈 상태(`11-1`), 만들기 창(`11-2`), 참여자와 운영자가 보는 상세(`11-3`), 다른 Member 가 읽기만 하는 상세(`11-4`), 삭제 확인(`11-5`)입니다. 목록은 진행 상태로 걸러 보는 탭과 두 줄로 놓인 카드이고, 상세는 왼쪽에 목표, 할 일, 이 Project 의 AI Log 를, 오른쪽에 진행 상태, 참여자, 결과물 링크를 둡니다.
+- 메뉴의 Project. Sidebar 에 `Nav/Project` 와 `Active=Project` 변형을, 좁은 화면의 아래쪽 메뉴에 `Tab/Project` 를 더했습니다. 아이콘 `folder-kanban` 과 `external-link` 를 Components 페이지에 더했습니다. 작은 화면의 Club 개요(`08-1`)는 위쪽 막대의 버튼을 설정으로 바꿨습니다.
+- AI Log 와 Project. AI Log 쓰기 화면들(`06-1`, `06-5`, `06-6`, `08-3`, `09-3`)에 Project 를 고르는 칸을 더했습니다. AILogCard 에 `Show project` 와 `Project` 속성을 더했고 기본값은 꺼짐이라 다른 화면의 카드는 그대로입니다. AI Log 상세(`06-2`)에는 묶인 Project 이름을 Session 앞에 둡니다.
 
 ## 기본 상태
 

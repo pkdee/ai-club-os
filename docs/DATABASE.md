@@ -31,13 +31,14 @@ User
 - 모든 Club 소속 데이터는 Club 식별자를 통해 경계를 확인할 수 있어야 한다.
 - Member는 사용자와 Club 사이의 소속과 역할을 나타낸다.
 - Attendance는 Member와 Session의 관계를 기록한다.
-- AI Log는 작성자와 Club에 속하며 필요할 때 Session과 연결한다.
+- AI Log는 작성자와 Club에 속하며 필요할 때 Session, Project 와 연결한다.
+- Project 는 Club 에 속하고 참여자, 할 일, 결과물 링크, AI Log 를 묶는다. AI Log 하나는 Project 하나에만 속한다.
 - 사용자가 작성한 원본 AI Log와 이후 생성된 AI Insight를 구분한다.
 - 지운 것은 바로 없어지고 되살리지 않는다. 숨겨 두는 열이나 보관 기간은 두지 않는다. 2026-10-10 결정.
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -53,6 +54,7 @@ User
 | 검색이 한 도구의 여러 표기를 함께 찾도록 함수 교체 | `20261010082852_search_tool_spellings.sql` | `docs/adr/0013-known-tool-catalog.md` |
 | AI Log, Session, Club 을 지우는 규칙 | `20261010091458_add_delete_rules.sql` | `docs/adr/0015-delete-rules.md` |
 | `ai_insights` | `20261010141008_create_ai_insights.sql` | `docs/adr/0017-ai-insight-draft-and-publish.md` |
+| `projects`, `project_members`, `project_links`, `project_tasks`, `ai_logs` 의 Project 열 | `20261010145830_create_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
 
 ```mermaid
 erDiagram
@@ -72,6 +74,13 @@ erDiagram
   clubs ||--o{ ai_insights : "정리"
   sessions |o--o| ai_insights : "회차"
   auth_users ||--o{ ai_insights : "생성"
+  clubs ||--o{ projects : "결과물"
+  auth_users ||--o{ projects : "생성"
+  projects ||--o{ project_members : "참여"
+  members ||--o{ project_members : "참여"
+  projects ||--o{ project_links : "링크"
+  projects ||--o{ project_tasks : "할 일"
+  projects |o--o{ ai_logs : "묶음"
 
   clubs {
     uuid id PK
@@ -120,6 +129,7 @@ erDiagram
     uuid id PK
     uuid club_id FK
     uuid session_id FK
+    uuid project_id FK
     uuid author_id FK
     text title
     text[] tools
@@ -155,6 +165,45 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
     timestamptz published_at
+  }
+
+  projects {
+    uuid id PK
+    uuid club_id FK
+    text name
+    text goal
+    text status
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  project_members {
+    uuid project_id PK
+    uuid member_id PK
+    uuid club_id FK
+    timestamptz created_at
+  }
+
+  project_links {
+    uuid id PK
+    uuid project_id FK
+    uuid club_id FK
+    text label
+    text url
+    uuid created_by FK
+    timestamptz created_at
+  }
+
+  project_tasks {
+    uuid id PK
+    uuid project_id FK
+    uuid club_id FK
+    text title
+    boolean done
+    timestamptz done_at
+    uuid created_by FK
+    timestamptz created_at
   }
 ```
 
@@ -222,6 +271,7 @@ erDiagram
 | `id` | uuid | 기본 키 |
 | `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다. 만든 뒤에는 바꿀 수 없다 |
 | `session_id` | uuid | 기록이 속한 회차. 비어 있으면 Club 의 기록이다. 같은 Club 의 Session 만 넣을 수 있고, Session 이 삭제되면 비운다 |
+| `project_id` | uuid | 기록이 속한 Project. 비어 있으면 어느 Project 에도 속하지 않는다. 같은 Club 의 Project 만 넣을 수 있고, Project 가 삭제되면 비운다 |
 | `author_id` | uuid | 작성자의 사용자 식별자. 만들 때 로그인한 사용자로 정해진다. Member 가 Club 에서 빠지면 비운다 |
 | `title` | text | 제목. 앞뒤 공백을 뺀 길이가 1자 이상 100자 이하 |
 | `tools` | text[] | 사용한 도구 이름. 10개 이하이고 이름마다 1자 이상 30자 이하 |
@@ -233,6 +283,8 @@ erDiagram
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 내용이 실제로 바뀌었을 때만 바뀐다 |
 
 사용자가 쓴 원본 기록입니다. AI Insight 는 이 테이블에 덮어쓰지 않고 `ai_insights` 에 따로 둡니다.
+
+`project_id` 는 작성자가 참여하는 Project 만 넣을 수 있습니다. `ai_logs_check_project` trigger 가 넣거나 다른 Project 로 바꿀 때 확인하고, 참여자가 아니면 오류(`42501`)를 냅니다. 이미 묶어 둔 기록은 참여를 그만둔 뒤에도 다른 내용을 고칠 수 있고, 연결을 비우는 것은 언제나 됩니다.
 
 ### AI Log 를 찾는 함수
 
@@ -288,6 +340,61 @@ erDiagram
 
 한 회차에는 하나, 한 Club 의 같은 기간에도 하나만 둘 수 있습니다. 다시 만들면 같은 행의 내용, 보낸 기록, 모델을 고쳐 쓰고 초안으로 되돌립니다. AI 가 만든 것이라 `ai_logs` 와 달리 원본이 아닙니다.
 
+### projects
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다. 만든 뒤에는 바꿀 수 없다 |
+| `name` | text | 이름. 앞뒤 공백을 뺀 길이가 1자 이상 80자 이하 |
+| `goal` | text | 무엇을 만들려는지 적은 글. 2000자 이하. 기본값은 빈 문자열 |
+| `status` | text | `planning` 준비, `active` 진행 중, `done` 완료. 만들 때는 항상 `planning` |
+| `created_by` | uuid | 만든 사용자. 만들 때 로그인한 사용자로 정해진다. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 만든 시각 |
+| `updated_at` | timestamptz | 이름, 목표, 진행 상태를 마지막으로 바꾼 시각 |
+
+만들면 `projects_add_creator_as_participant` trigger 가 만든 사람을 첫 참여자로 넣습니다.
+
+### project_members
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `project_id` | uuid | Project. `member_id` 와 함께 기본 키다. Project 가 삭제되면 함께 삭제된다 |
+| `member_id` | uuid | 참여하는 Member. Member 가 Club 에서 빠지면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club. Project 와 Member 가 모두 이 Club 에 속해야 한다 |
+| `created_at` | timestamptz | 참여한 시각 |
+
+참여자는 그 Project 를 고칠 수 있는 사람입니다. 한 Member 는 한 Project 에 한 번만 참여합니다. 참여자가 한 명도 남지 않을 수 있고, 그때는 운영자만 고칩니다.
+
+### project_links
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `project_id` | uuid | Project. Project 가 삭제되면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club |
+| `label` | text | 링크의 이름. 앞뒤 공백을 뺀 길이가 1자 이상 60자 이하 |
+| `url` | text | 주소. `http://` 나 `https://` 로 시작하고 공백이 없어야 한다. 500자 이하 |
+| `created_by` | uuid | 넣은 사용자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 넣은 시각 |
+
+링크는 고치지 않습니다. 바꾸려면 지우고 다시 넣습니다. 앱은 한 Project 에 20개까지만 넣게 합니다.
+
+### project_tasks
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `project_id` | uuid | Project. Project 가 삭제되면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club |
+| `title` | text | 할 일. 앞뒤 공백을 뺀 길이가 1자 이상 120자 이하 |
+| `done` | boolean | 끝냈는지. 기본값은 false |
+| `done_at` | timestamptz | 끝냈다고 표시한 시각. 데이터베이스가 정한다. 되돌리면 비워진다 |
+| `created_by` | uuid | 넣은 사용자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 넣은 시각 |
+
+앱은 한 Project 에 100개까지만 넣게 합니다. 담당자와 기한은 두지 않습니다.
+
 ### 시각 저장 규칙
 
 시각은 모두 timestamptz 로 저장합니다. 화면에서 입력받고 보여 줄 때는 한국 시간으로만 해석합니다. Club 마다 시간대를 따로 두지 않습니다. Session 이 오늘인지, 예정인지, 끝났는지도 한국 시간의 날짜로 나눕니다.
@@ -301,7 +408,7 @@ erDiagram
 | `clubs` | 조회 | 그 Club 의 Member |
 | `clubs` | 생성 | 로그인한 사용자. 이름과 소개만 넣을 수 있다 |
 | `clubs` | 수정 | 그 Club 의 운영자. 이름과 소개만 고칠 수 있다 |
-| `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, 초대 링크가 함께 지워진다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
+| `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, AI Insight, Project, 초대 링크가 함께 지워진다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
 | `members` | 조회 | 같은 Club 의 Member |
 | `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
 | `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞춘다 |
@@ -313,12 +420,25 @@ erDiagram
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |
 | `ai_logs` | 조회 | 그 Club 의 Member |
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
-| `ai_logs` | 수정 | 작성자 본인. Session 연결과 내용만 고칠 수 있다 |
+| `ai_logs` | 수정 | 작성자 본인. Session 연결, Project 연결, 내용만 고칠 수 있다. Project 는 본인이 참여하는 것만 고를 수 있다 |
 | `ai_logs` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 기록은 운영자만 지운다 |
 | `ai_insights` | 조회 | 그 Club 의 운영자는 모두, 구성원은 공개된 것만 |
 | `ai_insights` | 생성 | 그 Club 의 운영자. 만든 사람은 본인으로, 상태는 초안으로 정해진다 |
 | `ai_insights` | 수정 | 그 Club 의 운영자. 내용, 공개 상태, 보낸 기록, Provider 와 모델만 고칠 수 있다 |
 | `ai_insights` | 삭제 | 그 Club 의 운영자 |
+| `projects` | 조회 | 그 Club 의 Member |
+| `projects` | 생성 | 그 Club 의 Member. 이름과 목표만 넣을 수 있고, 만든 사람은 본인으로, 상태는 준비로 정해진다 |
+| `projects` | 수정 | 그 Project 의 참여자와 그 Club 의 운영자. 이름, 목표, 진행 상태만 고칠 수 있다 |
+| `projects` | 삭제 | 만든 사람과 그 Club 의 운영자. 참여, 링크, 할 일은 함께 지워지고 AI Log 는 Project 연결만 비워진 채 남는다 |
+| `project_members` | 조회 | 그 Club 의 Member |
+| `project_members` | 생성 | 그 Project 의 참여자와 그 Club 의 운영자. 참여자가 아닌 구성원이 스스로 들어갈 수는 없다 |
+| `project_members` | 삭제 | 그 Project 의 참여자와 그 Club 의 운영자. 누구나 자기 참여는 스스로 끝낼 수 있다 |
+| `project_members` | 수정 | 없음 |
+| `project_links` | 조회 | 그 Club 의 Member |
+| `project_links` | 생성, 삭제 | 그 Project 의 참여자와 그 Club 의 운영자 |
+| `project_links` | 수정 | 없음. 바꾸려면 지우고 넣는다 |
+| `project_tasks` | 조회 | 그 Club 의 Member |
+| `project_tasks` | 생성, 수정, 삭제 | 그 Project 의 참여자와 그 Club 의 운영자. 고칠 수 있는 것은 할 일의 글과 끝냈는지뿐이다 |
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 
@@ -326,7 +446,7 @@ erDiagram
 
 Club 에는 운영자가 한 명 이상 남아야 합니다. `members` 의 trigger 가 운영자를 구성원으로 내리거나 지우려 할 때 다른 운영자가 있는지 확인하고, 없으면 오류(`P0001`)를 냅니다. 동시에 들어온 요청이 서로를 지나치지 않도록 확인 전에 그 Club 의 행을 잠급니다. Club 이나 사용자 계정이 삭제되면서 함께 지워지는 경우에는 막지 않습니다. 그래서 운영자가 혼자인 Club 도 통째로 지울 수 있습니다.
 
-Member 가 Club 에서 나가면 그 사람의 Attendance 는 함께 삭제되고, AI Log 는 작성자가 비워진 채 남습니다.
+Member 가 Club 에서 나가면 그 사람의 Attendance 와 Project 참여는 함께 삭제되고, AI Log 는 작성자가 비워진 채 남습니다. 그 사람이 만든 Project 와 묶어 둔 AI Log 는 그대로 남습니다.
 
 ## 이후 결정 사항
 
@@ -337,4 +457,6 @@ Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠�
 - 이미 저장된 기록의 도구 표기를 한꺼번에 고치는 방법
 - 수정 기록을 남길지와, 누가 무엇을 지웠는지 남길지
 - 파일 첨부 범위
+- Project 의 할 일에 담당자와 기한을 둘지
+- 참여자가 한 명도 없는 Project 를 어떻게 다룰지
 - 나머지 테이블의 행 단위 보안 정책

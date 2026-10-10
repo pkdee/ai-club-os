@@ -59,7 +59,7 @@ flowchart LR
   ailog -.-> insight
 ```
 
-AI Insight, Project, Web Presentation은 MVP 밖에 둡니다. AI Insight 는 v0.2 로 2026-10-10 에 첫 단계를 만들었습니다.
+AI Insight, Project, Web Presentation은 MVP 밖에 둡니다. AI Insight 는 v0.2 로 2026-10-10 에, Project 는 v0.3 으로 2026-10-11 에 첫 단계를 만들었습니다.
 
 ## 목표 디렉터리 구조
 
@@ -76,7 +76,8 @@ src/
 │   ├── session/
 │   ├── attendance/
 │   ├── ai-log/
-│   └── ai-insight/
+│   ├── ai-insight/
+│   └── project/
 ├── lib/
 │   └── supabase/
 └── proxy.ts
@@ -88,7 +89,7 @@ src/
 
 ## 요청 처리 흐름
 
-모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 이때 보려던 경로를 `next` 값으로 넘겨서 로그인한 뒤 그곳으로 돌아옵니다. 지금 구현된 기능은 `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight` 입니다.
+모든 요청은 `proxy.ts` 를 먼저 거칩니다. `/login` 과 `/auth/` 는 로그인 없이 통과하고, 나머지 경로는 로그인하지 않았으면 로그인 화면으로 이동합니다. 이때 보려던 경로를 `next` 값으로 넘겨서 로그인한 뒤 그곳으로 돌아옵니다. 지금 구현된 기능은 `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`, `project` 입니다.
 
 ```mermaid
 flowchart TD
@@ -170,7 +171,7 @@ sequenceDiagram
 1. 사용자가 Club과 Session 안에서 활동합니다.
 2. Attendance와 AI Log가 활동을 기록합니다.
 3. AI Insight가 기록을 이해 가능한 정보로 바꿉니다. 운영자가 만들고 확인한 뒤 공개합니다.
-4. Project와 Web Presentation이 기록과 이해를 결과물과 공유 행동으로 연결합니다.
+4. Project와 Web Presentation이 기록과 이해를 결과물과 공유 행동으로 연결합니다. Project 는 작성자가 자기 AI Log 를 묶고, 참여자가 할 일과 결과물 링크를 관리합니다.
 
 ## 외부 경계
 

@@ -14,6 +14,8 @@ v0.1 구현 중입니다. Next.js 뼈대, 디자인 토큰, Google Login, Club �
 
 v0.2 의 AI Insight 는 첫 단계가 들어 있습니다. 운영자가 한 회차나 한 달의 AI Log 를 AI 로 정리해 초안을 만들고, 확인한 뒤 공개합니다.
 
+v0.3 의 Project 도 첫 단계가 들어 있습니다. Member 가 Project 를 만들어 참여자, 할 일, 결과물 링크를 관리하고 자기 AI Log 를 묶습니다.
+
 ## 실행
 
 Node.js 24 와 npm 이 필요합니다.
