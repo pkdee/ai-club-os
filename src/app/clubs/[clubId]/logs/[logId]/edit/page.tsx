@@ -41,8 +41,9 @@ export default async function AiLogEditPage(
   ]);
   // 내가 참여하는 Project 와, 이미 묶여 있는 Project 를 고를 수 있다.
   // 참여를 그만둔 뒤에도 묶어 둔 것은 그대로 둘 수 있어야 해서 함께 넣는다.
+  // AI Log 와의 연결이 아직 없으면 고르는 칸을 그리지 않는다. 그려 두면 없는 열을 보내 저장이 실패한다.
   const projects =
-    projectList.status === "ok"
+    projectList.status === "ok" && projectList.logsLinked
       ? projectList.projects
           .filter(
             (project) =>

@@ -31,9 +31,10 @@ export default async function AiLogNewPage(
     listClubTools(clubId),
     listProjects(clubId),
   ]);
-  // 내가 참여하는 Project 만 고를 수 있다. Project 를 아직 쓸 수 없으면 고르는 칸을 그리지 않는다.
+  // 내가 참여하는 Project 만 고를 수 있다. Project 를 아직 쓸 수 없거나 AI Log 와의 연결이 아직 없으면
+  // 고르는 칸을 그리지 않는다. 칸을 그리면 저장할 때 없는 열을 보내게 되어 저장이 실패한다.
   const projects =
-    projectList.status === "ok"
+    projectList.status === "ok" && projectList.logsLinked
       ? projectList.projects
           .filter((project) =>
             project.participants.some((item) => item.userId === data.user.id)

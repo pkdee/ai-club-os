@@ -44,8 +44,10 @@ export type Project = {
 }
 
 // unavailable 은 데이터베이스에 Project 의 구조가 아직 없다는 뜻이다.
+// logsLinked 는 ai_logs 에 Project 연결이 있는지다. Project 테이블만 먼저 적용된 사이에는 false 이고,
+// 그때는 AI Log 를 Project 에 묶을 수 없다.
 export type ProjectListResult =
-  | { status: "ok"; projects: Project[] }
+  | { status: "ok"; projects: Project[]; logsLinked: boolean }
   | { status: "unavailable" }
   | { status: "error" }
 
@@ -143,7 +145,8 @@ export const listProjects = cache(
 
     let response = await read(PROJECT_COLUMNS + LOG_COUNT)
     // 연결이 아직 없으면 기록 수 없이 읽는다.
-    if (response.error && isMissingLogLink(response.error)) {
+    const logsLinked = !(response.error && isMissingLogLink(response.error))
+    if (!logsLinked) {
       response = await read(PROJECT_COLUMNS)
     }
 
@@ -158,6 +161,7 @@ export const listProjects = cache(
     return {
       status: "ok",
       projects: (data as unknown as ProjectRow[]).map(toProject),
+      logsLinked,
     }
   }
 )
