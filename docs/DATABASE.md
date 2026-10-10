@@ -35,10 +35,12 @@ User
 - Project 는 Club 에 속하고 참여자, 할 일, 결과물 링크, AI Log 를 묶는다. AI Log 하나는 Project 하나에만 속한다.
 - 사용자가 작성한 원본 AI Log와 이후 생성된 AI Insight를 구분한다.
 - 지운 것은 바로 없어지고 되살리지 않는다. 숨겨 두는 열이나 보관 기간은 두지 않는다. 2026-10-10 결정.
+- 누가 무엇을 지웠는지는 종류와 제목만 따로 남긴다. 지운 내용은 남기지 않는다. 2026-10-11 결정.
+- Club 밖으로 나가는 것은 공개한 발표뿐이고, 발표에 들어가는 AI Log 는 작성자가 허락한 것뿐이다. 2026-10-11 결정.
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -56,6 +58,13 @@ User
 | `ai_insights` | `20261010141008_create_ai_insights.sql` | `docs/adr/0017-ai-insight-draft-and-publish.md` |
 | `projects`, `project_members`, `project_links`, `project_tasks` | `20261010145830_create_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
 | `ai_logs` 의 Project 열과 참여자 확인 | `20261010153246_link_ai_logs_to_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
+| `club_bans`, `deletion_logs`, `ai_insight_runs` | `20261010160037_create_operation_records.sql` | `docs/adr/0020-operation-rules.md` |
+| 막힌 사람을 받지 않도록 참여 함수 교체 | `20261010160040_block_banned_users_from_joining.sql` | `docs/adr/0020-operation-rules.md` |
+| `ai_logs` 의 선택 열 두 개와 지운 기록 trigger | `20261010160042_add_ai_log_options.sql` | `docs/adr/0020-operation-rules.md` |
+| `sessions`, `ai_insights`, `projects` 의 지운 기록 trigger | `20261010160044_log_session_deletions.sql` 부터 세 파일 | `docs/adr/0020-operation-rules.md` |
+| `project_join_requests` | `20261010161229_create_project_join_requests.sql` | `docs/adr/0021-project-requests-and-task-details.md` |
+| `project_tasks` 의 담당자와 기한 열 | `20261010161232_add_project_task_details.sql` | `docs/adr/0021-project-requests-and-task-details.md` |
+| `presentations`, 링크로 발표를 읽는 함수 | `20261010161921_create_presentations.sql` | `docs/adr/0022-web-presentation-by-link.md` |
 
 ```mermaid
 erDiagram
@@ -82,6 +91,15 @@ erDiagram
   projects ||--o{ project_links : "링크"
   projects ||--o{ project_tasks : "할 일"
   projects |o--o{ ai_logs : "묶음"
+  clubs ||--o{ club_bans : "막음"
+  auth_users ||--o{ club_bans : "막힌 사람"
+  clubs ||--o{ deletion_logs : "지운 기록"
+  clubs ||--o{ ai_insight_runs : "횟수"
+  projects ||--o{ project_join_requests : "요청"
+  members ||--o{ project_join_requests : "요청"
+  members |o--o{ project_tasks : "담당"
+  clubs ||--o{ presentations : "발표"
+  projects |o--o| presentations : "발표"
 
   clubs {
     uuid id PK
@@ -138,6 +156,8 @@ erDiagram
     text result
     text learned
     text next_action
+    boolean exclude_from_insight
+    boolean share_in_presentation
     timestamptz created_at
     timestamptz updated_at
   }
@@ -203,8 +223,55 @@ erDiagram
     text title
     boolean done
     timestamptz done_at
+    uuid assignee_member_id FK
+    date due_on
     uuid created_by FK
     timestamptz created_at
+  }
+
+  club_bans {
+    uuid club_id PK
+    uuid user_id PK
+    text display_name
+    uuid banned_by FK
+    timestamptz created_at
+  }
+
+  deletion_logs {
+    uuid id PK
+    uuid club_id FK
+    text entity
+    text title
+    text owner_name
+    uuid deleted_by FK
+    text deleted_by_name
+    timestamptz created_at
+  }
+
+  ai_insight_runs {
+    uuid id PK
+    uuid club_id FK
+    uuid created_by FK
+    timestamptz created_at
+  }
+
+  project_join_requests {
+    uuid project_id PK
+    uuid member_id PK
+    uuid club_id FK
+    timestamptz created_at
+  }
+
+  presentations {
+    uuid id PK
+    uuid club_id FK
+    text scope
+    uuid project_id FK
+    text token UK
+    boolean show_names
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
   }
 ```
 
@@ -280,6 +347,8 @@ erDiagram
 | `result` | text | 결과. 5000자 이하. 기본값은 빈 문자열 |
 | `learned` | text | 배운 점. 5000자 이하. 기본값은 빈 문자열 |
 | `next_action` | text | 다음 행동. 5000자 이하. 기본값은 빈 문자열 |
+| `exclude_from_insight` | boolean | 켜면 AI Insight 를 만들 때 이 기록을 AI 로 보내지 않는다. 작성자가 정하고 기본값은 false |
+| `share_in_presentation` | boolean | 켜면 이 기록이 묶인 Project 의 발표에 들어간다. 작성자가 정하고 기본값은 false |
 | `created_at` | timestamptz | 작성한 시각 |
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 내용이 실제로 바뀌었을 때만 바뀐다 |
 
@@ -318,8 +387,8 @@ erDiagram
 
 | 함수 | 하는 일 |
 |---|---|
-| `public.preview_club_invite(invite_token)` | 링크가 가리키는 Club 의 이름, 소개, Member 수, 이미 Member 인지를 돌려준다. 링크가 틀렸거나 만료됐으면 아무 행도 돌려주지 않는다 |
-| `public.join_club(invite_token)` | 부른 사용자를 그 Club 의 구성원으로 넣고 Club 식별자를 돌려준다. 이미 Member 이면 그대로 둔다. 링크가 틀렸거나 만료됐으면 null 을 돌려준다 |
+| `public.preview_club_invite(invite_token)` | 링크가 가리키는 Club 의 이름, 소개, Member 수, 이미 Member 인지, 운영자가 다시 들어오지 못하게 막았는지를 돌려준다. 링크가 틀렸거나 만료됐으면 아무 행도 돌려주지 않는다 |
+| `public.join_club(invite_token)` | 부른 사용자를 그 Club 의 구성원으로 넣고 Club 식별자를 돌려준다. 이미 Member 이면 그대로 둔다. 링크가 틀렸거나 만료됐거나, 운영자가 막아 둔 사용자이면 null 을 돌려준다 |
 
 ### ai_insights
 
@@ -391,10 +460,88 @@ erDiagram
 | `title` | text | 할 일. 앞뒤 공백을 뺀 길이가 1자 이상 120자 이하 |
 | `done` | boolean | 끝냈는지. 기본값은 false |
 | `done_at` | timestamptz | 끝냈다고 표시한 시각. 데이터베이스가 정한다. 되돌리면 비워진다 |
+| `assignee_member_id` | uuid | 맡은 Member. 그 Project 의 참여자만 맡을 수 있다. Member 가 Club 에서 빠지면 비운다 |
+| `due_on` | date | 끝내기로 한 날. 시각 없이 한국 시간의 날짜로 읽는다 |
 | `created_by` | uuid | 넣은 사용자. 사용자가 삭제되면 비운다 |
 | `created_at` | timestamptz | 넣은 시각 |
 
-앱은 한 Project 에 100개까지만 넣게 합니다. 담당자와 기한은 두지 않습니다.
+앱은 한 Project 에 100개까지만 넣게 합니다. 담당자는 `project_tasks_check_assignee` trigger 가 맡길 때 참여자인지 확인하고, 아니면 오류(`23514`)를 냅니다. 참여를 그만둔 사람이 맡았던 일에는 그 사람이 그대로 남습니다.
+
+### project_join_requests
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `project_id` | uuid | 요청한 Project. `member_id` 와 함께 기본 키다. Project 가 삭제되면 함께 삭제된다 |
+| `member_id` | uuid | 요청한 Member. Member 가 Club 에서 빠지면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club. Project 와 Member 가 모두 이 Club 에 속해야 한다 |
+| `created_at` | timestamptz | 요청한 시각 |
+
+참여자가 아닌 Member 가 함께하고 싶다고 남긴 것입니다. 받아 주면 참여자로 넣고 이 줄을 지웁니다. 거절하거나 요청한 사람이 거둘 때도 지웁니다.
+
+### club_bans
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `club_id` | uuid | Club. `user_id` 와 함께 기본 키다. Club 이 삭제되면 함께 삭제된다 |
+| `user_id` | uuid | 막힌 사용자. 사용자가 삭제되면 함께 삭제된다 |
+| `display_name` | text | 막을 때 Club 안에서 쓰던 이름. 데이터베이스가 Member 행에서 옮겨 적는다 |
+| `banned_by` | uuid | 막은 운영자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 막은 시각 |
+
+내보내면서 다시 들어오지 못하게 한 사람입니다. 이 줄이 있는 사용자는 `join_club` 이 받아 주지 않습니다. 줄을 지우면 풀립니다.
+
+### deletion_logs
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | Club. Club 이 삭제되면 함께 삭제된다 |
+| `entity` | text | `ai_log`, `session`, `project`, `ai_insight` 가운데 하나 |
+| `title` | text | 지운 것의 제목. AI Insight 는 정리한 회차의 제목이나 달이다 |
+| `owner_name` | text | 지운 AI Log 의 작성자 이름. 다른 종류이거나 작성자가 나간 기록이면 비어 있다 |
+| `deleted_by` | uuid | 지운 사용자. 사용자가 삭제되면 비운다 |
+| `deleted_by_name` | text | 지운 사람이 그때 Club 안에서 쓰던 이름 |
+| `created_at` | timestamptz | 지운 시각 |
+
+`ai_logs`, `sessions`, `projects`, `ai_insights` 의 trigger 가 지운 뒤에 적습니다. 앱은 읽기만 합니다. Session 을 지우면서 함께 지워진 AI Insight 와, Club 을 통째로 지울 때의 것들은 적지 않습니다.
+
+### ai_insight_runs
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | Club. Club 이 삭제되면 함께 삭제된다 |
+| `created_by` | uuid | AI 를 부른 운영자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 부른 시각 |
+
+AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai_insight_runs_check_limit` trigger 가 그 Club 의 오늘(한국 시간) 줄 수를 세어 10줄이 넘으면 오류(`P0001`)를 냅니다. 한도는 `private.ai_insight_daily_limit` 이 돌려주는 값이고 앱의 `INSIGHT_DAILY_LIMIT` 과 같아야 합니다.
+
+### presentations
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | Club. Club 이 삭제되면 함께 삭제된다 |
+| `scope` | text | `project` 는 Project 하나를, `club` 은 Club 의 활동 전체를 보여 준다 |
+| `project_id` | uuid | Project 발표일 때의 Project. 같은 Club 의 것이어야 하고, Project 가 삭제되면 함께 삭제된다 |
+| `token` | text | 링크에 들어가는 값. 데이터베이스가 무작위로 만드는 32자이고 고칠 수 없다 |
+| `show_names` | boolean | 켜면 참여자와 기록 작성자의 이름을 내보낸다. 기본값은 false |
+| `created_by` | uuid | 공개한 사용자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 공개한 시각 |
+| `updated_at` | timestamptz | 이름을 보일지를 마지막으로 바꾼 시각 |
+
+줄이 있으면 공개된 것입니다. 한 Project 에 하나, 한 Club 에 Club 발표 하나만 둘 수 있습니다. 공개를 거두려면 줄을 지우고, 다시 공개하면 새 링크가 됩니다.
+
+### 링크로 발표를 읽는 함수
+
+`public.get_presentation(presentation_token)` 은 로그인하지 않은 사람도 부를 수 있는 단 하나의 함수입니다. 만든 사람의 권한으로 실행하고, 링크 값이 맞을 때만 내보내도 되는 것을 골라 JSON 으로 돌려줍니다. 링크가 틀렸거나 공개를 거뒀으면 null 을 돌려줍니다.
+
+| 발표 | 내보내는 것 |
+|---|---|
+| Project | Club 이름, Project 의 이름과 목표와 진행 상태, 결과물 링크, 할 일의 글과 끝냈는지, 참여자 수, 묶인 AI Log 의 전체 수, 작성자가 `share_in_presentation` 을 켠 AI Log 의 내용 |
+| Club | Club 의 이름과 소개, Member 수, AI Log 수, Project 수, 이미 시작한 Session 의 제목과 날짜, 발표를 공개한 Project 의 이름과 목표와 그 링크 값 |
+
+이름은 `show_names` 가 켜져 있을 때만 내보냅니다. 이메일, 사진 주소, 식별자는 어느 경우에도 내보내지 않습니다. 이메일을 이름으로 쓰는 Member 의 이름은 `private.public_name` 이 비워서 내보냅니다. AI Insight 와 할 일의 담당자, 기한은 내보내지 않습니다.
 
 ### 시각 저장 규칙
 
@@ -402,7 +549,7 @@ erDiagram
 
 ### 접근 규칙
 
-모든 테이블에 행 단위 보안이 켜져 있습니다. 로그인하지 않은 요청에는 아무 권한이 없습니다.
+모든 테이블에 행 단위 보안이 켜져 있습니다. 로그인하지 않은 요청에는 어느 테이블에도 권한이 없습니다. 부를 수 있는 것은 링크 값으로 발표를 읽는 `get_presentation` 함수 하나뿐입니다.
 
 | 대상 | 동작 | 허용 조건 |
 |---|---|---|
@@ -411,7 +558,7 @@ erDiagram
 | `clubs` | 수정 | 그 Club 의 운영자. 이름과 소개만 고칠 수 있다 |
 | `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, AI Insight, Project, 초대 링크가 함께 지워진다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
 | `members` | 조회 | 같은 Club 의 Member |
-| `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다 |
+| `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다. `club_bans` 에 있는 사용자는 `join_club` 이 받아 주지 않는다 |
 | `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞춘다 |
 | `members` | 삭제 | 그 Club 의 운영자는 누구든 내보낼 수 있고, 누구나 자기 행을 지워 스스로 나갈 수 있다 |
 | `sessions` | 조회 | 그 Club 의 Member |
@@ -421,7 +568,7 @@ erDiagram
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |
 | `ai_logs` | 조회 | 그 Club 의 Member |
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
-| `ai_logs` | 수정 | 작성자 본인. Session 연결, Project 연결, 내용만 고칠 수 있다. Project 는 본인이 참여하는 것만 고를 수 있다 |
+| `ai_logs` | 수정 | 작성자 본인. Session 연결, Project 연결, 내용, 두 가지 선택(AI Insight 에 쓰지 않기, 발표에 넣어도 됨)만 고칠 수 있다. Project 는 본인이 참여하는 것만 고를 수 있다 |
 | `ai_logs` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 기록은 운영자만 지운다 |
 | `ai_insights` | 조회 | 그 Club 의 운영자는 모두, 구성원은 공개된 것만 |
 | `ai_insights` | 생성 | 그 Club 의 운영자. 만든 사람은 본인으로, 상태는 초안으로 정해진다 |
@@ -440,6 +587,21 @@ erDiagram
 | `project_links` | 수정 | 없음. 바꾸려면 지우고 넣는다 |
 | `project_tasks` | 조회 | 그 Club 의 Member |
 | `project_tasks` | 생성, 수정, 삭제 | 그 Project 의 참여자와 그 Club 의 운영자. 고칠 수 있는 것은 할 일의 글과 끝냈는지뿐이다 |
+| `project_join_requests` | 조회 | 요청한 본인과, 그 Project 의 참여자와 그 Club 의 운영자 |
+| `project_join_requests` | 생성 | 그 Club 의 Member 가 자기 이름으로. 이미 참여자이면 넣을 수 없다 |
+| `project_join_requests` | 삭제 | 요청한 본인과, 그 Project 의 참여자와 그 Club 의 운영자 |
+| `project_join_requests` | 수정 | 없음 |
+| `club_bans` | 조회, 삭제 | 그 Club 의 운영자 |
+| `club_bans` | 생성 | 그 Club 의 운영자. 지금 Member 인 사람만 막을 수 있고 자기 자신은 막지 못한다. 넣을 수 있는 열은 Club 과 사용자뿐이다 |
+| `club_bans` | 수정 | 없음 |
+| `deletion_logs` | 조회 | 그 Club 의 운영자 |
+| `deletion_logs` | 생성, 수정, 삭제 | 없음. 데이터베이스의 trigger 만 적는다 |
+| `ai_insight_runs` | 조회 | 그 Club 의 운영자 |
+| `ai_insight_runs` | 생성 | 그 Club 의 운영자. 넣을 수 있는 열은 Club 뿐이고 하루 10줄까지다 |
+| `ai_insight_runs` | 수정, 삭제 | 없음 |
+| `presentations` | 조회 | 그 Club 의 Member |
+| `presentations` | 생성, 삭제 | Project 발표는 그 Project 의 참여자와 그 Club 의 운영자, Club 발표는 그 Club 의 운영자. 링크 값은 넣을 수 없다 |
+| `presentations` | 수정 | 생성과 같은 사람. 이름을 보일지만 고칠 수 있다 |
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
 
@@ -456,8 +618,7 @@ Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠�
 - 운영자가 없어진 Club 을 되살리는 방법
 - Member 가 자기 이름을 고치는 방법
 - 이미 저장된 기록의 도구 표기를 한꺼번에 고치는 방법
-- 수정 기록을 남길지와, 누가 무엇을 지웠는지 남길지
+- 수정 기록을 남길지
 - 파일 첨부 범위
-- Project 의 할 일에 담당자와 기한을 둘지
 - 참여자가 한 명도 없는 Project 를 어떻게 다룰지
 - 나머지 테이블의 행 단위 보안 정책
