@@ -37,6 +37,24 @@ export type NotificationSource =
       id: string
       at: string
     }
+  // 내가 쓴 AI Log 에 다른 사람이 댓글을 달았다.
+  | {
+      kind: "comment"
+      id: string
+      at: string
+      logId: string
+      logTitle: string
+      commenterName: string
+    }
+  // 내가 쓴 AI Log 가 도움이 됐다고 표시한 사람이 있다. count 는 요즘 표시한 사람 수, at 은 마지막으로 표시한 시각이다.
+  | {
+      kind: "helpful"
+      id: string
+      at: string
+      logId: string
+      logTitle: string
+      count: number
+    }
   // 운영자가 AI Insight 를 공개했다. month 는 한 달 정리일 때의 달(YYYY-MM)이다.
   | {
       kind: "insight"

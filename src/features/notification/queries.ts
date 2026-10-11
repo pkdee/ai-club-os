@@ -23,6 +23,8 @@ export type NotificationsResult =
 const RECENT_DAYS = 14
 // 한 번에 읽는 공개된 AI Insight 의 수.
 const INSIGHT_LIMIT = 10
+// 한 번에 읽는 댓글과 표시의 수.
+const FEEDBACK_LIMIT = 50
 
 // 아직 없는 테이블이나 열, 관계를 읽으려 했을 때의 오류 번호. 그 부분만 비워 두고 나머지는 보여 준다.
 function isMissing(error: { code?: string }) {
@@ -56,6 +58,7 @@ function rows<T>(
 //   최근에 내가 참여자가 된 Project (요청이 받아들여졌거나 참여자가 나를 넣은 것)
 //   최근에 공개된 AI Insight
 //   최근에 내가 운영자가 된 것
+//   최근에 내 AI Log 에 달린 댓글과 도움이 됐어요 표시
 // memberId 는 이 Club 에서의 내 Member 식별자다. isAdmin 은 내가 운영자라는 뜻이다.
 // 참여자가 한 명도 없는 Project 에 들어온 참여 요청은 받아 줄 사람이 운영자뿐이라 운영자에게 보여 준다.
 export const getNotifications = cache(
@@ -103,7 +106,8 @@ export const getNotifications = cache(
       )
       .map((project) => project.id)
 
-    const [requests, tasks, joined, insights, role] = await Promise.all([
+    const [requests, tasks, joined, insights, role, comments, reactions] =
+      await Promise.all([
       mine.length > 0
         ? supabase
             .from("project_join_requests")
@@ -149,7 +153,50 @@ export const getNotifications = cache(
             .eq("role", "admin")
             .gte("role_changed_at", since)
         : null,
+      // 내가 쓴 기록에 달린 댓글. 테이블이 아직 없으면 이 소식만 빠진다.
+      supabase
+        .from("ai_log_comments")
+        .select(
+          "id, created_at, author_id, log:ai_logs!ai_log_comments_log_fkey!inner(id, title, author_id), author:members!ai_log_comments_author_fkey(display_name, email)"
+        )
+        .eq("club_id", clubId)
+        .eq("log.author_id", userId)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .range(0, FEEDBACK_LIMIT - 1),
+      // 내가 쓴 기록에 달린 도움이 됐어요 표시.
+      supabase
+        .from("ai_log_reactions")
+        .select(
+          "created_at, log:ai_logs!ai_log_reactions_log_fkey!inner(id, title, author_id)"
+        )
+        .eq("club_id", clubId)
+        .eq("log.author_id", userId)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .range(0, FEEDBACK_LIMIT - 1),
     ])
+
+    // 표시는 기록마다 한 줄로 모은다. 최근 것부터 오므로 처음 본 것이 마지막으로 표시한 시각이다.
+    const helpful = new Map<
+      string,
+      { at: string; title: string; count: number }
+    >()
+    for (const row of rows<{
+      created_at: string
+      log: { id: string; title: string }
+    }>("도움이 됐다는 표시를", reactions)) {
+      const entry = helpful.get(row.log.id)
+      if (entry) {
+        entry.count += 1
+      } else {
+        helpful.set(row.log.id, {
+          at: row.created_at,
+          title: row.log.title,
+          count: 1,
+        })
+      }
+    }
 
     const sources: NotificationSource[] = [
       ...rows<{
@@ -213,6 +260,31 @@ export const getNotifications = cache(
             ]
           : []
       }),
+      ...rows<{
+        id: string
+        created_at: string
+        author_id: string | null
+        log: { id: string; title: string }
+        author: { display_name: string; email: string | null } | null
+      }>("내 기록에 달린 댓글을", comments)
+        // 내가 내 기록에 단 댓글은 소식이 아니다.
+        .filter((row) => row.author_id !== userId)
+        .map((row) => ({
+          kind: "comment" as const,
+          id: row.id,
+          at: row.created_at,
+          logId: row.log.id,
+          logTitle: row.log.title,
+          commenterName: row.author ? memberName(row.author) : "탈퇴한 Member",
+        })),
+      ...Array.from(helpful, ([logId, entry]) => ({
+        kind: "helpful" as const,
+        id: logId,
+        at: entry.at,
+        logId,
+        logTitle: entry.title,
+        count: entry.count,
+      })),
       ...rows<{ role_changed_at: string }>("역할이 바뀐 시각을", role).map(
         (row) => ({
           kind: "admin" as const,

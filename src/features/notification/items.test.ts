@@ -121,3 +121,17 @@ test("운영자가 된 것은 소식이고, 참여자 없는 Project 의 요청�
   // 확인하고 나면 운영자가 된 소식은 수에서 빠지고 요청은 남는다.
   assert.equal(countNotifications(buildNotifications([admin, ownerless], "2026-10-11T00:00:00Z", today)), 1)
 })
+
+test("내 기록에 달린 댓글과 표시는 소식이다", () => {
+  const comment: NotificationSource = { kind: "comment", id: "c1", at: "2026-10-10T06:00:00Z", logId: "l1", logTitle: "청크 크기 비교", commenterName: "박서연" }
+  const helpful: NotificationSource = { kind: "helpful", id: "l1", at: "2026-10-09T06:00:00Z", logId: "l1", logTitle: "청크 크기 비교", count: 2 }
+  const items = buildNotifications([helpful, comment], "2026-10-10T00:00:00Z", today)
+  assert.deepEqual(
+    items.map((item) => [item.kind, item.isNew, item.needsAttention]),
+    [
+      ["comment", true, false],
+      ["helpful", false, false],
+    ]
+  )
+  assert.equal(countNotifications(items), 1)
+})

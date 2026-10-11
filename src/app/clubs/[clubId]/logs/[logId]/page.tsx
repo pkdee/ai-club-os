@@ -4,7 +4,9 @@ import {
   AiLogDetail,
   AiLogUnavailable,
 } from "@/features/ai-log/components/ai-log-detail";
+import { AiLogFeedback } from "@/features/ai-log/components/ai-log-feedback";
 import { AiLogRevisions } from "@/features/ai-log/components/ai-log-revisions";
+import { getAiLogFeedback } from "@/features/ai-log/comments";
 import {
   getAiLog,
   listAiLogRevisions,
@@ -60,8 +62,10 @@ export default async function AiLogDetailPage(props: Props) {
   const isAdmin = data.club.role === "admin";
   const now = new Date();
   // 수정 기록은 작성자와 운영자에게만 보이므로 그 두 경우에만 읽는다.
-  const revisions =
-    isAuthor || isAdmin ? await listAiLogRevisions(clubId, logId) : null;
+  const [revisions, feedback] = await Promise.all([
+    isAuthor || isAdmin ? listAiLogRevisions(clubId, logId) : null,
+    getAiLogFeedback(clubId, logId, data.user.id),
+  ]);
 
   return (
     <AiLogDetail
@@ -72,6 +76,19 @@ export default async function AiLogDetailPage(props: Props) {
       related={related}
       now={now}
     >
+      {/* 댓글의 구조가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
+      {feedback.status === "ok" && (
+        <AiLogFeedback
+          clubId={clubId}
+          logId={log.id}
+          comments={feedback.comments}
+          helpful={feedback.helpful}
+          currentUserId={data.user.id}
+          ownLog={isAuthor}
+          isAdmin={isAdmin}
+          now={now}
+        />
+      )}
       {revisions?.status === "ok" && (
         <AiLogRevisions
           edits={editsFromRevisions(log, revisions.revisions)}
