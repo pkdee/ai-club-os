@@ -39,7 +39,8 @@ select test.affects($$ update public.clubs set name = 'AI 모각코 2기', descr
 select test.throws($$ update public.clubs set name = '   ' where id = test.get('club')::uuid $$, '23514', '고칠 때도 빈 이름은 넣을 수 없다');
 select test.throws($$ update public.clubs set created_by = null where id = test.get('club')::uuid $$, '42501', '만든 사람은 고칠 수 없다');
 
--- 사용자 계정이 삭제되면 그 사람의 소속은 사라지고 Club 은 남는다.
+-- 사용자 계정이 삭제되면 그 사람의 소속은 사라지고, 다른 Member 가 있는 Club 은 남는다.
+select test.sudo($$ insert into public.members (club_id, user_id, role, display_name) select id, test.uid('a'), 'member', '김하늘' from public.clubs where name = '논문 읽기 모임' $$);
 select test.sudo($$ delete from auth.users where id = test.uid('b') $$);
 select test.sudo_is($$ select count(*) from public.members where user_id = test.uid('b') $$, '0', '계정이 삭제되면 그 사람의 소속도 삭제된다');
 select test.sudo_is($$ select count(*) from public.clubs where name = '논문 읽기 모임' and created_by is null $$, '1', '계정이 삭제돼도 Club 은 만든 사람 없이 남는다');

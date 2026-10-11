@@ -109,9 +109,9 @@ select public.join_club(test.get('token')) is not null;
 select test.sudo($$ delete from auth.users where id in (test.uid('b'), test.uid('c')) $$);
 select test.sudo_is($$ select string_agg(display_name || ':' || role, ',') from public.members where club_id = test.get('club')::uuid $$, '최도현:admin', '계정이 함께 지워지는 사람을 건너 남은 D 가 운영자가 된다');
 
--- 아무도 남지 않으면 Club 만 남는다.
+-- 아무도 남지 않으면 Club 도 함께 지워진다. 다른 Club 은 앞에서 B 의 계정이 지워질 때 이미 비어서 지워졌다.
+select test.sudo_is($$ select string_agg(name, ',') from public.clubs $$, 'AI 모각코', 'B 가 혼자 남아 있던 다른 Club 은 B 의 계정과 함께 지워졌다');
 select test.sudo($$ delete from auth.users where id = test.uid('d') $$);
 select test.sudo_is($$ select count(*) from public.members $$, '0', '마지막 사람의 계정까지 지워지면 Member 가 없다');
-select test.sudo_is($$ select count(*) from public.clubs $$, '2', '그때도 Club 은 남는다');
-select test.sudo($$ delete from public.clubs $$);
-select test.sudo_is($$ select count(*) from public.clubs $$, '0', '운영자가 없는 Club 도 지울 수 있다');
+select test.sudo_is($$ select count(*) from public.clubs $$, '0', '아무도 남지 않은 Club 은 함께 지워진다');
+select test.sudo_is($$ select count(*) from public.ai_logs $$, '0', 'Club 과 함께 그 안의 기록도 지워진다');
