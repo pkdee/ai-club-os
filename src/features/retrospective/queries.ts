@@ -6,7 +6,11 @@ import { googleAvatarUrl } from "@/lib/google-avatar"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
-import { monthStartDate, type RetrospectiveScope } from "./rules"
+import {
+  monthStartDate,
+  type RetrospectiveOptions,
+  type RetrospectiveScope,
+} from "./rules"
 
 export type RetrospectiveAuthor = {
   userId: string
@@ -28,11 +32,14 @@ export type Retrospective = {
   toTry: string
   createdAt: string
   updatedAt: string
+  // 작성자가 정한 쓰임. 그 열이 아직 없는 데이터베이스에서 읽으면 null 이다.
+  options: RetrospectiveOptions | null
 }
 
 // unavailable 은 데이터베이스에 회고의 구조가 아직 없다는 뜻이다.
+// optionsReady 는 쓰임을 정하는 열이 있다는 뜻이다. 없으면 쓰는 창에 그 칸을 그리지 않는다.
 export type RetrospectiveListResult =
-  | { status: "ok"; retrospectives: Retrospective[] }
+  | { status: "ok"; retrospectives: Retrospective[]; optionsReady: boolean }
   | { status: "unavailable" }
   | { status: "error" }
 
@@ -48,11 +55,34 @@ type Row = {
   to_try: string
   created_at: string
   updated_at: string
+  // 쓰임을 정하는 열이 아직 없는 데이터베이스에서 읽으면 이 값들이 없다.
+  use_in_insight?: boolean
+  share_in_presentation?: boolean
   author: {
     display_name: string
     email: string | null
     avatar_url: string | null
   } | null
+}
+
+// 작성자가 정한 쓰임. 그 열이 생긴 뒤에만 읽을 수 있다.
+const OPTION_COLUMNS = ", use_in_insight, share_in_presentation"
+// 열이 아직 없을 때의 오류 번호.
+const MISSING_COLUMN = "42703"
+
+type ReadResponse = { data: unknown; error: { code?: string } | null }
+
+// 쓰임과 함께 읽어 보고, 그 열이 아직 없으면 쓰임 없이 다시 읽는다.
+async function readWithOptions(
+  read: (columns: string) => PromiseLike<ReadResponse>,
+  label: string
+): Promise<RetrospectiveListResult> {
+  let response = await read(COLUMNS + OPTION_COLUMNS)
+  const optionsReady = response.error?.code !== MISSING_COLUMN
+  if (!optionsReady) {
+    response = await read(COLUMNS)
+  }
+  return toResult(response.data, response.error, label, optionsReady)
 }
 
 // 작성자 이름을 함께 읽는다. 어느 외래 키를 따라갈지 이름으로 정해 둔다.
@@ -87,13 +117,22 @@ function toRetrospective(row: Row): Retrospective {
     toTry: row.to_try,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    options:
+      typeof row.use_in_insight === "boolean" &&
+      typeof row.share_in_presentation === "boolean"
+        ? {
+            useInInsight: row.use_in_insight,
+            shareInPresentation: row.share_in_presentation,
+          }
+        : null,
   }
 }
 
 function toResult(
   data: unknown,
   error: { code?: string } | null,
-  label: string
+  label: string,
+  optionsReady: boolean
 ): RetrospectiveListResult {
   if (error) {
     if (isMissingTable(error)) {
@@ -105,6 +144,7 @@ function toResult(
   return {
     status: "ok",
     retrospectives: ((data ?? []) as unknown as Row[]).map(toRetrospective),
+    optionsReady,
   }
 }
 
@@ -112,20 +152,22 @@ function toResult(
 export const listProjectRetrospectives = cache(
   async (clubId: string, projectId: string): Promise<RetrospectiveListResult> => {
     if (!isUuid(projectId)) {
-      return { status: "ok", retrospectives: [] }
+      return { status: "ok", retrospectives: [], optionsReady: false }
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("retrospectives")
-      .select(COLUMNS)
-      .eq("club_id", clubId)
-      .eq("scope", "project")
-      .eq("project_id", projectId)
-      .order("created_at", { ascending: true })
-      .range(0, TARGET_LIMIT - 1)
-
-    return toResult(data, error, "Project 의")
+    return readWithOptions(
+      (columns) =>
+        supabase
+          .from("retrospectives")
+          .select(columns)
+          .eq("club_id", clubId)
+          .eq("scope", "project")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: true })
+          .range(0, TARGET_LIMIT - 1),
+      "Project 의"
+    )
   }
 )
 
@@ -133,20 +175,22 @@ export const listProjectRetrospectives = cache(
 export const listSessionRetrospectives = cache(
   async (clubId: string, sessionId: string): Promise<RetrospectiveListResult> => {
     if (!isUuid(sessionId)) {
-      return { status: "ok", retrospectives: [] }
+      return { status: "ok", retrospectives: [], optionsReady: false }
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("retrospectives")
-      .select(COLUMNS)
-      .eq("club_id", clubId)
-      .eq("scope", "session")
-      .eq("session_id", sessionId)
-      .order("created_at", { ascending: true })
-      .range(0, TARGET_LIMIT - 1)
-
-    return toResult(data, error, "Session 의")
+    return readWithOptions(
+      (columns) =>
+        supabase
+          .from("retrospectives")
+          .select(columns)
+          .eq("club_id", clubId)
+          .eq("scope", "session")
+          .eq("session_id", sessionId)
+          .order("created_at", { ascending: true })
+          .range(0, TARGET_LIMIT - 1),
+      "Session 의"
+    )
   }
 )
 
@@ -154,16 +198,18 @@ export const listSessionRetrospectives = cache(
 export const listMonthRetrospectives = cache(
   async (clubId: string, month: string): Promise<RetrospectiveListResult> => {
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from("retrospectives")
-      .select(COLUMNS)
-      .eq("club_id", clubId)
-      .eq("scope", "month")
-      .eq("period_start", monthStartDate(month))
-      .order("created_at", { ascending: true })
-      .range(0, TARGET_LIMIT - 1)
-
-    return toResult(data, error, "한 달의")
+    return readWithOptions(
+      (columns) =>
+        supabase
+          .from("retrospectives")
+          .select(columns)
+          .eq("club_id", clubId)
+          .eq("scope", "month")
+          .eq("period_start", monthStartDate(month))
+          .order("created_at", { ascending: true })
+          .range(0, TARGET_LIMIT - 1),
+      "한 달의"
+    )
   }
 )
 

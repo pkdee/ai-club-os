@@ -24,6 +24,17 @@ export type InsightSourceLog = {
   nextAction: string
 }
 
+// 작성자가 AI Insight 에 써도 된다고 한 회고. 누가 썼는지는 보내지 않는다.
+export type InsightSourceRetrospective = {
+  wentWell: string
+  toImprove: string
+  toTry: string
+}
+
+// 한 번에 보내는 회고의 수와, 회고 한 칸에 보내는 글자 수.
+export const INSIGHT_RETROSPECTIVE_MAX = 30
+const RETROSPECTIVE_FIELD_CHARS = 400
+
 // 무엇을 정리하는지. label 은 회차의 제목이나 기간의 이름이다.
 export type InsightTarget = {
   scope: "session" | "period"
@@ -39,6 +50,8 @@ export type InsightPrompt = {
   logIds: string[]
   // 한도를 넘어 보내지 못한 기록 수. 오래된 것부터 뺀다.
   omitted: number
+  // 함께 보낸 회고의 수.
+  retrospectiveCount: number
 }
 
 const refs = {
@@ -97,6 +110,7 @@ const SYSTEM = `당신은 AI 동아리의 활동 기록을 정리하는 도우�
 - lessons 와 next_actions 는 기록에 실제로 적힌 것을 바탕으로 정리합니다. 비슷한 것은 하나로 합칩니다. 적힌 것이 없으면 빈 배열로 둡니다.
 - 항목마다 근거가 된 기록의 번호를 logs 에 적습니다. 번호는 <log n="..."> 의 값입니다.
 - 사람 이름이나 누가 썼는지는 쓰지 않습니다.
+- <retrospectives> 가 있으면 구성원이 돌아보며 쓴 글입니다. 기록에서 찾은 것을 정리할 때 함께 고려하되, 근거 번호는 <log> 의 것만 적습니다. 회고에만 있고 기록에 없는 내용은 따로 항목으로 만들지 않습니다.
 - 기록과 같은 언어로 씁니다. 문장은 짧고 평이하게 씁니다.
 - overview 는 두세 문장, themes 는 ${INSIGHT_THEME_MAX}개까지, lessons 와 next_actions 는 각각 ${INSIGHT_ITEM_MAX}개까지입니다. 항목 하나는 한두 문장입니다.
 
@@ -131,11 +145,30 @@ function entry(log: InsightSourceLog, number: number, budget: number) {
   return `<log n="${number}">\n${lines.join("\n")}\n</log>`
 }
 
+function retrospectiveEntry(retrospective: InsightSourceRetrospective) {
+  const lines = [
+    retrospective.wentWell
+      ? `좋았던 것: ${plain(clip(retrospective.wentWell, RETROSPECTIVE_FIELD_CHARS))}`
+      : "",
+    retrospective.toImprove
+      ? `아쉬운 것: ${plain(clip(retrospective.toImprove, RETROSPECTIVE_FIELD_CHARS))}`
+      : "",
+    retrospective.toTry
+      ? `다음에 해 볼 것: ${plain(clip(retrospective.toTry, RETROSPECTIVE_FIELD_CHARS))}`
+      : "",
+  ].filter(Boolean)
+
+  return `<retrospective>\n${lines.join("\n")}\n</retrospective>`
+}
+
 // logs 는 남긴 순서대로 받는다. 한도를 넘으면 오래된 것부터 빼고 최근 것을 보낸다.
+// retrospectives 는 작성자가 써도 된다고 한 회고다. 참고 자료로 덧붙이고, 많으면 최근 것만 보낸다.
 export function buildInsightPrompt(
   target: InsightTarget,
-  logs: InsightSourceLog[]
+  logs: InsightSourceLog[],
+  retrospectives: InsightSourceRetrospective[] = []
 ): InsightPrompt {
+  const reflections = retrospectives.slice(-INSIGHT_RETROSPECTIVE_MAX)
   const fitting = Math.floor(INSIGHT_INPUT_BUDGET / LOG_CHARS_MIN)
   const sent = logs.slice(-fitting)
   const perLog = Math.max(
@@ -152,9 +185,17 @@ export function buildInsightPrompt(
       "<logs>",
       ...sent.map((log, index) => entry(log, index + 1, perLog)),
       "</logs>",
+      ...(reflections.length > 0
+        ? [
+            "<retrospectives>",
+            ...reflections.map(retrospectiveEntry),
+            "</retrospectives>",
+          ]
+        : []),
     ].join("\n"),
     schema: INSIGHT_OUTPUT_SCHEMA,
     logIds: sent.map((log) => log.id),
     omitted: logs.length - sent.length,
+    retrospectiveCount: reflections.length,
   }
 }

@@ -5,6 +5,7 @@ import { InsightSection } from "@/features/ai-insight/components/insight-section
 import { insightRunsLeft } from "@/features/ai-insight/limit";
 import {
   countInsightLogs,
+  countInsightRetrospectives,
   countTodayInsightRuns,
   getSessionInsight,
 } from "@/features/ai-insight/queries";
@@ -35,10 +36,12 @@ export default async function SessionInsightPage(props: Props) {
   const now = new Date();
   const canManage = data.club.role === "admin";
   // 오늘 만든 횟수는 운영자에게만 보이므로 운영자일 때만 센다.
-  const [result, logs, runs] = await Promise.all([
+  // 함께 보낼 회고의 수는 만드는 창에서만 쓰므로 운영자일 때만 센다.
+  const [result, logs, runs, retrospectiveCount] = await Promise.all([
     getSessionInsight(clubId, sessionId),
     countInsightLogs(clubId, { sessionId }),
     canManage ? countTodayInsightRuns(clubId, now) : null,
+    canManage ? countInsightRetrospectives(clubId, { sessionId }) : 0,
   ]);
 
   return (
@@ -49,6 +52,7 @@ export default async function SessionInsightPage(props: Props) {
       targetLabel={data.session.title}
       logCount={logs ? logs.usable : null}
       excludedCount={logs ? logs.excluded : 0}
+      retrospectiveCount={retrospectiveCount}
       runsLeft={runs === null ? null : insightRunsLeft(runs)}
       retryHref={`/clubs/${clubId}/sessions/${sessionId}/insight`}
       onGenerate={generateSessionInsight.bind(null, clubId, sessionId)}

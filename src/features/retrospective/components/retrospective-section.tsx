@@ -41,6 +41,7 @@ export function RetrospectiveSection({
   }
 
   const all = result.status === "ok" ? result.retrospectives : []
+  const optionsReady = result.status === "ok" && result.optionsReady
   const mine = all.find((item) => item.author?.userId === currentUserId)
   // 내 회고를 맨 앞에 둔다.
   const ordered = mine ? [mine, ...all.filter((item) => item !== mine)] : all
@@ -66,6 +67,7 @@ export function RetrospectiveSection({
             clubId={clubId}
             target={target}
             subject={subject}
+            optionsReady={optionsReady}
           />
         )}
       </div>
@@ -104,7 +106,9 @@ export function RetrospectiveSection({
                               wentWell: item.wentWell,
                               toImprove: item.toImprove,
                               toTry: item.toTry,
+                              options: item.options,
                             }}
+                            optionsReady={optionsReady}
                           />
                         )}
                         <DeleteDialog

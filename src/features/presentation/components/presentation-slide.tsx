@@ -8,7 +8,13 @@ import { cn } from "@/lib/utils"
 
 import type { Slide } from "../slides"
 import { presentationPath } from "../token"
-import { formatDate, LOG_PARTS, Names, Stat } from "./presentation-view"
+import {
+  formatDate,
+  LOG_PARTS,
+  Names,
+  RETROSPECTIVE_PARTS,
+  Stat,
+} from "./presentation-view"
 
 function SlideTitle({
   children,
@@ -143,6 +149,47 @@ export function PresentationSlide({
                       {label}
                     </h3>
                     <p className="break-words whitespace-pre-wrap">{log[key]}</p>
+                  </div>
+                )
+            )}
+          </div>
+        </>
+      )
+    }
+
+    case "retrospective": {
+      const { retrospective } = slide
+      const date = formatDate(retrospective.createdAt)
+
+      return (
+        <>
+          <div className="flex flex-col gap-2">
+            <p className="text-body-s text-muted-foreground">
+              {[date, retrospective.author].filter(Boolean).join(" · ")}
+            </p>
+            <h2 className="text-h1 break-words">
+              회고 {slide.position} / {slide.total}
+            </h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {RETROSPECTIVE_PARTS.map(
+              ({ key, label, icon: Icon, tone }) =>
+                retrospective[key] && (
+                  <div
+                    key={key}
+                    className="flex flex-col gap-1.5 rounded-xl border bg-card p-5"
+                  >
+                    <h3 className="flex items-center gap-2 text-label-m">
+                      <Icon
+                        aria-hidden="true"
+                        strokeWidth={1.5}
+                        className={cn("size-4 shrink-0", tone)}
+                      />
+                      {label}
+                    </h3>
+                    <p className="break-words whitespace-pre-wrap">
+                      {retrospective[key]}
+                    </p>
                   </div>
                 )
             )}

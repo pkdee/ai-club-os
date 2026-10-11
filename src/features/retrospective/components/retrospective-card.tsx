@@ -77,6 +77,16 @@ export function RetrospectiveCard({
           <div className="flex shrink-0 items-center gap-2">{actions}</div>
         )}
       </div>
+      {/* 어디에 쓰이는지는 쓴 사람에게만 알린다. */}
+      {mine &&
+        (retrospective.options?.useInInsight ||
+          retrospective.options?.shareInPresentation) && (
+          <p className="text-caption text-muted-foreground">
+            {retrospective.options.shareInPresentation
+              ? "이 Project 의 발표에 넣어도 된다고 해 두었습니다."
+              : "AI Insight 에 써도 된다고 해 두었습니다."}
+          </p>
+        )}
       {RETRO_PARTS.map(
         ({ key, label, icon: Icon, tone }) =>
           retrospective[key] && (

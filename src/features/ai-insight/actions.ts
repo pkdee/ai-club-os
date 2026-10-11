@@ -26,6 +26,7 @@ import {
   getPeriodInsight,
   getSessionInsight,
   listInsightSourceLogs,
+  listInsightSourceRetrospectives,
   type InsightResult,
 } from "./queries"
 
@@ -141,7 +142,9 @@ async function generate(
     }
   }
 
-  const prompt = buildInsightPrompt(target, logs)
+  // 작성자가 써도 된다고 한 회고를 참고 자료로 함께 보낸다. 없거나 읽지 못해도 그대로 진행한다.
+  const retrospectives = await listInsightSourceRetrospectives(clubId, source)
+  const prompt = buildInsightPrompt(target, logs, retrospectives)
   const result = await provider.generate(prompt)
   if (result.status === "error") {
     return { ok: false, message: PROVIDER_MESSAGES[result.reason] }

@@ -5,7 +5,11 @@ import { createClient } from "@/lib/supabase/server"
 
 import { parseInsightContent, type InsightContent } from "./content"
 import { monthKeyOf, monthKeysBetween, monthRange } from "./period"
-import type { InsightSourceLog } from "./prompt"
+import {
+  INSIGHT_RETROSPECTIVE_MAX,
+  type InsightSourceLog,
+  type InsightSourceRetrospective,
+} from "./prompt"
 
 export type InsightStatus = "draft" | "published"
 
@@ -62,6 +66,8 @@ const INSIGHT_COLUMNS =
 // 한 번에 읽는 AI Insight 수와 AI 에 보낼 기록 수의 한도.
 const INSIGHT_LIST_LIMIT = 100
 const SOURCE_LOG_LIMIT = 500
+// 한 번에 읽는 회고의 수. 보내는 수보다 많이 읽을 까닭이 없다.
+const SOURCE_RETROSPECTIVE_LIMIT = INSIGHT_RETROSPECTIVE_MAX
 // 한 달 정리에서 거슬러 올라가 보여 주는 달의 수.
 const LOG_MONTH_LIMIT = 24
 
@@ -268,6 +274,51 @@ export async function listInsightSourceLogs(
     }))
 }
 
+// AI 에 함께 보낼 회고를 쓴 순서대로 읽는다. 작성자가 AI Insight 에 써도 된다고 한 것만 읽고, 작성자는 읽지 않는다.
+// 회차를 주면 그 회차의 회고를, 기간을 주면 그 달의 한 달 회고를 읽는다.
+// 회고의 구조가 아직 없거나 불러오지 못하면 빈 목록이다. 회고가 없어도 AI Insight 는 만들 수 있다.
+export async function listInsightSourceRetrospectives(
+  clubId: string,
+  target: InsightLogTarget
+): Promise<InsightSourceRetrospective[]> {
+  const supabase = await createClient()
+  let query = supabase
+    .from("retrospectives")
+    .select("went_well, to_improve, to_try")
+    .eq("club_id", clubId)
+    .eq("use_in_insight", true)
+  query =
+    "sessionId" in target
+      ? query.eq("scope", "session").eq("session_id", target.sessionId)
+      : query
+          .eq("scope", "month")
+          .eq("period_start", `${monthKeyOf(target.from)}-01`)
+
+  const { data, error } = await query
+    .order("created_at", { ascending: true })
+    .range(0, SOURCE_RETROSPECTIVE_LIMIT - 1)
+
+  if (error) {
+    // 테이블이나 열이 아직 없을 때의 오류는 남기지 않는다.
+    if (
+      error.code !== MISSING_COLUMN &&
+      error.code !== "42P01" &&
+      error.code !== "PGRST205"
+    ) {
+      console.error("AI Insight 에 쓸 회고를 불러오지 못했습니다.", error)
+    }
+    return []
+  }
+
+  return (
+    data as { went_well: string; to_improve: string; to_try: string }[]
+  ).map((row) => ({
+    wentWell: row.went_well,
+    toImprove: row.to_improve,
+    toTry: row.to_try,
+  }))
+}
+
 // 한 대상에서 정리에 쓸 수 있는 AI Log 수와, 작성자가 쓰지 말라고 한 기록 수. 세지 못하면 null 이다.
 // 만들기 전에 몇 개를 보내는지 알릴 때와, 만든 뒤로 기록이 더 생겼는지 볼 때 쓴다.
 export async function countInsightLogs(
@@ -304,6 +355,15 @@ export async function countInsightLogs(
     return null
   }
   return { usable: all.count - excluded.count, excluded: excluded.count }
+}
+
+// 함께 보낼 회고의 수. 만들기 전에 알리는 데 쓴다. 회고의 구조가 아직 없거나 세지 못하면 0 이다.
+export async function countInsightRetrospectives(
+  clubId: string,
+  target: InsightLogTarget
+): Promise<number> {
+  const retrospectives = await listInsightSourceRetrospectives(clubId, target)
+  return retrospectives.length
 }
 
 // 오늘 이 Club 에서 AI Insight 를 만든 횟수. 하루는 한국 시간의 날짜로 나눈다. 운영자에게만 보인다.

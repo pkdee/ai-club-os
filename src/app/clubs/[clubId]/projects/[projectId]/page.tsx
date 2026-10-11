@@ -168,7 +168,8 @@ export default async function ProjectDetailPage(props: Props) {
                 shared
                   ? `AI Log 는 작성자가 발표에 넣어도 된다고 한 ${shared.shared}개만 보입니다. 이 Project 에 묶인 것은 모두 ${shared.total}개입니다.`
                   : "AI Log 는 작성자가 발표에 넣어도 된다고 한 것만 보입니다.",
-                "작성자가 나중에 허락을 거두면 그 기록은 발표에서 바로 빠집니다.",
+                "회고도 작성자가 발표에 넣어도 된다고 한 것만 보입니다.",
+                "작성자가 나중에 허락을 거두면 그 기록과 회고는 발표에서 바로 빠집니다.",
               ]}
             />
           )}

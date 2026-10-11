@@ -4,6 +4,7 @@ import {
   Circle,
   CircleArrowRight,
   CircleCheck,
+  CircleMinus,
   ExternalLink,
   FlaskConical,
   Lightbulb,
@@ -35,6 +36,7 @@ import {
   type ProjectPresentation,
   type PublicLog,
   type PublicPresentation,
+  type PublicRetrospective,
 } from "../content"
 import { presentationPath } from "../token"
 
@@ -249,13 +251,60 @@ function LogArticle({ log }: { log: PublicLog }) {
   )
 }
 
+export const RETROSPECTIVE_PARTS: {
+  key: "wentWell" | "toImprove" | "toTry"
+  label: string
+  icon: LucideIcon
+  tone: string
+}[] = [
+  { key: "wentWell", label: "좋았던 것", icon: CircleCheck, tone: "text-icon-success" },
+  { key: "toImprove", label: "아쉬운 것", icon: CircleMinus, tone: "text-icon-warning" },
+  { key: "toTry", label: "다음에 해 볼 것", icon: CircleArrowRight, tone: "text-icon-brand" },
+]
+
+function RetrospectiveArticle({
+  retrospective,
+}: {
+  retrospective: PublicRetrospective
+}) {
+  const date = formatDate(retrospective.createdAt)
+
+  return (
+    <article className="flex flex-col gap-4 rounded-xl border bg-card p-5 sm:p-6">
+      {(date || retrospective.author) && (
+        <p className="text-body-s text-muted-foreground">
+          {[date, retrospective.author].filter(Boolean).join(" · ")}
+        </p>
+      )}
+      {RETROSPECTIVE_PARTS.map(
+        ({ key, label, icon: Icon, tone }) =>
+          retrospective[key] && (
+            <div key={key} className="flex flex-col gap-1.5">
+              <h3 className="flex items-center gap-2 text-label-m">
+                <Icon
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                  className={cn("size-4 shrink-0", tone)}
+                />
+                {label}
+              </h3>
+              <p className="break-words whitespace-pre-wrap">
+                {retrospective[key]}
+              </p>
+            </div>
+          )
+      )}
+    </article>
+  )
+}
+
 // Project 하나의 발표. 목표와 결과물만이 아니라 거기까지 온 기록과 할 일을 함께 보여 준다.
 export function ProjectPresentationView({
   presentation,
 }: {
   presentation: ProjectPresentation
 }) {
-  const { project, links, tasks, logs } = presentation
+  const { project, links, tasks, logs, retrospectives } = presentation
 
   return (
     <>
@@ -319,6 +368,21 @@ export function ProjectPresentationView({
           </p>
         )}
       </Section>
+      {retrospectives.length > 0 && (
+        <Section
+          title="회고"
+          description="참여자가 돌아보며 쓴 글입니다. 작성자가 발표에 넣어도 된다고 한 것만 보여 줍니다."
+        >
+          <div className="flex flex-col gap-4">
+            {retrospectives.map((retrospective, index) => (
+              <RetrospectiveArticle
+                key={`${retrospective.createdAt}-${index}`}
+                retrospective={retrospective}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
       {tasks.length > 0 && (
         <Section title="할 일">
           <ul className="flex flex-col gap-2 rounded-xl border bg-card p-5">

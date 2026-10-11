@@ -6,6 +6,7 @@ import {
   type PresentationStat,
   type PublicLog,
   type PublicPresentation,
+  type PublicRetrospective,
 } from "./content"
 
 // 발표를 한 장씩 넘겨 보는 화면에 쓰는 장의 모양.
@@ -24,6 +25,13 @@ export type Slide =
   | { kind: "links"; title: string; items: { label: string; url: string }[] }
   // position 은 발표에 담은 기록 가운데 몇째인지다. 1 부터 센다.
   | { kind: "log"; position: number; total: number; log: PublicLog }
+  // position 은 발표에 담은 회고 가운데 몇째인지다. 1 부터 센다.
+  | {
+      kind: "retrospective"
+      position: number
+      total: number
+      retrospective: PublicRetrospective
+    }
   | {
       kind: "tasks"
       title: string
@@ -71,7 +79,7 @@ export function buildSlides(presentation: PublicPresentation): Slide[] {
   }
 
   if (presentation.scope === "project") {
-    const { project, links, tasks, logs } = presentation
+    const { project, links, tasks, logs, retrospectives } = presentation
     const done = tasks.filter((task) => task.done).length
 
     slides.push(
@@ -94,6 +102,14 @@ export function buildSlides(presentation: PublicPresentation): Slide[] {
     )
     logs.forEach((log, index) =>
       slides.push({ kind: "log", position: index + 1, total: logs.length, log })
+    )
+    retrospectives.forEach((retrospective, index) =>
+      slides.push({
+        kind: "retrospective",
+        position: index + 1,
+        total: retrospectives.length,
+        retrospective,
+      })
     )
     pages(tasks, SLIDE_PAGE_SIZE.tasks).forEach((items, index, all) =>
       slides.push({

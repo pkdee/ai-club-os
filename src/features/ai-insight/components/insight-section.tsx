@@ -34,6 +34,7 @@ export async function InsightSection({
   targetLabel,
   logCount,
   excludedCount = 0,
+  retrospectiveCount = 0,
   runsLeft = null,
   retryHref,
   onGenerate,
@@ -48,6 +49,8 @@ export async function InsightSection({
   logCount: number | null
   // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
   excludedCount?: number
+  // 작성자가 AI Insight 에 써도 된다고 해서 함께 보내는 회고 수.
+  retrospectiveCount?: number
   // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이고 그때는 보여 주지 않는다.
   runsLeft?: number | null
   retryHref: string
@@ -106,6 +109,7 @@ export async function InsightSection({
         targetLabel={targetLabel}
         logCount={logCount ?? 0}
         excludedCount={excludedCount}
+        retrospectiveCount={retrospectiveCount}
         runsLeft={runsLeft}
         providerLabel={provider.label}
         replaces={replaces}

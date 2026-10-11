@@ -21,6 +21,16 @@ export type PublicLog = {
   author: string | null
 }
 
+// 발표에 담긴 회고 하나. 작성자가 발표에 넣어도 된다고 한 Project 회고다.
+export type PublicRetrospective = {
+  wentWell: string
+  toImprove: string
+  toTry: string
+  createdAt: string
+  // 이름을 보이지 않는 발표이거나, 작성자가 나갔거나, 내보낼 이름이 없으면 null 이다.
+  author: string | null
+}
+
 // 발표에만 보이는 소개 글의 길이. 데이터베이스의 check 제약과 같은 값이어야 한다.
 export const PRESENTATION_INTRO_MAX = 600
 
@@ -45,6 +55,8 @@ export type ProjectPresentation = {
   // 이 Project 에 묶인 AI Log 전체의 수. 발표에 들어간 것보다 많을 수 있다.
   logCount: number
   logs: PublicLog[]
+  // 회고를 발표에 싣기 전의 데이터베이스가 돌려준 발표에서는 빈 목록이다.
+  retrospectives: PublicRetrospective[]
 }
 
 export type ClubPresentation = {
@@ -160,6 +172,31 @@ function parseLog(value: unknown): PublicLog[] {
   ]
 }
 
+function parseRetrospective(value: unknown): PublicRetrospective[] {
+  if (!isRecord(value)) {
+    return []
+  }
+  const retrospective = {
+    wentWell: text(value.wentWell).trim(),
+    toImprove: text(value.toImprove).trim(),
+    toTry: text(value.toTry).trim(),
+  }
+  // 세 칸이 모두 빈 것은 보여 줄 것이 없다.
+  if (!retrospective.wentWell && !retrospective.toImprove && !retrospective.toTry) {
+    return []
+  }
+  return [
+    {
+      ...retrospective,
+      createdAt: time(value.createdAt),
+      author:
+        typeof value.author === "string" && value.author.trim() !== ""
+          ? value.author
+          : null,
+    },
+  ]
+}
+
 // 받은 값을 발표의 모양으로 다듬는다. 발표로 볼 수 없는 값이면 null 이다.
 export function parsePresentation(value: unknown): PublicPresentation | null {
   if (!isRecord(value) || text(value.clubName) === "") {
@@ -203,6 +240,10 @@ export function parsePresentation(value: unknown): PublicPresentation | null {
       ),
       logCount: count(value.logCount),
       logs: list(value.logs).flatMap(parseLog),
+      retrospectives: list(value.retrospectives)
+        .flatMap(parseRetrospective)
+        // 이름을 보이지 않는 발표에서는 이름이 와도 쓰지 않는다.
+        .map((item) => (base.showNames ? item : { ...item, author: null })),
     }
   }
 

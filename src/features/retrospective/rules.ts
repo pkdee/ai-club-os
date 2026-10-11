@@ -25,6 +25,13 @@ export type RetrospectiveInput = {
   toTry: string
 }
 
+// 작성자가 글마다 정하는 두 가지 쓰임. 둘 다 기본은 꺼짐이다.
+// useInInsight 는 Session 회고와 한 달 회고에, shareInPresentation 은 Project 회고에 뜻이 있다.
+export type RetrospectiveOptions = {
+  useInInsight: boolean
+  shareInPresentation: boolean
+}
+
 export type RetrospectiveErrors = Partial<
   Record<keyof RetrospectiveInput | "form", string>
 >

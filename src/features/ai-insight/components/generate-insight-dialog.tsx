@@ -24,6 +24,7 @@ export function GenerateInsightDialog({
   targetLabel,
   logCount,
   excludedCount = 0,
+  retrospectiveCount = 0,
   runsLeft = null,
   providerLabel,
   replaces = false,
@@ -35,6 +36,8 @@ export function GenerateInsightDialog({
   logCount: number
   // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
   excludedCount?: number
+  // 작성자가 AI Insight 에 써도 된다고 해서 함께 보내는 회고 수.
+  retrospectiveCount?: number
   // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이다.
   runsLeft?: number | null
   // 예: Anthropic 의 Claude
@@ -81,6 +84,8 @@ export function GenerateInsightDialog({
               이메일은 보내지 않습니다.
               {excludedCount > 0 &&
                 ` 작성자가 AI Insight 에 쓰지 말라고 한 기록 ${excludedCount}개는 보내지 않습니다.`}
+              {retrospectiveCount > 0 &&
+                ` 작성자가 써도 된다고 한 회고 ${retrospectiveCount}개도 참고 자료로 함께 보냅니다.`}
             </p>
             <p>
               만든 내용은 초안으로 저장됩니다. 확인해서 공개하기 전에는

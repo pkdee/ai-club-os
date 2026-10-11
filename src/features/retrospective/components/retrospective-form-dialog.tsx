@@ -5,6 +5,7 @@ import { CircleAlert, NotebookPen, Pencil } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { CheckboxField } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -28,28 +29,41 @@ import {
   RETRO_FIELDS,
   type RetrospectiveErrors,
   type RetrospectiveInput,
+  type RetrospectiveOptions,
   type RetrospectiveTarget,
 } from "../rules"
 
 const EMPTY: RetrospectiveInput = { wentWell: "", toImprove: "", toTry: "" }
+const NO_OPTIONS: RetrospectiveOptions = {
+  useInInsight: false,
+  shareInPresentation: false,
+}
 
 // Dialog 가 닫히면 이 컴포넌트가 사라지므로, 다시 열 때 입력과 오류가 처음 상태로 돌아간다.
+// scope 는 무엇을 돌아보는지다. 그 단위에 뜻이 있는 쓰임만 고르게 한다.
+// defaultOptions 가 null 이면 쓰임을 정하는 열이 아직 없는 것이라 그 칸을 그리지 않는다.
 function FormBody({
+  scope,
   defaults,
+  defaultOptions,
   editing,
   pending,
   onSave,
 }: {
+  scope: RetrospectiveTarget["scope"]
   defaults: RetrospectiveInput
+  defaultOptions: RetrospectiveOptions | null
   editing: boolean
   pending: boolean
   onSave: (
     values: RetrospectiveInput,
+    options: RetrospectiveOptions | null,
     onError: (result: { message: string; errors?: RetrospectiveErrors }) => void
   ) => void
 }) {
   const baseId = useId()
   const [values, setValues] = useState(defaults)
+  const [options, setOptions] = useState(defaultOptions)
   const [failure, setFailure] = useState<{
     message: string
     errors?: RetrospectiveErrors
@@ -62,7 +76,7 @@ function FormBody({
         event.preventDefault()
         if (!pending) {
           setFailure(null)
-          onSave(values, setFailure)
+          onSave(values, options, setFailure)
         }
       }}
     >
@@ -101,6 +115,28 @@ function FormBody({
           </Field>
         )
       })}
+      {options &&
+        (scope === "project" ? (
+          <CheckboxField
+            checked={options.shareInPresentation}
+            disabled={pending}
+            onChange={(event) =>
+              setOptions({ ...options, shareInPresentation: event.target.checked })
+            }
+            label="발표에 넣어도 됨"
+            description="켜면 이 Project 의 발표에 들어가, 링크를 받은 Club 밖의 사람도 볼 수 있습니다. 끄면 발표에서 바로 빠집니다."
+          />
+        ) : (
+          <CheckboxField
+            checked={options.useInInsight}
+            disabled={pending}
+            onChange={(event) =>
+              setOptions({ ...options, useInInsight: event.target.checked })
+            }
+            label="AI Insight 에 써도 됨"
+            description="켜면 운영자가 AI Insight 를 만들 때 이 회고를 AI 서비스로 보냅니다. 이름과 이메일은 보내지 않습니다."
+          />
+        ))}
       <DialogFooter>
         <DialogClose
           render={<Button type="button" variant="outline" disabled={pending} />}
@@ -118,16 +154,19 @@ function FormBody({
 // 회고를 쓰거나 고치는 창. 여는 버튼과 창을 함께 그린다.
 // existing 이 있으면 그 회고를 고치고, 없으면 target 에 새로 쓴다.
 // subject 는 무엇을 돌아보는지 알리는 이름이다. 예: Project 이름, Session 제목, 2026년 10월
+// optionsReady 가 false 이면 쓰임을 정하는 열이 아직 없는 것이라 그 칸을 그리지 않는다.
 export function RetrospectiveFormDialog({
   clubId,
   target,
   subject,
   existing,
+  optionsReady = false,
 }: {
   clubId: string
   target: RetrospectiveTarget
   subject: string
-  existing?: { id: string } & RetrospectiveInput
+  existing?: { id: string; options: RetrospectiveOptions | null } & RetrospectiveInput
+  optionsReady?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -166,6 +205,10 @@ export function RetrospectiveFormDialog({
           </DialogDescription>
         </DialogHeader>
         <FormBody
+          scope={target.scope}
+          defaultOptions={
+            optionsReady ? (existing?.options ?? NO_OPTIONS) : null
+          }
           defaults={
             existing
               ? {
@@ -177,11 +220,17 @@ export function RetrospectiveFormDialog({
           }
           editing={editing}
           pending={pending}
-          onSave={(values, onError) =>
+          onSave={(values, options, onError) =>
             startTransition(async () => {
               const result: RetrospectiveActionResult = existing
-                ? await updateRetrospective(clubId, existing.id, values)
-                : await createRetrospective(clubId, target, values)
+                ? await updateRetrospective(
+                    clubId,
+                    existing.id,
+                    target.scope,
+                    values,
+                    options
+                  )
+                : await createRetrospective(clubId, target, values, options)
               if (result.ok) {
                 setOpen(false)
               } else {

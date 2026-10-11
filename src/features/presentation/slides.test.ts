@@ -38,6 +38,9 @@ function project(extra: Record<string, unknown> = {}): PublicPresentation {
     ],
     logCount: 4,
     logs: [log, { ...log, title: "검색 방식을 바꿨다" }],
+    retrospectives: [
+      { wentWell: "평가 질문을 먼저 정했다", toImprove: "", toTry: "", createdAt: "2026-10-10T10:00:00+00:00", author: "김하늘" },
+    ],
     ...extra,
   })
   assert.ok(parsed)
@@ -70,7 +73,12 @@ test("Project 발표는 표지에서 시작해 기록을 한 장씩 보여 주�
   const slides = buildSlides(project())
   assert.deepEqual(
     slides.map((slide) => slide.kind),
-    ["cover", "text", "stats", "links", "log", "log", "tasks", "names", "end"]
+    ["cover", "text", "stats", "links", "log", "log", "retrospective", "tasks", "names", "end"]
+  )
+  const retro = slides.find((slide) => slide.kind === "retrospective")
+  assert.deepEqual(
+    retro?.kind === "retrospective" && [retro.position, retro.total, retro.retrospective.wentWell],
+    [1, 1, "평가 질문을 먼저 정했다"]
   )
   assert.deepEqual(slides[0], {
     kind: "cover",
@@ -97,13 +105,13 @@ test("Project 발표는 표지에서 시작해 기록을 한 장씩 보여 주�
 test("내용이 없는 부분은 장을 만들지 않는다", () => {
   assert.deepEqual(
     kinds(
-      project({ intro: "", links: [], tasks: [], logs: [], showNames: false })
+      project({ intro: "", links: [], tasks: [], logs: [], retrospectives: [], showNames: false })
     ),
     ["cover", "stats", "end"]
   )
   // 이름을 보이는 발표라도 참여자가 없으면 이름 장이 없다.
   assert.deepEqual(
-    kinds(project({ participantNames: [], logs: [], links: [], tasks: [] })),
+    kinds(project({ participantNames: [], logs: [], retrospectives: [], links: [], tasks: [] })),
     ["cover", "text", "stats", "end"]
   )
 })

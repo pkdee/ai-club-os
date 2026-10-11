@@ -23,6 +23,7 @@ import {
 } from "@/features/ai-insight/period";
 import {
   countInsightLogs,
+  countInsightRetrospectives,
   countTodayInsightRuns,
   getPeriodInsight,
 } from "@/features/ai-insight/queries";
@@ -80,10 +81,14 @@ export default async function PeriodInsightPage(props: Props) {
   const label = monthLabel(month);
   const canManage = data.club.role === "admin";
   // 오늘 만든 횟수는 운영자에게만 보이므로 운영자일 때만 센다.
-  const [result, logs, runs] = await Promise.all([
+  // 함께 보낼 회고의 수는 만드는 창에서만 쓰므로 운영자일 때만 센다.
+  const [result, logs, runs, retrospectiveCount] = await Promise.all([
     getPeriodInsight(clubId, start, end),
     countInsightLogs(clubId, { from: start, to: end }),
     canManage ? countTodayInsightRuns(clubId, now) : null,
+    canManage
+      ? countInsightRetrospectives(clubId, { from: start, to: end })
+      : 0,
   ]);
   const logCount = logs ? logs.usable + logs.excluded : null;
 
@@ -112,6 +117,7 @@ export default async function PeriodInsightPage(props: Props) {
         targetLabel={label}
         logCount={logs ? logs.usable : null}
         excludedCount={logs ? logs.excluded : 0}
+        retrospectiveCount={retrospectiveCount}
         runsLeft={runs === null ? null : insightRunsLeft(runs)}
         retryHref={`${base}/${month}`}
         onGenerate={generatePeriodInsight.bind(null, clubId, month)}

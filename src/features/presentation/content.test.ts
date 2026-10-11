@@ -30,6 +30,15 @@ const project = {
       author: null,
     },
   ],
+  retrospectives: [
+    {
+      wentWell: "평가 질문을 먼저 정했다",
+      toImprove: "",
+      toTry: "중간 공유를 한 번 더 한다",
+      createdAt: "2026-10-10T10:00:00+00:00",
+      author: null,
+    },
+  ],
 }
 
 test("링크 값은 32자의 16진수만 받는다", () => {
@@ -148,4 +157,25 @@ test("Club 발표를 읽고, 링크 값이 틀린 Project 는 뺀다", () => {
     assert.deepEqual(parsed.sessions, [{ title: "1회차", startsAt: "2026-10-01T10:00:00+00:00" }])
     assert.deepEqual(parsed.projects, [{ name: "RAG 챗봇", goal: "", status: "done", token }])
   }
+})
+
+test("회고를 싣기 전의 발표에서는 회고가 빈 목록이다", () => {
+  const withoutRetrospectives: Record<string, unknown> = { ...project }
+  delete withoutRetrospectives.retrospectives
+  const parsed = parsePresentation(withoutRetrospectives)
+  assert.deepEqual(parsed?.scope === "project" && parsed.retrospectives, [])
+})
+
+test("세 칸이 빈 회고는 빼고, 이름을 보이지 않는 발표에서는 회고의 이름도 쓰지 않는다", () => {
+  const retrospectives = [
+    { wentWell: " ", toImprove: "", toTry: "" },
+    { wentWell: "잘됐다", toImprove: 3, toTry: null, createdAt: "언젠가", author: "박서연" },
+    "글자",
+  ]
+  const hidden = parsePresentation({ ...project, retrospectives })
+  assert.deepEqual(hidden?.scope === "project" && hidden.retrospectives, [
+    { wentWell: "잘됐다", toImprove: "", toTry: "", createdAt: "", author: null },
+  ])
+  const shown = parsePresentation({ ...project, showNames: true, retrospectives })
+  assert.equal(shown?.scope === "project" && shown.retrospectives[0].author, "박서연")
 })

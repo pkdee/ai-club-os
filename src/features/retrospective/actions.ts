@@ -14,6 +14,7 @@ import {
   validateRetrospective,
   type RetrospectiveErrors,
   type RetrospectiveInput,
+  type RetrospectiveOptions,
   type RetrospectiveTarget,
 } from "./rules"
 
@@ -65,11 +66,29 @@ function refresh(clubId: string) {
   revalidatePath(`/clubs/${clubId}`, "layout")
 }
 
+// 쓰임을 데이터베이스에 넣을 값으로 바꾼다. 그 단위에 뜻이 없는 쓰임은 끈 채로 둔다.
+// options 가 null 이면 그 칸이 화면에 없었던 것이라 아무것도 보내지 않는다.
+function optionFields(
+  scope: RetrospectiveTarget["scope"],
+  options: RetrospectiveOptions | null
+) {
+  if (!options) {
+    return {}
+  }
+  return {
+    use_in_insight: scope !== "project" && options.useInInsight === true,
+    share_in_presentation:
+      scope === "project" && options.shareInPresentation === true,
+  }
+}
+
 // 회고를 새로 쓴다. 한 사람이 한 대상에 하나만 쓸 수 있다.
+// options 는 작성자가 정한 쓰임이다. null 이면 그 칸이 화면에 없었던 것이다.
 export async function createRetrospective(
   clubId: string,
   target: RetrospectiveTarget,
-  input: RetrospectiveInput
+  input: RetrospectiveInput,
+  options: RetrospectiveOptions | null = null
 ): Promise<RetrospectiveActionResult> {
   await requireUser()
 
@@ -97,6 +116,7 @@ export async function createRetrospective(
     went_well: values.wentWell,
     to_improve: values.toImprove,
     to_try: values.toTry,
+    ...optionFields(target.scope, options),
   })
 
   if (error) {
@@ -123,11 +143,13 @@ export async function createRetrospective(
   return { ok: true }
 }
 
-// 내가 쓴 회고를 고친다.
+// 내가 쓴 회고를 고친다. scope 는 그 회고의 단위이고, 어느 쓰임을 저장할지 정하는 데 쓴다.
 export async function updateRetrospective(
   clubId: string,
   retrospectiveId: string,
-  input: RetrospectiveInput
+  scope: RetrospectiveTarget["scope"],
+  input: RetrospectiveInput,
+  options: RetrospectiveOptions | null = null
 ): Promise<RetrospectiveActionResult> {
   await requireUser()
   if (!isUuid(retrospectiveId)) {
@@ -147,6 +169,7 @@ export async function updateRetrospective(
       went_well: values.wentWell,
       to_improve: values.toImprove,
       to_try: values.toTry,
+      ...optionFields(scope, options),
     })
     .eq("club_id", clubId)
     .eq("id", retrospectiveId)
