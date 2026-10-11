@@ -11,6 +11,8 @@
  */
 :root {
   --radius: 0.625rem;
+  /* 브라우저가 그리는 스크롤 막대와 입력 칸도 화면 모드를 따르게 한다. */
+  color-scheme: light;
 
   /* 면 */
   --background: #ffffff; /* base/white */
@@ -77,6 +79,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* 면 */
   --background: #09090b; /* zinc/950 */
   --bg-app: #09090b; /* zinc/950 */
