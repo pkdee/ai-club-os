@@ -71,7 +71,7 @@ select test.throws($$ update public.clubs set name = '몰래 고침' $$, '42501'
 
 -- 계정이나 Club 이 삭제되면서 함께 지워지는 경우는 막지 않는다.
 select test.sudo($$ delete from auth.users where id = test.uid('a') $$);
-select test.sudo_is($$ select count(*) from public.members where role = 'admin' $$, '0', '마지막 운영자의 계정이 삭제되면 Club 은 운영자 없이 남는다');
+select test.sudo_is($$ select string_agg(display_name, ',') from public.members where role = 'admin' $$, 'other@example.com', '마지막 운영자의 계정이 삭제되면 남아 있던 구성원 C 가 운영자가 된다');
 select test.sudo_is($$ select count(*) from public.clubs $$, '1', '그때도 Club 은 남는다');
 select test.sudo($$ delete from public.clubs $$);
 select test.sudo_is($$ select count(*) from public.members $$, '0', 'Club 이 삭제되면 Member 도 함께 삭제된다');
