@@ -55,16 +55,23 @@ export function ClubShell({
           notificationCount={notificationCount}
           className="flex-1"
         />
-        <div className="flex items-center gap-3 border-t px-2 pt-3">
-          <Avatar name={user.name} src={user.avatarUrl} />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-label-m">{user.name}</span>
-            {user.email && (
-              <span className="truncate text-caption text-muted-foreground">
-                {user.email}
-              </span>
-            )}
-          </div>
+        <div className="flex items-center gap-1 border-t pt-3">
+          {/* 사진과 이름을 누르면 내 계정 화면으로 간다. */}
+          <Link
+            href="/account"
+            aria-label={`내 계정 (${user.name})`}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-2 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            <Avatar name={user.name} src={user.avatarUrl} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-label-m">{user.name}</span>
+              {user.email && (
+                <span className="truncate text-caption text-muted-foreground">
+                  {user.email}
+                </span>
+              )}
+            </span>
+          </Link>
           <form action={signOut}>
             <Button
               type="submit"

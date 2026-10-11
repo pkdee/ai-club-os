@@ -5,9 +5,11 @@ import { updateSession } from "@/lib/supabase/proxy"
 
 // 로그인 없이 열 수 있는 경로. 나머지는 모두 로그인이 필요하다.
 // /p/ 는 링크를 아는 사람이 보는 발표다. 무엇을 보여 줄지는 데이터베이스가 링크 값으로 판단한다.
+// /privacy 는 로그인하기 전에도 읽을 수 있어야 하는 개인 정보 안내다. 데이터를 읽지 않는다.
 function isPublicPath(pathname: string) {
   return (
     pathname === "/login" ||
+    pathname === "/privacy" ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/p/")
   )

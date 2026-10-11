@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { LoginScreen } from "@/features/auth/components/login-screen";
-import { parseLoginError } from "@/features/auth/login-error";
+import {
+  parseLoginError,
+  parseLoginNotice,
+} from "@/features/auth/login-error";
 import { safeReturnPath } from "@/features/auth/return-path";
 
 export const metadata: Metadata = {
@@ -9,11 +12,12 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage(props: PageProps<"/login">) {
-  const { error, next } = await props.searchParams;
+  const { error, next, notice } = await props.searchParams;
 
   return (
     <LoginScreen
       error={parseLoginError(error)}
+      notice={parseLoginNotice(notice)}
       returnPath={safeReturnPath(next)}
     />
   );

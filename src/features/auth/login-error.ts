@@ -24,3 +24,12 @@ export function parseLoginError(
 export function loginErrorMessage(error: LoginError) {
   return MESSAGES[error]
 }
+
+// 로그인 화면에 보여 주는 알림. 지금은 계정을 지운 뒤에 돌아왔을 때 하나뿐이다.
+export type LoginNotice = "account_deleted"
+
+export function parseLoginNotice(
+  value: string | string[] | undefined
+): LoginNotice | null {
+  return value === "account_deleted" ? value : null
+}

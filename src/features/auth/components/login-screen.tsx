@@ -1,11 +1,16 @@
-import { ArrowRight, CircleAlert, MailOpen } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, CircleAlert, CircleCheck, MailOpen } from "lucide-react"
 
 import { Logo } from "@/components/logo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 
 import { signInWithGoogle } from "../actions"
-import { loginErrorMessage, type LoginError } from "../login-error"
+import {
+  loginErrorMessage,
+  type LoginError,
+  type LoginNotice,
+} from "../login-error"
 import { GoogleButton } from "./google-button"
 
 // 제품 흐름 Activity -> Knowledge -> Intelligence -> Action. AI Log 가 핵심이라 지식 단계를 강조한다.
@@ -58,18 +63,21 @@ function BrandPanel() {
         </ol>
       </div>
       <p className="text-caption text-tertiary">
-        v0.1 은 기록까지 다룹니다. AI Insight 와 Project 는 다음 단계입니다.
+        기록에서 AI Insight, Project, 발표까지 한 흐름으로 이어집니다.
       </p>
     </aside>
   )
 }
 
 // returnPath 는 로그인한 뒤 돌아갈 경로다. 없으면 처음 화면으로 간다.
+// notice 는 계정을 지운 뒤에 돌아왔을 때처럼 한 번 알려 줄 것이 있을 때 온다.
 export function LoginScreen({
   error,
+  notice = null,
   returnPath,
 }: {
   error: LoginError | null
+  notice?: LoginNotice | null
   returnPath: string | null
 }) {
   const message = error ? loginErrorMessage(error) : null
@@ -94,6 +102,15 @@ export function LoginScreen({
               <AlertDescription>{message.description}</AlertDescription>
             </Alert>
           )}
+          {notice === "account_deleted" && !message && (
+            <Alert tone="success">
+              <CircleCheck aria-hidden="true" strokeWidth={1.5} />
+              <AlertTitle>계정을 지웠습니다</AlertTitle>
+              <AlertDescription>
+                같은 Google 계정으로 다시 로그인하면 새 계정으로 시작합니다.
+              </AlertDescription>
+            </Alert>
+          )}
           {invited && !message && (
             <Alert tone="info">
               <MailOpen aria-hidden="true" strokeWidth={1.5} />
@@ -109,7 +126,14 @@ export function LoginScreen({
           </form>
           <p className="text-caption text-tertiary">
             로그인하면 내가 속한 Club 의 기록만 볼 수 있습니다. 다른 Club 의
-            데이터에는 접근할 수 없습니다.
+            데이터에는 접근할 수 없습니다. 무엇을 모으고 누가 보는지는{" "}
+            <Link
+              href="/privacy"
+              className="rounded-sm text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              개인 정보 안내
+            </Link>
+            에 적어 두었습니다.
           </p>
         </div>
       </main>
