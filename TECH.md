@@ -8,7 +8,7 @@
 | 언어 | TypeScript | 5.9 도입 |
 | 스타일 | Tailwind CSS | 4.3 도입 |
 | 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty, Avatar, Breadcrumb, LinkTabs, Menu, Skeleton, NativeSelect |
-| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions` 정의 |
+| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 필요 시 도입 |
 | 배포 | Vercel | 도입 예정 |
@@ -53,7 +53,7 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 
 ## 아직 정하지 않은 항목
 
-- 테스트 도구와 테스트 범위
+- 테스트 도구와 테스트 범위. 권한 규칙과 입력 규칙은 `npm test` 로 검증한다. 화면에서의 흐름을 자동으로 검증하는 도구는 2026-10-11 에 사용자가 아직 들이지 않기로 했다.
 - 상태 관리 방식
 - 관측성과 오류 수집 도구
 

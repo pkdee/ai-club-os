@@ -40,7 +40,7 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -70,6 +70,10 @@ User
 | `project_tasks` 의 맡은 시각 열 | `20261010173242_add_project_task_assigned_at.sql` | `docs/adr/0023-notifications-names-and-revisions.md` |
 | `sessions` 의 시간표 열 | `20261010173244_add_session_agenda.sql` | `docs/adr/0023-notifications-names-and-revisions.md` |
 | `presentations` 의 소개 글 열, 발표를 읽는 함수 교체 | `20261010173246_add_presentation_intro.sql` | `docs/adr/0022-web-presentation-by-link.md` |
+| `retrospectives` | `20261011073600_create_retrospectives.sql` | `docs/adr/0024-retrospectives.md` |
+| `deletion_logs` 의 보관 기간과 회고 종류 | `20261011073604_log_and_expire_deletions.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
+| `ai_log_revisions` 의 보관 기간 | `20261011073607_expire_ai_log_revisions.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
+| `members` 의 역할이 바뀐 시각 열, 운영자 이어받기 | `20261011073611_promote_member_when_admin_is_gone.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
 
 ```mermaid
 erDiagram
@@ -108,6 +112,10 @@ erDiagram
   clubs ||--o{ notification_reads : "알림 확인"
   auth_users ||--o{ notification_reads : "본 사람"
   ai_logs ||--o{ ai_log_revisions : "수정 기록"
+  clubs ||--o{ retrospectives : "회고"
+  members |o--o{ retrospectives : "작성"
+  sessions |o--o{ retrospectives : "돌아봄"
+  projects |o--o{ retrospectives : "돌아봄"
 
   clubs {
     uuid id PK
@@ -125,6 +133,7 @@ erDiagram
     text display_name
     text email
     text avatar_url
+    timestamptz role_changed_at
     timestamptz created_at
   }
 
@@ -304,6 +313,21 @@ erDiagram
     timestamptz replaced_at
     uuid replaced_by FK
   }
+
+  retrospectives {
+    uuid id PK
+    uuid club_id FK
+    text scope
+    uuid session_id FK
+    uuid project_id FK
+    date period_start
+    uuid author_id FK
+    text went_well
+    text to_improve
+    text to_try
+    timestamptz created_at
+    timestamptz updated_at
+  }
 ```
 
 `auth_users` 는 Supabase Auth 가 관리하는 `auth.users` 입니다.
@@ -329,6 +353,7 @@ erDiagram
 | `display_name` | text | Club 안에서 보이는 이름. 참여할 때 Google 계정의 이름을 옮겨 적는다. 이름이 없으면 이메일을 쓴다 |
 | `email` | text | 참여할 때의 이메일. 같은 Club 의 Member 에게만 보인다 |
 | `avatar_url` | text | Google 계정의 프로필 사진 주소. Google 의 사진 주소만 들어갈 수 있고, 없으면 비어 있다. 로그인할 때 지금 값으로 맞춘다 |
+| `role_changed_at` | timestamptz | 역할이 마지막으로 바뀐 시각. 데이터베이스가 정한다. Club 을 만들거나 참여하면서 정해진 역할에는 비어 있다. 알림에서 새로 운영자가 된 것을 알리는 데 쓴다 |
 | `created_at` | timestamptz | 소속된 시각 |
 
 한 사용자는 한 Club 에 한 번만 소속됩니다. 이름과 이메일은 참여한 시점의 값이며 Google 계정에서 바꿔도 따라 바뀌지 않습니다. 이름은 본인이 `public.set_my_display_name(target_club_id, new_name)` 으로 고칩니다. 이 함수는 부른 사용자의 그 Club 행에서 이름만 바꾸고, 이어진 공백을 하나로 줄인 뒤 1자 이상 40자 이하이고 `@` 가 없는 이름만 받습니다. 아니면 오류(`22023`)를 냅니다. 운영자도 남의 이름은 고치지 못합니다. 사진 주소만 로그인할 때 `public.sync_my_avatar()` 가 지금 값으로 맞춥니다. 이 함수는 부른 사용자의 행에서 사진 주소만 바꾸고, 로그인한 사용자만 부를 수 있습니다.
@@ -415,6 +440,8 @@ erDiagram
 | `replaced_by` | uuid | 고친 사용자. 사용자가 삭제되면 비운다 |
 
 AI Log 의 내용이 바뀔 때마다 `ai_logs_keep_revision` trigger 가 고치기 전의 내용을 한 줄로 남깁니다. Session 이나 Project 연결, 두 가지 선택만 바꿀 때는 남기지 않습니다. 한 기록에 최근 20줄까지만 두고 넘으면 오래된 것부터 지웁니다. 수는 `private.ai_log_revision_limit()` 에 있습니다. 앱이 넣거나 고치거나 지울 수 없습니다.
+
+90일 동안만 둡니다. 날수는 `private.ai_log_revision_days()` 에 있습니다. 기간이 지난 줄은 접근 규칙이 보여 주지 않고, 그 Club 에서 누군가 AI Log 를 다시 고칠 때 trigger 가 지웁니다. 따로 도는 청소 작업이 없어서, 아무도 고치지 않는 Club 에는 기간이 지난 줄이 보이지 않는 채로 남아 있을 수 있습니다.
 
 ### 도구 표기를 합치는 함수
 
@@ -553,14 +580,16 @@ AI Log 의 내용이 바뀔 때마다 `ai_logs_keep_revision` trigger 가 고치
 |---|---|---|
 | `id` | uuid | 기본 키 |
 | `club_id` | uuid | Club. Club 이 삭제되면 함께 삭제된다 |
-| `entity` | text | `ai_log`, `session`, `project`, `ai_insight` 가운데 하나 |
-| `title` | text | 지운 것의 제목. AI Insight 는 정리한 회차의 제목이나 달이다 |
-| `owner_name` | text | 지운 AI Log 의 작성자 이름. 다른 종류이거나 작성자가 나간 기록이면 비어 있다 |
+| `entity` | text | `ai_log`, `session`, `project`, `ai_insight`, `retrospective` 가운데 하나 |
+| `title` | text | 지운 것의 제목. AI Insight 는 정리한 회차의 제목이나 달, 회고는 돌아본 Project 나 회차의 이름이나 달이다 |
+| `owner_name` | text | 지운 AI Log 나 회고의 작성자 이름. 다른 종류이거나 작성자가 나간 기록이면 비어 있다 |
 | `deleted_by` | uuid | 지운 사용자. 사용자가 삭제되면 비운다 |
 | `deleted_by_name` | text | 지운 사람이 그때 Club 안에서 쓰던 이름 |
 | `created_at` | timestamptz | 지운 시각 |
 
-`ai_logs`, `sessions`, `projects`, `ai_insights` 의 trigger 가 지운 뒤에 적습니다. 앱은 읽기만 합니다. Session 을 지우면서 함께 지워진 AI Insight 와, Club 을 통째로 지울 때의 것들은 적지 않습니다.
+`ai_logs`, `sessions`, `projects`, `ai_insights`, `retrospectives` 의 trigger 가 지운 뒤에 적습니다. 앱은 읽기만 합니다. Session 을 지우면서 함께 지워진 AI Insight, Project 나 Session 을 지우면서 함께 지워진 회고, Club 을 통째로 지울 때의 것들은 적지 않습니다.
+
+365일 동안만 둡니다. 날수는 `private.deletion_log_days()` 에 있습니다. 기간이 지난 줄은 접근 규칙이 보여 주지 않고, 그 Club 에서 무언가를 지워 새 줄을 남길 때 trigger 가 지웁니다.
 
 ### ai_insight_runs
 
@@ -600,6 +629,29 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 | Club | Club 의 이름과 소개, 소개 글, Member 수, AI Log 수, Project 수, 이미 시작한 Session 의 제목과 날짜, 발표를 공개한 Project 의 이름과 목표와 그 링크 값 |
 
 이름은 `show_names` 가 켜져 있을 때만 내보냅니다. 이메일, 사진 주소, 식별자는 어느 경우에도 내보내지 않습니다. 이메일을 이름으로 쓰는 Member 의 이름은 `private.public_name` 이 비워서 내보냅니다. AI Insight 와 할 일의 담당자, 기한은 내보내지 않습니다.
+
+### retrospectives
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다 |
+| `scope` | text | `project` 는 Project 하나를, `session` 은 회차 하나를, `month` 는 한 달 동안의 내 활동을 돌아본다 |
+| `session_id` | uuid | Session 회고일 때의 회차. 같은 Club 의 것이어야 하고, Session 이 삭제되면 회고도 함께 삭제된다 |
+| `project_id` | uuid | Project 회고일 때의 Project. 같은 Club 의 것이어야 하고, Project 가 삭제되면 회고도 함께 삭제된다 |
+| `period_start` | date | 한 달 회고일 때 그 달의 첫날. 달은 한국 시간으로 나눈다 |
+| `author_id` | uuid | 작성자의 사용자 식별자. 만들 때 로그인한 사용자로 정해진다. Member 가 Club 에서 빠지면 비운다 |
+| `went_well` | text | 좋았던 것. 2000자 이하. 기본값은 빈 문자열 |
+| `to_improve` | text | 아쉬운 것. 2000자 이하. 기본값은 빈 문자열 |
+| `to_try` | text | 다음에 해 볼 것. 2000자 이하. 기본값은 빈 문자열 |
+| `created_at` | timestamptz | 쓴 시각 |
+| `updated_at` | timestamptz | 마지막으로 고친 시각. 세 칸이 실제로 바뀌었을 때만 바뀐다 |
+
+돌아보는 대상은 `scope` 에 맞는 것 하나만 적습니다. 세 칸 가운데 하나는 적어야 하고, 공백과 줄바꿈만 있는 것은 적은 것으로 치지 않습니다. 한 사람이 한 대상에 하나만 쓸 수 있도록 `scope` 마다 대상과 작성자에 unique 색인이 있습니다. 작성자가 비워진 회고는 여러 개가 남을 수 있습니다.
+
+`retrospectives_check_target` trigger 가 넣을 때 확인합니다. 아직 시작하지 않은 Session 과 아직 오지 않은 달에는 쓸 수 없고, 그때는 오류(`23514`)를 냅니다. Project 회고를 참여자만 쓴다는 것은 접근 규칙이 확인합니다.
+
+AI Insight 를 만들 때 AI 로 보내지 않고, 발표에도 내보내지 않습니다.
 
 ### notification_reads
 
@@ -664,7 +716,7 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 | `club_bans` | 조회, 삭제 | 그 Club 의 운영자 |
 | `club_bans` | 생성 | 그 Club 의 운영자. 지금 Member 인 사람만 막을 수 있고 자기 자신은 막지 못한다. 넣을 수 있는 열은 Club 과 사용자뿐이다 |
 | `club_bans` | 수정 | 없음 |
-| `deletion_logs` | 조회 | 그 Club 의 운영자 |
+| `deletion_logs` | 조회 | 그 Club 의 운영자. 지운 지 365일이 지난 것은 보이지 않는다 |
 | `deletion_logs` | 생성, 수정, 삭제 | 없음. 데이터베이스의 trigger 만 적는다 |
 | `ai_insight_runs` | 조회 | 그 Club 의 운영자 |
 | `ai_insight_runs` | 생성 | 그 Club 의 운영자. 넣을 수 있는 열은 Club 뿐이고 하루 10줄까지다 |
@@ -672,10 +724,14 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 | `presentations` | 조회 | 그 Club 의 Member |
 | `presentations` | 생성, 삭제 | Project 발표는 그 Project 의 참여자와 그 Club 의 운영자, Club 발표는 그 Club 의 운영자. 링크 값은 넣을 수 없다 |
 | `presentations` | 수정 | 생성과 같은 사람. 이름을 보일지와 소개 글만 고칠 수 있다 |
+| `retrospectives` | 조회 | 그 Club 의 Member. Project, Session, 한 달 회고 모두 그렇다 |
+| `retrospectives` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다. Project 회고는 그 Project 의 참여자만, Session 회고는 시작한 회차에만, 한 달 회고는 이번 달과 지난 달에만 쓴다. 한 대상에 하나만 쓴다 |
+| `retrospectives` | 수정 | 작성자 본인. 세 칸만 고칠 수 있다. 대상과 단위는 바꿀 수 없다 |
+| `retrospectives` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 회고는 운영자만 지운다 |
 | `notification_reads` | 조회 | 본인의 것만 |
 | `notification_reads` | 생성, 수정 | 직접은 없음. `mark_notifications_seen` 으로 본인의 것만 적는다 |
 | `notification_reads` | 삭제 | 없음 |
-| `ai_log_revisions` | 조회 | 그 기록의 작성자와 그 Club 의 운영자 |
+| `ai_log_revisions` | 조회 | 그 기록의 작성자와 그 Club 의 운영자. 고친 지 90일이 지난 것은 보이지 않는다 |
 | `ai_log_revisions` | 생성, 수정, 삭제 | 없음. 데이터베이스의 trigger 만 적는다 |
 | `club_invites` | 조회, 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `club_id` 뿐이다 |
 | `club_invites` | 수정 | 없음. 새로 만들려면 지우고 넣는다 |
@@ -684,14 +740,14 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 
 Club 에는 운영자가 한 명 이상 남아야 합니다. `members` 의 trigger 가 운영자를 구성원으로 내리거나 지우려 할 때 다른 운영자가 있는지 확인하고, 없으면 오류(`P0001`)를 냅니다. 동시에 들어온 요청이 서로를 지나치지 않도록 확인 전에 그 Club 의 행을 잠급니다. Club 이나 사용자 계정이 삭제되면서 함께 지워지는 경우에는 막지 않습니다. 그래서 운영자가 혼자인 Club 도 통째로 지울 수 있습니다.
 
+사용자 계정이 지워지면서 마지막 운영자가 사라지면, 같은 trigger 가 남은 구성원 가운데 가장 먼저 참여한 사람을 운영자로 올립니다. 계정이 함께 지워지고 있는 사람은 고르지 않습니다. 다른 운영자가 남아 있으면 아무도 올리지 않고, 아무도 남지 않았으면 Club 만 남습니다. 역할이 바뀔 때마다 같은 trigger 가 `role_changed_at` 에 그 시각을 적습니다.
+
 Member 가 Club 에서 나가면 그 사람의 Attendance 와 Project 참여는 함께 삭제되고, AI Log 는 작성자가 비워진 채 남습니다. 그 사람이 만든 Project 와 묶어 둔 AI Log 는 그대로 남습니다.
 
 ## 이후 결정 사항
 
 Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
-- 운영자가 없어진 Club 을 되살리는 방법
-- 수정 기록을 얼마나 오래, 몇 개까지 둘지. 지금은 한 기록에 최근 20개다
+- Member 가 한 명도 남지 않은 Club 을 어떻게 할지. 지금은 아무에게도 보이지 않는 채로 남는다
 - 파일 첨부 범위
-- 참여자가 한 명도 없는 Project 를 어떻게 다룰지
 - 나머지 테이블의 행 단위 보안 정책
