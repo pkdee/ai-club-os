@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/features/auth/session"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
+import { removeAiLogImagesOf } from "./image-store"
 import { listClubTools } from "./queries"
 import {
   AI_LOG_TOOL_NAME_MAX,
@@ -186,6 +187,9 @@ export async function saveAiLog(
 
 // AI Log 를 지운다. 지우면 되살릴 수 없다. 성공하면 AI Log 목록으로 이동한다.
 // 작성자 본인과 운영자만 지울 수 있고, 그 판단은 데이터베이스의 접근 규칙이 한다.
+const DELETE_IMAGES_MESSAGE =
+  "붙인 이미지를 지우지 못해 기록을 그대로 두었습니다. 잠시 뒤 다시 시도해 주세요."
+
 export async function deleteAiLog(
   clubId: string,
   logId: string
@@ -199,6 +203,12 @@ export async function deleteAiLog(
   }
 
   const supabase = await createClient()
+  // 붙인 이미지의 파일을 먼저 지운다. 기록을 지우면 목록의 줄이 함께 지워져서 파일을 찾을 길이 없어진다.
+  // 지울 수 없는 사람이 부르면 Storage 의 접근 규칙이 파일을 그대로 둔다.
+  if (!(await removeAiLogImagesOf(supabase, { clubId, logId }))) {
+    return { ok: false, message: DELETE_IMAGES_MESSAGE }
+  }
+
   const { data, error } = await supabase
     .from("ai_logs")
     .delete()
@@ -207,6 +217,10 @@ export async function deleteAiLog(
     .select("id")
 
   if (error) {
+    // 23503 은 파일이 남아 있는 이미지가 있어 데이터베이스가 막은 것이다.
+    if (error.code === "23503") {
+      return { ok: false, message: DELETE_IMAGES_MESSAGE }
+    }
     console.error("AI Log 를 지우지 못했습니다.", error)
     return {
       ok: false,

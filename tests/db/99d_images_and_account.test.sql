@@ -76,7 +76,8 @@ select test.affects($$ delete from public.ai_log_attachments where mime_type in 
 
 select test.sudo_is($$ select public::text || '|' || file_size_limit || '|' || array_length(allowed_mime_types, 1) from storage.buckets where id = 'ai-log-images' $$, 'false|5242880|4', '저장 공간은 공개하지 않고 5MB 까지 네 가지 형식만 받는다');
 select test.login('b');
-select test.affects($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, 1, '작성자 B 가 자기 기록의 자리에 파일을 올린다');
+select test.affects($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, 1, '작성자 B 가 목록에 적어 둔 자리에 파일을 올린다');
+select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '99999999-9999-4999-8999-999999999999.png')) $$, '42501', '자기 기록이어도 목록에 적지 않은 자리에는 올릴 수 없다');
 select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_a', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, '42501', 'B 는 A 의 기록의 자리에 올릴 수 없다');
 select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', 'loose.png') $$, '42501', '마디가 없는 경로에는 올릴 수 없다');
 select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', 'not-a-club/not-a-log/x.png') $$, '42501', '식별자가 아닌 마디는 오류 없이 거절된다');
@@ -95,8 +96,37 @@ select test.anon();
 select test.is($$ select count(*) from storage.objects $$, '0', '로그인하지 않으면 파일을 읽을 수 없다');
 select test.login('a');
 select test.affects($$ delete from storage.objects $$, 1, '운영자 A 는 Club 의 파일을 지울 수 있다');
+select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, '42501', '운영자도 남이 적어 둔 자리에는 올릴 수 없다');
+select test.login('c');
+select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, '42501', '구성원 C 도 남이 적어 둔 자리에는 올릴 수 없다');
 select test.login('b');
 select test.affects($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_b', 'club', '11111111-1111-4111-8111-111111111111.png')) $$, 1, 'B 가 다시 올린다');
+
+-- 파일이 남아 있는 동안에는 줄도, 기록도, Club 도 지울 수 없다.
+select test.throws($$ delete from public.ai_log_attachments $$, '23503', '파일이 남아 있는 줄은 작성자 B 도 뗄 수 없다');
+select test.throws($$ delete from public.ai_logs where id = test.get('log_b')::uuid $$, '23503', '파일이 남아 있는 기록은 지울 수 없다');
+select test.login('a');
+select test.throws($$ delete from public.ai_log_attachments $$, '23503', '운영자 A 도 파일이 남아 있는 줄은 뗄 수 없다');
+select test.throws($$ delete from public.clubs where id = test.get('club')::uuid $$, '23503', '파일이 남아 있는 Club 은 지울 수 없다');
+select test.sudo_is($$ select count(*) from public.ai_logs where id = test.get('log_b')::uuid $$, '1', '막힌 뒤에도 기록은 그대로다');
+
+-- Club 에서 나간 사람은 자기가 올린 것만 보고 지울 수 있다.
+select test.login('d');
+select public.join_club(test.get('token')) is not null;
+insert into public.ai_logs (club_id, title, attempt) values (test.get('club')::uuid, 'D 의 기록', '시도');
+select test.remember('log_d', $$ select id from public.ai_logs where title = 'D 의 기록' $$);
+insert into public.ai_log_attachments (club_id, log_id, path, mime_type, size_bytes) values (test.get('club')::uuid, test.get('log_d')::uuid, test.image_path('log_d', 'club', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd.png'), 'image/png', 1000);
+insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_d', 'club', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd.png'));
+select test.affects($$ delete from public.members where user_id = test.uid('d') $$, 1, 'D 가 Club 에서 나간다');
+select test.is($$ select count(*) from public.ai_log_attachments $$, '1', '나간 D 에게는 자기가 붙인 줄만 보인다');
+select test.is($$ select count(*) from storage.objects $$, '1', '나간 D 는 자기가 올린 파일만 읽는다');
+select test.affects($$ delete from public.ai_log_attachments $$, 0, '나간 D 는 줄을 뗄 수 없다');
+select test.affects($$ delete from storage.objects $$, 1, '나간 D 는 자기가 올린 파일을 지울 수 있다');
+select test.throws($$ insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_d', 'club', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd.png')) $$, '42501', '나간 D 는 줄이 남아 있어도 다시 올릴 수 없다');
+select test.sudo_is($$ select count(*) from storage.objects $$, '1', 'B 의 파일은 그대로다');
+select test.login('a');
+select test.affects($$ delete from public.ai_log_attachments where log_id = test.get('log_d')::uuid $$, 1, '운영자 A 가 나간 사람이 붙인 줄을 뗀다');
+select test.affects($$ delete from public.ai_logs where id = test.get('log_d')::uuid $$, 1, '운영자 A 가 나간 사람의 기록을 지운다');
 
 -- ---------------------------------------------------------------------------
 -- 자기 계정 지우기
@@ -120,6 +150,7 @@ select test.throws($$ select public.delete_my_account(false) $$, '42501', '로�
 -- 내가 올린 파일이 남아 있으면 계정을 지울 수 없고 아무것도 바뀌지 않는다.
 select test.login('b');
 select test.throws($$ select public.delete_my_account(false) $$, '23503', '올린 파일이 남아 있으면 계정을 지우지 못한다');
+select test.throws($$ select public.delete_my_account(true) $$, '23503', '쓴 것을 함께 지우려 해도 파일이 남아 있으면 지우지 못한다');
 select test.sudo_is($$ select count(*) from auth.users where id = test.uid('b') $$, '1', '실패하면 계정은 그대로다');
 select test.sudo_is($$ select count(*) from public.ai_log_attachments where created_by = test.uid('b') $$, '1', '실패하면 붙인 이미지의 줄도 그대로다');
 
@@ -149,8 +180,16 @@ select test.login('a');
 select test.affects($$ delete from public.ai_log_comments where body = 'B 의 댓글' $$, 1, '운영자 A 가 남은 댓글을 지운다');
 select test.is($$ select count(*) from public.deletion_logs where entity = 'comment' $$, '1', '평소의 삭제는 지운 기록에 남는다');
 
--- 혼자 있던 Club 은 계정과 함께 지워진다.
+-- 혼자 있던 Club 은 계정과 함께 지워진다. 그 Club 에 파일이 남아 있으면 먼저 지워야 한다.
 select test.login('e');
+insert into public.ai_log_attachments (club_id, log_id, path, mime_type, size_bytes) values (test.get('other_club')::uuid, test.get('log_e')::uuid, test.image_path('log_e', 'other_club', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee.png'), 'image/png', 1000);
+insert into storage.objects (bucket_id, name) values ('ai-log-images', test.image_path('log_e', 'other_club', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee.png'));
+-- 나간 사람이 올려 둔 파일처럼, 붙인 사람이 내가 아닌 줄로 바꿔 둔다.
+select test.sudo($$ update public.ai_log_attachments set created_by = null where club_id = test.get('other_club')::uuid $$);
+select test.throws($$ select public.delete_my_account(false) $$, '23503', '함께 지워질 Club 에 남이 올린 파일이 남아 있어도 계정을 지우지 못한다');
+select test.sudo_is($$ select count(*) from auth.users where id = test.uid('e') $$, '1', '막히면 계정도 그대로다');
+select test.sudo_is($$ select count(*) from public.clubs where id = test.get('other_club')::uuid $$, '1', '막히면 Club 도 그대로다');
+select test.affects($$ delete from storage.objects $$, 1, 'E 가 파일을 지운다');
 select test.affects($$ select public.delete_my_account(false) $$, 1, '혼자 있는 Club 의 E 가 계정을 지운다');
 select test.sudo_is($$ select count(*) from public.clubs where id = test.get('other_club')::uuid $$, '0', '아무도 남지 않은 Club 은 함께 지워진다');
 select test.sudo_is($$ select count(*) from public.ai_logs where title = 'E 의 기록' $$, '0', '그 Club 의 기록도 함께 지워진다');

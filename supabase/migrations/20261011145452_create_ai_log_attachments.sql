@@ -42,7 +42,8 @@ create table if not exists public.ai_log_attachments (
   ),
   constraint ai_log_attachments_club_fkey foreign key (club_id)
     references public.clubs (id) on delete cascade,
-  -- 기록을 지우면 목록도 함께 지운다. Storage 의 파일은 앱이 지운다.
+  -- 기록을 지우면 목록도 함께 지운다. Storage 의 파일은 앱이 먼저 지운다.
+  -- 파일이 남아 있으면 아래의 trigger 가 막아서 기록도 지워지지 않는다.
   constraint ai_log_attachments_log_fkey foreign key (log_id)
     references public.ai_logs (id) on delete cascade,
   constraint ai_log_attachments_created_by_fkey foreign key (created_by)
@@ -85,14 +86,51 @@ create trigger ai_log_attachments_check_limit
   for each row
   execute function private.check_ai_log_attachment();
 
+-- 파일이 Storage 에 남아 있는 동안에는 목록의 줄을 지우지 못하게 한다.
+-- 줄이 먼저 사라지면 그 파일을 찾을 길이 없어져 아무도 지울 수 없는 파일이 남는다.
+-- 기록이나 Club 이 지워지면서 줄이 함께 지워질 때와 계정을 지울 때도 이 규칙이 적용된다.
+-- 그래서 앱은 언제나 파일을 먼저 지우고, 빠뜨리면 지우는 일 전체가 되돌려진다.
+-- storage.objects 를 읽어야 해서 만든 사람의 권한으로 실행한다. 읽기만 한다.
+create or replace function private.keep_attachment_until_file_is_gone()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (
+    select 1
+    from storage.objects as o
+    where o.bucket_id = 'ai-log-images'
+      and o.name = old.path
+  ) then
+    raise exception '파일이 Storage 에 남아 있는 이미지는 목록에서 지울 수 없습니다. 파일을 먼저 지워야 합니다.'
+      using errcode = '23503';
+  end if;
+  return old;
+end;
+$$;
+
+revoke all on function private.keep_attachment_until_file_is_gone() from public;
+
+drop trigger if exists ai_log_attachments_keep_until_file_is_gone on public.ai_log_attachments;
+create trigger ai_log_attachments_keep_until_file_is_gone
+  before delete on public.ai_log_attachments
+  for each row
+  execute function private.keep_attachment_until_file_is_gone();
+
 alter table public.ai_log_attachments enable row level security;
 
 -- Club 의 Member 는 그 Club 의 기록에 붙은 이미지를 모두 본다.
+-- 붙인 사람은 Club 에서 나간 뒤에도 자기가 붙인 줄을 본다. 계정을 지우기 전에 자기가 올린 파일을 찾아 지워야 하기 때문이다.
 drop policy if exists ai_log_attachments_select_for_members on public.ai_log_attachments;
 create policy ai_log_attachments_select_for_members on public.ai_log_attachments
   for select
   to authenticated
-  using (private.is_club_member(club_id));
+  using (
+    private.is_club_member(club_id)
+    or created_by = (select auth.uid())
+  );
 
 -- 기록의 작성자만 자기 기록에 붙인다.
 drop policy if exists ai_log_attachments_insert_by_log_author on public.ai_log_attachments;

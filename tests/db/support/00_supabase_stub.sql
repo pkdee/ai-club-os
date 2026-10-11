@@ -33,7 +33,7 @@ alter default privileges in schema public grant all on sequences to anon, authen
 
 -- Storage 의 최소한. 저장 공간 목록과 파일 목록, 경로의 마디를 읽는 함수를 흉내 낸다.
 -- 실제 Supabase 처럼 파일 목록에는 행 단위 보안이 켜져 있고, 접근 규칙이 없으면 아무도 다루지 못한다.
--- 파일의 주인인 사용자는 지울 수 없다는 것도 같다.
+-- 올린 사람의 계정이 지워져도 파일은 그대로 남는다는 것도 같다. 로컬에 띄운 Storage 서비스에서 확인했다.
 create schema storage;
 
 create table storage.buckets (
@@ -48,7 +48,9 @@ create table storage.objects (
   id uuid primary key default gen_random_uuid(),
   bucket_id text references storage.buckets (id),
   name text not null,
-  owner uuid default auth.uid() references auth.users (id),
+  owner uuid default auth.uid(),
+  -- 올린 사람. 실제 Storage 는 이 열에 토큰의 sub 값을 글자로 적는다.
+  owner_id text default (auth.uid())::text,
   created_at timestamptz not null default now(),
   unique (bucket_id, name)
 );

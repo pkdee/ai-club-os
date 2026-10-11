@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+import { removeAiLogImagesOf } from "@/features/ai-log/image-store"
 import { getCurrentUser } from "@/features/auth/session"
 import { createClient } from "@/lib/supabase/server"
 
@@ -19,6 +20,8 @@ const DELETE_NOT_READY_MESSAGE =
   "데이터베이스에 삭제 규칙이 아직 적용되지 않았습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
 const DELETE_ADMIN_ONLY_MESSAGE =
   "운영자만 Club 을 지울 수 있습니다. 이미 지워졌거나 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const DELETE_IMAGES_MESSAGE =
+  "AI Log 에 붙인 이미지를 지우지 못해 Club 을 그대로 두었습니다. 잠시 뒤 다시 시도해 주세요."
 const DELETE_NAME_MISMATCH_MESSAGE =
   "입력한 이름이 Club 이름과 다릅니다. 이름이 바뀌었을 수 있으니 화면을 새로 고친 뒤 다시 입력해 주세요."
 
@@ -147,8 +150,17 @@ export async function deleteClub(
   if (String(confirmName).trim() !== access.club.name) {
     return { ok: false, message: DELETE_NAME_MISMATCH_MESSAGE }
   }
+  // 아래에서 파일을 지우기 전에 역할을 먼저 본다. 구성원도 자기 기록의 파일은 지울 수 있기 때문이다.
+  if (access.club.role !== "admin") {
+    return { ok: false, message: DELETE_ADMIN_ONLY_MESSAGE }
+  }
 
   const supabase = await createClient()
+  // AI Log 에 붙인 이미지의 파일을 먼저 지운다. Club 을 지우면 목록의 줄이 함께 지워져서 파일을 찾을 길이 없어진다.
+  if (!(await removeAiLogImagesOf(supabase, { clubId }))) {
+    return { ok: false, message: DELETE_IMAGES_MESSAGE }
+  }
+
   const { data, error } = await supabase
     .from("clubs")
     .delete()
@@ -156,6 +168,10 @@ export async function deleteClub(
     .select("id")
 
   if (error) {
+    // 23503 은 파일이 남아 있는 이미지가 있어 데이터베이스가 막은 것이다.
+    if (error.code === "23503") {
+      return { ok: false, message: DELETE_IMAGES_MESSAGE }
+    }
     console.error("Club 을 지우지 못했습니다.", error)
     return {
       ok: false,

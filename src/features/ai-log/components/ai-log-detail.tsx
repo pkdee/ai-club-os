@@ -118,12 +118,14 @@ function Info({ label, value }: { label: string; value: string }) {
 
 // related 에는 같은 Session 의 다른 기록을 넣는다.
 // canEdit 는 작성자 본인, canDelete 는 작성자 본인이거나 운영자라는 뜻이다. 실제 판단은 데이터베이스가 한다.
-// children 에는 본문 아래에 놓을 영역을 넣는다. 수정 기록이 여기에 온다.
+// children 에는 본문 아래에 놓을 영역을 넣는다. 이미지, 댓글, 수정 기록이 여기에 온다.
+// imageCount 는 이 기록에 붙은 이미지의 수다. 지우기 전에 함께 지워진다고 알리는 데 쓴다.
 export function AiLogDetail({
   clubName,
   log,
   canEdit,
   canDelete,
+  imageCount = 0,
   related,
   now,
   children,
@@ -132,6 +134,7 @@ export function AiLogDetail({
   log: AiLog
   canEdit: boolean
   canDelete: boolean
+  imageCount?: number
   related: AiLogSummary[]
   now: Date
   children?: React.ReactNode
@@ -206,6 +209,9 @@ export function AiLogDetail({
                           ? `내가 쓴 "${log.title}" 기록이 지워집니다.`
                           : `${name} 님이 쓴 "${log.title}" 기록이 지워집니다.`}
                       </p>
+                      {imageCount > 0 && (
+                        <p>붙인 이미지 {imageCount}장도 함께 지워집니다.</p>
+                      )}
                       <p>
                         지우면 되돌릴 수 없습니다. 지웠다는 사실과 제목은
                         운영자가 볼 수 있게 남습니다.

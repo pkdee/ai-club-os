@@ -5,8 +5,10 @@ import {
   AiLogUnavailable,
 } from "@/features/ai-log/components/ai-log-detail";
 import { AiLogFeedback } from "@/features/ai-log/components/ai-log-feedback";
+import { AiLogImages } from "@/features/ai-log/components/ai-log-images";
 import { AiLogRevisions } from "@/features/ai-log/components/ai-log-revisions";
 import { getAiLogFeedback } from "@/features/ai-log/comments";
+import { listAiLogImages } from "@/features/ai-log/images";
 import {
   getAiLog,
   listAiLogRevisions,
@@ -62,9 +64,10 @@ export default async function AiLogDetailPage(props: Props) {
   const isAdmin = data.club.role === "admin";
   const now = new Date();
   // 수정 기록은 작성자와 운영자에게만 보이므로 그 두 경우에만 읽는다.
-  const [revisions, feedback] = await Promise.all([
+  const [revisions, feedback, images] = await Promise.all([
     isAuthor || isAdmin ? listAiLogRevisions(clubId, logId) : null,
     getAiLogFeedback(clubId, logId, data.user.id),
+    listAiLogImages(clubId, logId),
   ]);
 
   return (
@@ -73,9 +76,22 @@ export default async function AiLogDetailPage(props: Props) {
       log={log}
       canEdit={isAuthor}
       canDelete={isAuthor || isAdmin}
+      imageCount={images.status === "ok" ? images.images.length : 0}
       related={related}
       now={now}
     >
+      {/* 이미지의 구조가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
+      {images.status === "ok" && (
+        <AiLogImages
+          clubId={clubId}
+          logId={log.id}
+          logTitle={log.title}
+          images={images.images}
+          loadFailed={images.loadFailed}
+          canAttach={isAuthor}
+          canRemove={isAuthor || isAdmin}
+        />
+      )}
       {/* 댓글의 구조가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
       {feedback.status === "ok" && (
         <AiLogFeedback

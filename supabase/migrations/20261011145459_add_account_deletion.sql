@@ -53,7 +53,8 @@ create trigger members_remove_empty_club
 -- 지금 로그인한 사용자의 계정을 지운다. 되돌릴 수 없다.
 -- delete_content 가 true 이면 내가 쓴 AI Log, 회고, 댓글을 먼저 지운다. false 이면 Club 에서 나갈 때처럼 작성자 없이 남는다.
 -- 내가 붙인 이미지의 목록은 어느 쪽이든 지운다. 파일은 앱이 이 함수를 부르기 전에 Storage 에서 지운다.
--- 파일이 남아 있으면 Supabase 가 계정을 지우지 못하게 막고, 그때는 아무것도 바뀌지 않는다.
+-- 파일이 남아 있으면 목록의 줄을 지우지 못하게 막아 둔 규칙에 걸려서 계정도 지워지지 않고, 아무것도 바뀌지 않는다.
+-- 나와 함께 지워지는 Club 에 다른 사람이 올린 파일이 남아 있을 때도 같다.
 -- 계정이 지워지면 소속이 함께 지워지고, 마지막 운영자였던 Club 은 먼저 참여한 구성원이 이어받고,
 -- 혼자 있던 Club 은 함께 지워진다.
 create or replace function public.delete_my_account(delete_content boolean default false)
