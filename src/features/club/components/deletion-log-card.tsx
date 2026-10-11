@@ -45,12 +45,15 @@ export function DeletionLogCard({ result }: { result: DeletionLogResult }) {
                 <Badge>{DELETED_ENTITY_LABEL[log.entity]}</Badge>
                 <span className="min-w-0 truncate text-label-m">
                   {log.title || "제목 없음"}
+                  {log.entity === "comment" && " 에 달린 댓글"}
                 </span>
               </div>
               <p className="text-body-s text-muted-foreground">
                 {log.deletedByName || "알 수 없는 사람"} 님이{" "}
                 {formatDeletedAt(log.deletedAt)} 에 지움
-                {(log.entity === "ai_log" || log.entity === "retrospective") &&
+                {(log.entity === "ai_log" ||
+                  log.entity === "retrospective" ||
+                  log.entity === "comment") &&
                   ` · 작성자 ${log.ownerName ?? "탈퇴한 Member"}`}
               </p>
             </li>

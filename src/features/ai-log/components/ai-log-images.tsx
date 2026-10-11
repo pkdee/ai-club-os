@@ -116,8 +116,8 @@ export function AiLogImages({
 
   return (
     <section className="flex flex-col gap-4 rounded-xl border bg-card p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-h4">
             <Images
               aria-hidden="true"
@@ -132,38 +132,39 @@ export function AiLogImages({
             )}
           </h2>
           {canAttach && (
-            <p className="text-body-s text-muted-foreground">
-              {AI_LOG_IMAGE_TYPE_NAMES} 를 한 장에{" "}
-              {formatImageSize(AI_LOG_IMAGE_MAX_BYTES)} 까지 붙일 수 있습니다.
-              Club 의 Member 만 보고, AI Insight 와 발표에는 쓰이지 않습니다.
-            </p>
+            <>
+              <input
+                ref={input}
+                type="file"
+                accept={AI_LOG_IMAGE_ACCEPT}
+                multiple
+                hidden
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? [])
+                  // 같은 파일을 다시 골라도 반응하게 비운다.
+                  event.target.value = ""
+                  void attach(files)
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={progress !== null || remaining <= 0}
+                onClick={() => input.current?.click()}
+              >
+                <ImagePlus aria-hidden="true" strokeWidth={1.5} />
+                {progress ? "올리는 중" : "이미지 붙이기"}
+              </Button>
+            </>
           )}
         </div>
         {canAttach && (
-          <>
-            <input
-              ref={input}
-              type="file"
-              accept={AI_LOG_IMAGE_ACCEPT}
-              multiple
-              hidden
-              onChange={(event) => {
-                const files = Array.from(event.target.files ?? [])
-                // 같은 파일을 다시 골라도 반응하게 비운다.
-                event.target.value = ""
-                void attach(files)
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={progress !== null || remaining <= 0}
-              onClick={() => input.current?.click()}
-            >
-              <ImagePlus aria-hidden="true" strokeWidth={1.5} />
-              {progress ? "올리는 중" : "이미지 붙이기"}
-            </Button>
-          </>
+          <p className="text-body-s text-muted-foreground">
+            {AI_LOG_IMAGE_TYPE_NAMES} 를 한 장에{" "}
+            {formatImageSize(AI_LOG_IMAGE_MAX_BYTES)} 까지 붙일 수 있습니다. Club
+            의 Member 만 보고, AI Insight 와 발표에는 쓰이지 않습니다.
+          </p>
         )}
       </div>
       <p aria-live="polite" className="sr-only">

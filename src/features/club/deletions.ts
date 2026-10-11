@@ -8,6 +8,7 @@ export type DeletedEntity =
   | "project"
   | "ai_insight"
   | "retrospective"
+  | "comment"
 
 export const DELETED_ENTITY_LABEL: Record<DeletedEntity, string> = {
   ai_log: "AI Log",
@@ -15,6 +16,7 @@ export const DELETED_ENTITY_LABEL: Record<DeletedEntity, string> = {
   project: "Project",
   ai_insight: "AI Insight",
   retrospective: "회고",
+  comment: "댓글",
 }
 
 // 지운 기록을 두는 날수. 데이터베이스의 private.deletion_log_days() 와 같은 값이어야 한다.
@@ -25,7 +27,8 @@ export type DeletionLog = {
   id: string
   entity: DeletedEntity
   title: string
-  // 지운 AI Log 의 작성자 이름. 다른 종류이거나 작성자가 이미 나간 기록이면 null 이다.
+  // 지운 AI Log, 회고, 댓글의 작성자 이름. 다른 종류이거나 작성자가 이미 나간 것이면 null 이다.
+  // 댓글의 title 은 그 댓글이 달려 있던 AI Log 의 제목이다.
   ownerName: string | null
   deletedByName: string
   deletedAt: string

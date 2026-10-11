@@ -77,12 +77,13 @@ export function RetrospectiveCard({
           <div className="flex shrink-0 items-center gap-2">{actions}</div>
         )}
       </div>
-      {/* 어디에 쓰이는지는 쓴 사람에게만 알린다. */}
+      {/* 어디에 쓰이는지는 쓴 사람에게만 알린다. Project 회고는 발표에만, 나머지는 AI Insight 에만 쓰인다. */}
       {mine &&
-        (retrospective.options?.useInInsight ||
-          retrospective.options?.shareInPresentation) && (
+        (retrospective.scope === "project"
+          ? retrospective.options?.shareInPresentation
+          : retrospective.options?.useInInsight) && (
           <p className="text-caption text-muted-foreground">
-            {retrospective.options.shareInPresentation
+            {retrospective.scope === "project"
               ? "이 Project 의 발표에 넣어도 된다고 해 두었습니다."
               : "AI Insight 에 써도 된다고 해 두었습니다."}
           </p>
