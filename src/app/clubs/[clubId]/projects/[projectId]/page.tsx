@@ -15,12 +15,18 @@ import {
   ProjectDetail,
   ProjectUnavailable,
 } from "@/features/project/components/project-detail";
-import { sessionsOfLogs } from "@/features/project/links";
+import {
+  linkProjectSession,
+  unlinkSessionProject,
+} from "@/features/project/actions";
+import { mergeSessionLinks, sessionsOfLogs } from "@/features/project/links";
 import {
   getProject,
   getProjectTaskDetails,
   listProjectJoinRequests,
+  listProjectSessionLinks,
 } from "@/features/project/queries";
+import { listSessions } from "@/features/session/queries";
 import { RetrospectiveSection } from "@/features/retrospective/components/retrospective-section";
 import { listProjectRetrospectives } from "@/features/retrospective/queries";
 import { kstDateKey } from "@/features/session/time";
@@ -29,6 +35,8 @@ type Props = PageProps<"/clubs/[clubId]/projects/[projectId]">;
 
 // 한 화면에 보여 주는 이 Project 의 AI Log 수.
 const PROJECT_LOG_LIMIT = 50;
+// 이을 Session 을 고르는 목록에 넣는 회차 수. 최근 것부터다.
+const SESSION_OPTION_LIMIT = 30;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { clubId, projectId } = await props.params;
@@ -69,6 +77,8 @@ export default async function ProjectDetailPage(props: Props) {
     presentation,
     shared,
     retrospectives,
+    sessionLinks,
+    sessionList,
   ] = await Promise.all([
     canEdit ? listMembers(clubId) : null,
     // 기록 수를 세지 못했다면 AI Log 와의 연결이 아직 없는 것이라 기록을 읽지 않는다.
@@ -80,7 +90,22 @@ export default async function ProjectDetailPage(props: Props) {
       // 공개하기 전에 기록이 몇 개 나가는지 알리려고 센다. 공개할 수 있는 사람에게만 필요하다.
       canEdit ? countProjectSharedLogs(clubId, projectId) : null,
       listProjectRetrospectives(clubId, projectId),
+      listProjectSessionLinks(clubId, projectId),
+      // 이을 Session 을 고르는 목록은 고칠 수 있는 사람에게만 필요하다.
+      canEdit ? listSessions(clubId) : null,
     ]);
+  const directSessions =
+    sessionLinks.status === "ok" ? sessionLinks.sessions : [];
+  const linkedSessions = new Set(directSessions.map((item) => item.id));
+  // 최근 회차가 앞에 오게 한다. 잇는 구조가 아직 없으면 잇는 칸을 그리지 않는다.
+  const linkableSessions =
+    canEdit && sessionLinks.status === "ok" && sessionList?.status === "ok"
+      ? sessionList.sessions
+          .filter((item) => !linkedSessions.has(item.id))
+          .map((item) => ({ id: item.id, name: item.title }))
+          .reverse()
+          .slice(0, SESSION_OPTION_LIMIT)
+      : null;
   const joined = new Set(project.participants.map((item) => item.memberId));
   // 이미 참여자가 된 사람의 요청이 남아 있으면 보여 주지 않는다.
   const requests =
@@ -115,12 +140,21 @@ export default async function ProjectDetailPage(props: Props) {
       }
       aside={
         <>
-          {logs?.status === "ok" && (
-            <ProjectSessionsCard
-              clubId={clubId}
-              sessions={sessionsOfLogs(logs.logs)}
-            />
-          )}
+          <ProjectSessionsCard
+            clubId={clubId}
+            sessions={mergeSessionLinks(
+              directSessions,
+              logs?.status === "ok" ? sessionsOfLogs(logs.logs) : []
+            )}
+            linkable={linkableSessions}
+            onLink={linkProjectSession.bind(null, clubId, projectId)}
+            unlink={
+              canEdit
+                ? (sessionId) =>
+                    unlinkSessionProject.bind(null, clubId, sessionId, projectId)
+                : undefined
+            }
+          />
           {/* 발표의 구조가 아직 없거나 불러오지 못했으면 그리지 않는다. */}
           {presentation.status === "ok" && (
             <PresentationCard

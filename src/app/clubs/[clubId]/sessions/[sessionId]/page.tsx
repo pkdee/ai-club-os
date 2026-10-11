@@ -9,8 +9,16 @@ import { AttendanceOverviewCard } from "@/features/attendance/components/attenda
 import { listAttendance } from "@/features/attendance/queries";
 import { countAttendance } from "@/features/attendance/status";
 import { getCurrentUser } from "@/features/auth/session";
+import {
+  linkSessionProject,
+  unlinkSessionProject,
+} from "@/features/project/actions";
 import { SessionProjectsCard } from "@/features/project/components/linked-cards";
-import { projectsOfLogs } from "@/features/project/links";
+import { mergeProjectLinks, projectsOfLogs } from "@/features/project/links";
+import {
+  listProjects,
+  listSessionProjectLinks,
+} from "@/features/project/queries";
 import { listMembers } from "@/features/member/queries";
 import { SessionOverview } from "@/features/session/components/session-overview";
 import { loadSessionPage } from "@/features/session/page-data";
@@ -37,12 +45,37 @@ export default async function SessionOverviewPage(props: Props) {
   }
 
   const base = `/clubs/${clubId}/sessions/${sessionId}`;
-  const [user, members, attendance, logs] = await Promise.all([
-    getCurrentUser(),
-    listMembers(clubId),
-    listAttendance(clubId, sessionId),
-    listSessionLogs(clubId, sessionId),
-  ]);
+  const [user, members, attendance, logs, links, projectList] =
+    await Promise.all([
+      getCurrentUser(),
+      listMembers(clubId),
+      listAttendance(clubId, sessionId),
+      listSessionLogs(clubId, sessionId),
+      listSessionProjectLinks(clubId, sessionId),
+      listProjects(clubId),
+    ]);
+  const isAdmin = data.club.role === "admin";
+  // 내가 이을 수 있는 Project. 운영자는 모두, 다른 Member 는 자기가 참여하는 것만이다.
+  // 잇는 구조가 아직 없으면 잇는 칸을 그리지 않는다.
+  const mine = new Set(
+    projectList.status === "ok" && user
+      ? projectList.projects
+          .filter(
+            (project) =>
+              isAdmin ||
+              project.participants.some((item) => item.userId === user.id)
+          )
+          .map((project) => project.id)
+      : []
+  );
+  const direct = links.status === "ok" ? links.projects : [];
+  const linked = new Set(direct.map((project) => project.id));
+  const linkable =
+    links.status === "ok" && projectList.status === "ok"
+      ? projectList.projects
+          .filter((project) => mine.has(project.id) && !linked.has(project.id))
+          .map((project) => ({ id: project.id, name: project.name }))
+      : null;
   // 바로 앞 회차의 공개된 AI Insight 에 다음 행동이 있으면 이 회차의 개요에 이어서 보여 준다.
   const sessions = await listSessions(clubId);
   const order = sessions.status === "ok" ? sessions.sessions : [];
@@ -83,12 +116,21 @@ export default async function SessionOverviewPage(props: Props) {
                 .map((log) => log.id)}
             />
           )}
-          {logs.status === "ok" && (
-            <SessionProjectsCard
-              clubId={clubId}
-              projects={projectsOfLogs(logs.logs)}
-            />
-          )}
+          <SessionProjectsCard
+            clubId={clubId}
+            projects={mergeProjectLinks(
+              direct,
+              logs.status === "ok" ? projectsOfLogs(logs.logs) : []
+            ).map((project) => ({
+              ...project,
+              canUnlink: mine.has(project.id),
+            }))}
+            linkable={linkable}
+            onLink={linkSessionProject.bind(null, clubId, sessionId)}
+            unlink={(projectId) =>
+              unlinkSessionProject.bind(null, clubId, sessionId, projectId)
+            }
+          />
         </>
       }
     >

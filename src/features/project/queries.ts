@@ -68,6 +68,17 @@ export type Project = {
 // unavailable 은 데이터베이스에 Project 의 구조가 아직 없다는 뜻이다.
 // logsLinked 는 ai_logs 에 Project 연결이 있는지다. Project 테이블만 먼저 적용된 사이에는 false 이고,
 // 그때는 AI Log 를 Project 에 묶을 수 없다.
+// Session 과 Project 를 직접 이어 둔 것. unavailable 은 그 구조가 아직 없다는 뜻이다.
+export type SessionProjectLinksResult =
+  | { status: "ok"; projects: { id: string; name: string }[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
+export type ProjectSessionLinksResult =
+  | { status: "ok"; sessions: { id: string; title: string }[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
 export type ProjectListResult =
   | { status: "ok"; projects: Project[]; logsLinked: boolean }
   | { status: "unavailable" }
@@ -327,6 +338,80 @@ export const listProjectJoinRequests = cache(
             ]
           : []
       ),
+    }
+  }
+)
+
+// 한 Session 에 직접 이어 둔 Project 를 이은 순서로 읽는다.
+export const listSessionProjectLinks = cache(
+  async (
+    clubId: string,
+    sessionId: string
+  ): Promise<SessionProjectLinksResult> => {
+    if (!isUuid(sessionId)) {
+      return { status: "ok", projects: [] }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("session_projects")
+      .select("project:projects!session_projects_project_fkey(id, name)")
+      .eq("club_id", clubId)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      if (isMissingTable(error)) {
+        return { status: "unavailable" }
+      }
+      console.error("Session 에 이어 둔 Project 를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      projects: (
+        (data ?? []) as unknown as {
+          project: { id: string; name: string } | null
+        }[]
+      ).flatMap((row) => (row.project ? [row.project] : [])),
+    }
+  }
+)
+
+// 한 Project 를 직접 이어 둔 Session 을 이은 순서로 읽는다.
+export const listProjectSessionLinks = cache(
+  async (
+    clubId: string,
+    projectId: string
+  ): Promise<ProjectSessionLinksResult> => {
+    if (!isUuid(projectId)) {
+      return { status: "ok", sessions: [] }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("session_projects")
+      .select("session:sessions!session_projects_session_fkey(id, title)")
+      .eq("club_id", clubId)
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      if (isMissingTable(error)) {
+        return { status: "unavailable" }
+      }
+      console.error("Project 를 이어 둔 Session 을 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      sessions: (
+        (data ?? []) as unknown as {
+          session: { id: string; title: string } | null
+        }[]
+      ).flatMap((row) => (row.session ? [row.session] : [])),
     }
   }
 )

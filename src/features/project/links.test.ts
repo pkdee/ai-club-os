@@ -1,7 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { projectsOfLogs, sessionsOfLogs } from "./links"
+import {
+  mergeProjectLinks,
+  mergeSessionLinks,
+  projectsOfLogs,
+  sessionsOfLogs,
+} from "./links"
 
 const s1 = { id: "s1", title: "1회차" }
 const s2 = { id: "s2", title: "2회차" }
@@ -44,4 +49,23 @@ test("받은 값을 고치지 않는다", () => {
   const session = { ...s1 }
   sessionsOfLogs([{ session }, { session }])
   assert.deepEqual(session, s1)
+})
+
+test("직접 이은 것이 앞에 오고 기록 수는 그대로 붙는다", () => {
+  assert.deepEqual(
+    mergeProjectLinks([p2], [
+      { ...p1, logCount: 3 },
+      { ...p2, logCount: 1 },
+    ]),
+    [
+      { ...p2, logCount: 1, direct: true },
+      { ...p1, logCount: 3, direct: false },
+    ]
+  )
+})
+
+test("직접 이었지만 기록이 없는 것은 기록 수가 0 이다", () => {
+  assert.deepEqual(mergeSessionLinks([s1], []), [{ ...s1, logCount: 0, direct: true }])
+  assert.deepEqual(mergeSessionLinks([], [{ ...s2, logCount: 2 }]), [{ ...s2, logCount: 2, direct: false }])
+  assert.deepEqual(mergeProjectLinks([], []), [])
 })

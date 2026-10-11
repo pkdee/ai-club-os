@@ -669,3 +669,99 @@ export async function updateProjectTask(
   revalidatePath(`/clubs/${clubId}`, "layout")
   return { ok: true }
 }
+
+const LINK_NOT_READY_MESSAGE =
+  "데이터베이스에 Session 과 Project 를 잇는 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const LINK_NOT_ALLOWED_MESSAGE =
+  "운영자와 그 Project 의 참여자만 Session 에 잇고 끊을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+const LINK_GONE_MESSAGE =
+  "그 Session 이나 Project 를 찾을 수 없습니다. 지워졌을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+
+// Session 과 Project 는 서로의 화면에 보이므로 두 화면을 함께 새로 읽는다.
+function refreshLink(clubId: string, sessionId: string, projectId: string) {
+  revalidatePath(`/clubs/${clubId}/sessions/${sessionId}`, "layout")
+  revalidatePath(`/clubs/${clubId}/projects/${projectId}`)
+}
+
+// Session 에서 다룰 Project 를 잇는다. 운영자는 어느 Project 든, 참여자는 자기 Project 를 잇는다.
+export async function linkSessionProject(
+  clubId: string,
+  sessionId: string,
+  projectId: string
+): Promise<ProjectActionResult> {
+  await requireUser()
+  if (!isUuid(sessionId) || !isUuid(projectId)) {
+    return { ok: false, message: LINK_GONE_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from("session_projects").insert({
+    club_id: clubId,
+    session_id: sessionId,
+    project_id: projectId,
+  })
+
+  // 23505 는 이미 이어 둔 것이다. 바라던 상태이므로 성공으로 본다.
+  if (error && error.code !== "23505") {
+    if (isMissingTable(error)) {
+      return { ok: false, message: LINK_NOT_READY_MESSAGE }
+    }
+    if (isDenied(error)) {
+      return { ok: false, message: LINK_NOT_ALLOWED_MESSAGE }
+    }
+    // 23503 은 Session 이나 Project 가 없거나 다른 Club 의 것이다.
+    if (error.code === "23503") {
+      return { ok: false, message: LINK_GONE_MESSAGE }
+    }
+    console.error("Session 과 Project 를 잇지 못했습니다.", error)
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+
+  refreshLink(clubId, sessionId, projectId)
+  return { ok: true }
+}
+
+// Project 화면에서 Session 을 골라 잇는다. 고른 값이 마지막 인자로 오도록 순서만 바꾼 것이다.
+export async function linkProjectSession(
+  clubId: string,
+  projectId: string,
+  sessionId: string
+): Promise<ProjectActionResult> {
+  return linkSessionProject(clubId, sessionId, projectId)
+}
+
+// 이어 둔 것을 끊는다. 이을 수 있는 사람이 끊는다. 기록으로 이어진 것은 여기서 끊을 수 없다.
+export async function unlinkSessionProject(
+  clubId: string,
+  sessionId: string,
+  projectId: string
+): Promise<ProjectActionResult> {
+  await requireUser()
+  if (!isUuid(sessionId) || !isUuid(projectId)) {
+    return { ok: false, message: LINK_GONE_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("session_projects")
+    .delete()
+    .eq("club_id", clubId)
+    .eq("session_id", sessionId)
+    .eq("project_id", projectId)
+    .select("session_id")
+
+  if (error) {
+    if (isMissingTable(error)) {
+      return { ok: false, message: LINK_NOT_READY_MESSAGE }
+    }
+    console.error("Session 과 Project 를 끊지 못했습니다.", error)
+    return { ok: false, message: RETRY_MESSAGE }
+  }
+  // 접근 규칙에 막혔거나 이미 끊긴 것이면 오류 없이 0개가 돌아온다.
+  if (data.length === 0) {
+    return { ok: false, message: LINK_NOT_ALLOWED_MESSAGE }
+  }
+
+  refreshLink(clubId, sessionId, projectId)
+  return { ok: true }
+}
