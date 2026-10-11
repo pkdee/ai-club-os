@@ -25,7 +25,8 @@ async function countOf(
     .select("id", { count: "exact", head: true })
     .eq(column, userId)
 
-  return error ? null : (count ?? 0)
+  // 테이블이 아직 없으면 오류 없이 수만 비어서 돌아오기도 한다. 그때도 세지 못한 것으로 본다.
+  return error || count === null ? null : count
 }
 
 // 내가 속한 모든 Club 에서 내가 남긴 것을 센다.

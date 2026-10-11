@@ -13,8 +13,10 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 2
 fi
 
+# 컨테이너를 지울 때 이름 없는 볼륨도 함께 지운다. Postgres 는 켜질 때마다 데이터를 둘 볼륨을 하나 만드는데,
+# 이것을 남겨 두면 시험을 돌릴 때마다 Docker 의 디스크가 수십 MB 씩 찬다.
 cleanup() {
-  docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  docker rm -fv "$CONTAINER" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 cleanup
