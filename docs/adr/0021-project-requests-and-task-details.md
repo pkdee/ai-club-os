@@ -35,7 +35,7 @@ Club 개요에서 내가 참여하는 Project 를 바로 볼 수 없다는 것�
 
 ### 이어 보기
 
-- Session 과 Project 를 잇는 테이블은 만들지 않습니다. AI Log 가 둘을 모두 가리키므로 기록을 거쳐 잇습니다.
+- Session 과 Project 를 잇는 테이블은 만들지 않습니다. AI Log 가 둘을 모두 가리키므로 기록을 거쳐 잇습니다. 2026-10-12 에 `0026-comments-and-helpful-marks.md` 에서 직접 잇는 테이블을 더했습니다. 기록을 거쳐 이어진 것도 그대로 함께 보여 줍니다.
 - Session 개요에는 그 회차의 AI Log 가 묶인 Project 를, Project 화면에는 묶인 AI Log 가 나온 Session 을 기록 수와 함께 보여 줍니다.
 - Club 개요에는 내가 참여하는 Project 가운데 끝나지 않은 것을 남은 할 일 수와 함께 세 개까지 보여 줍니다.
 

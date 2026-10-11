@@ -8,9 +8,9 @@
 | 언어 | TypeScript | 5.9 도입 |
 | 스타일 | Tailwind CSS | 4.3 도입 |
 | 사용자 인터페이스 | shadcn/ui | 도입. Button, Alert, Input, Textarea, Field, Label, Dialog, Badge, Empty, Avatar, Breadcrumb, LinkTabs, Menu, Skeleton, NativeSelect |
-| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives` 정의 |
+| 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives`, `ai_log_comments`, `ai_log_reactions`, `session_projects`, `ai_log_attachments` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
-| 파일 저장 | Supabase Storage | 필요 시 도입 |
+| 파일 저장 | Supabase Storage | 2026-10-12 도입. AI Log 의 이미지를 공개하지 않는 저장 공간 `ai-log-images` 에 둔다. 새 패키지 없음 |
 | 배포 | Vercel | 도입 예정 |
 | 패키지 관리 | npm | 도입 |
 | AI Provider | Anthropic 의 Claude | 도입. 새 패키지 없이 Messages API 를 `fetch` 로 부른다. 키와 모델은 서버의 환경 변수 |
@@ -41,6 +41,20 @@ Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행
 
 알려진 경고가 하나 있습니다. `npm audit` 가 `braces` 의 서비스 거부 취약점으로 high 5건을 보고합니다. 모두 `eslint-config-next` 가 끌어오는 개발 도구 경로이고 배포되는 코드에는 들어가지 않습니다. 자동 수정은 `eslint-config-next` 를 14 로 내리는 방식이라 적용하지 않았습니다.
 
+## 파일 저장 방향
+
+2026-10-12 에 Supabase Storage 를 들였습니다. 쓰는 곳은 AI Log 의 이미지 하나입니다.
+
+- 저장 공간과 접근 규칙은 마이그레이션이 만듭니다. 대시보드에서 손으로 만들지 않습니다.
+- Storage 를 부르는 서버 코드는 `src/features/ai-log/image-store.ts` 한 곳에만 둡니다. `server-only` 로 표시했습니다.
+- 파일은 브라우저가 Storage 로 바로 올립니다. 서버가 올릴 자리에만 쓰는 한 번짜리 표를 만들어 주고, 브라우저는 로그인 정보를 싣지 않는 연결(`src/lib/supabase/upload-client.ts`)로 그 표를 씁니다. 배포 서비스가 요청 하나의 크기를 5MB 보다 작게 막기 때문입니다.
+- 보여 줄 때는 서버가 한 시간짜리 주소를 만듭니다. `next/image` 의 변환은 거치지 않습니다.
+- 근거는 `docs/adr/0028-ai-log-images-in-storage.md` 에 있습니다.
+
+## 화면 모드
+
+밝은 화면과 어두운 화면은 새 패키지 없이 만들었습니다. 고른 값은 브라우저의 `localStorage` 에 두고, 화면을 그리기 전에 실행하는 짧은 스크립트(`src/lib/theme.ts` 의 `THEME_SCRIPT`)가 `html` 에 `dark` 를 붙입니다. Next.js 문서의 preventing-flash-before-hydration 안내를 따랐습니다.
+
 ## 서버 방향
 
 MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supabase를 중심으로 구성하고, 별도 서버가 필요한 근거가 생길 때 설계 결정을 다시 검토합니다.
@@ -55,6 +69,7 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 
 - 테스트 도구와 테스트 범위. 권한 규칙과 입력 규칙은 `npm test` 로 검증한다. 화면에서의 흐름을 자동으로 검증하는 도구는 2026-10-11 에 사용자가 아직 들이지 않기로 했다.
 - 상태 관리 방식
+- Storage 의 용량 한도와 오래된 파일의 정리. 지금은 기록마다 4장이라는 제한만 있다.
 - 관측성과 오류 수집 도구
 
 이 항목은 해당 기능을 구현하는 마일스톤에서 필요 근거와 함께 정합니다.

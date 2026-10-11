@@ -40,7 +40,7 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives`, `ai_log_comments`, `ai_log_reactions`, `session_projects`, `ai_log_attachments` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다. 파일은 Storage 의 `ai-log-images` 한 곳에 둡니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -74,6 +74,13 @@ User
 | `deletion_logs` 의 보관 기간과 회고 종류 | `20261011073604_log_and_expire_deletions.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
 | `ai_log_revisions` 의 보관 기간 | `20261011073607_expire_ai_log_revisions.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
 | `members` 의 역할이 바뀐 시각 열, 운영자 이어받기 | `20261011073611_promote_member_when_admin_is_gone.sql` | `docs/adr/0025-retention-and-ownerless-rules.md` |
+| `ai_log_comments`, `ai_log_reactions` | `20261011145437_create_ai_log_comments_and_reactions.sql` | `docs/adr/0026-comments-and-helpful-marks.md` |
+| 지운 댓글을 지운 기록에 남기기, 계정을 지울 때는 남기지 않기 | `20261011145440_log_comment_deletions.sql` | `docs/adr/0026-comments-and-helpful-marks.md`, `docs/adr/0027-account-deletion-and-privacy.md` |
+| `retrospectives` 의 두 가지 쓰임 열, 발표에 회고 싣기 | `20261011145444_add_retrospective_options.sql` | `docs/adr/0024-retrospectives.md` |
+| `session_projects` | `20261011145448_create_session_projects.sql` | `docs/adr/0026-comments-and-helpful-marks.md` |
+| `ai_log_attachments`, 장수 제한, 파일이 남은 줄을 지키는 규칙 | `20261011145452_create_ai_log_attachments.sql` | `docs/adr/0028-ai-log-images-in-storage.md` |
+| Storage 의 `ai-log-images` 와 접근 규칙 | `20261011145455_create_ai_log_images_bucket.sql` | `docs/adr/0028-ai-log-images-in-storage.md` |
+| 계정을 지우는 함수, Member 가 없는 Club 지우기 | `20261011145459_add_account_deletion.sql` | `docs/adr/0027-account-deletion-and-privacy.md` |
 
 ```mermaid
 erDiagram
@@ -580,14 +587,14 @@ AI Log 의 내용이 바뀔 때마다 `ai_logs_keep_revision` trigger 가 고치
 |---|---|---|
 | `id` | uuid | 기본 키 |
 | `club_id` | uuid | Club. Club 이 삭제되면 함께 삭제된다 |
-| `entity` | text | `ai_log`, `session`, `project`, `ai_insight`, `retrospective` 가운데 하나 |
-| `title` | text | 지운 것의 제목. AI Insight 는 정리한 회차의 제목이나 달, 회고는 돌아본 Project 나 회차의 이름이나 달이다 |
-| `owner_name` | text | 지운 AI Log 나 회고의 작성자 이름. 다른 종류이거나 작성자가 나간 기록이면 비어 있다 |
+| `entity` | text | `ai_log`, `session`, `project`, `ai_insight`, `retrospective`, `comment` 가운데 하나 |
+| `title` | text | 지운 것의 제목. AI Insight 는 정리한 회차의 제목이나 달, 회고는 돌아본 Project 나 회차의 이름이나 달, 댓글은 그 댓글이 달려 있던 AI Log 의 제목이다 |
+| `owner_name` | text | 지운 AI Log, 회고, 댓글의 작성자 이름. 다른 종류이거나 작성자가 나간 기록이면 비어 있다 |
 | `deleted_by` | uuid | 지운 사용자. 사용자가 삭제되면 비운다 |
 | `deleted_by_name` | text | 지운 사람이 그때 Club 안에서 쓰던 이름 |
 | `created_at` | timestamptz | 지운 시각 |
 
-`ai_logs`, `sessions`, `projects`, `ai_insights`, `retrospectives` 의 trigger 가 지운 뒤에 적습니다. 앱은 읽기만 합니다. Session 을 지우면서 함께 지워진 AI Insight, Project 나 Session 을 지우면서 함께 지워진 회고, Club 을 통째로 지울 때의 것들은 적지 않습니다.
+`ai_logs`, `sessions`, `projects`, `ai_insights`, `retrospectives`, `ai_log_comments` 의 trigger 가 지운 뒤에 적습니다. 계정을 지우면서 자기가 쓴 것을 함께 지울 때는 적지 않습니다. 앱은 읽기만 합니다. Session 을 지우면서 함께 지워진 AI Insight, Project 나 Session 을 지우면서 함께 지워진 회고, Club 을 통째로 지울 때의 것들은 적지 않습니다.
 
 365일 동안만 둡니다. 날수는 `private.deletion_log_days()` 에 있습니다. 기간이 지난 줄은 접근 규칙이 보여 주지 않고, 그 Club 에서 무언가를 지워 새 줄을 남길 때 trigger 가 지웁니다.
 
@@ -646,12 +653,96 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 | `to_try` | text | 다음에 해 볼 것. 2000자 이하. 기본값은 빈 문자열 |
 | `created_at` | timestamptz | 쓴 시각 |
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 세 칸이 실제로 바뀌었을 때만 바뀐다 |
+| `use_in_insight` | boolean | AI Insight 의 자료로 써도 되는지. 기본값은 false. Session 회고와 한 달 회고에서만 뜻이 있다 |
+| `share_in_presentation` | boolean | 발표에 넣어도 되는지. 기본값은 false. Project 회고에서만 뜻이 있다 |
 
 돌아보는 대상은 `scope` 에 맞는 것 하나만 적습니다. 세 칸 가운데 하나는 적어야 하고, 공백과 줄바꿈만 있는 것은 적은 것으로 치지 않습니다. 한 사람이 한 대상에 하나만 쓸 수 있도록 `scope` 마다 대상과 작성자에 unique 색인이 있습니다. 작성자가 비워진 회고는 여러 개가 남을 수 있습니다.
 
 `retrospectives_check_target` trigger 가 넣을 때 확인합니다. 아직 시작하지 않은 Session 과 아직 오지 않은 달에는 쓸 수 없고, 그때는 오류(`23514`)를 냅니다. Project 회고를 참여자만 쓴다는 것은 접근 규칙이 확인합니다.
 
-AI Insight 를 만들 때 AI 로 보내지 않고, 발표에도 내보내지 않습니다.
+작성자가 켠 것만 씁니다. `use_in_insight` 를 켠 Session 회고와 한 달 회고는 운영자가 AI Insight 를 만들 때 세 칸의 글만 AI 로 보냅니다. `share_in_presentation` 을 켠 Project 회고는 `get_presentation` 이 그 Project 의 발표에 실어 내보냅니다. 두 열 모두 작성자만 고칩니다.
+
+### ai_log_comments
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club. Club 이 삭제되면 함께 삭제된다 |
+| `log_id` | uuid | 댓글이 달린 AI Log. 같은 Club 의 것이어야 하고, 기록이 삭제되면 함께 삭제된다 |
+| `author_id` | uuid | 쓴 사람의 사용자 식별자. 만들 때 로그인한 사용자로 정해진다. Member 가 Club 에서 빠지면 비운다 |
+| `body` | text | 댓글. 공백이 아닌 글자가 하나는 있어야 하고 1000자 이하 |
+| `created_at` | timestamptz | 쓴 시각 |
+| `updated_at` | timestamptz | 마지막으로 고친 시각 |
+
+지우면 `deletion_logs` 에 한 줄이 남습니다. 기록을 지우면서 함께 지워진 댓글은 남기지 않습니다.
+
+### ai_log_reactions
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `log_id` | uuid | 표시한 AI Log. 기록이 삭제되면 함께 삭제된다 |
+| `user_id` | uuid | 표시한 사람. 만들 때 로그인한 사용자로 정해진다. Member 가 Club 에서 빠지면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club |
+| `created_at` | timestamptz | 표시한 시각 |
+
+"도움이 됐어요" 표시입니다. 기본 키가 기록과 사람의 짝이라 한 사람이 한 기록에 한 번만 표시합니다. 자기 기록에는 표시할 수 없습니다. 고치는 일은 없고, 거두려면 지웁니다.
+
+### session_projects
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `session_id` | uuid | 회차. 같은 Club 의 것이어야 하고, 삭제되면 함께 삭제된다 |
+| `project_id` | uuid | Project. 같은 Club 의 것이어야 하고, 삭제되면 함께 삭제된다 |
+| `club_id` | uuid | 소속 Club |
+| `created_by` | uuid | 이은 사용자. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 이은 시각 |
+
+회차와 Project 를 직접 잇습니다. AI Log 를 거쳐 이어진 것은 여기에 적지 않고 화면에서 함께 보여 줍니다.
+
+### ai_log_attachments
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `id` | uuid | 기본 키 |
+| `club_id` | uuid | 소속 Club |
+| `log_id` | uuid | 이미지가 붙은 AI Log |
+| `path` | text | Storage 안의 경로. Club, 기록, 파일 이름의 세 마디다. 겹칠 수 없다 |
+| `mime_type` | text | `image/png`, `image/jpeg`, `image/webp`, `image/gif` 가운데 하나 |
+| `size_bytes` | integer | 올리겠다고 적어 낸 크기. 1 이상 5242880 이하 |
+| `created_by` | uuid | 붙인 사용자. 만들 때 로그인한 사용자로 정해진다. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 붙인 시각 |
+
+AI Log 에 붙인 이미지의 목록입니다. 파일은 Storage 의 `ai-log-images` 에 있습니다.
+
+- 경로의 앞 두 마디는 이 줄의 Club 과 기록이어야 하고, 파일 이름은 앱이 만든 식별자와 확장자여야 합니다. check 제약이 확인합니다.
+- 한 기록에 4장까지입니다. `ai_log_attachments_check_limit` trigger 가 넣을 때 세고, 넘으면 오류(`23514`)를 냅니다. 수는 `private.ai_log_image_limit()` 에 있습니다.
+- 파일이 Storage 에 남아 있는 줄은 지울 수 없습니다. `ai_log_attachments_keep_until_file_is_gone` trigger 가 막고 오류(`23503`)를 냅니다. 기록이나 Club 이 지워지면서 줄이 함께 지워질 때도 같아서, 파일을 먼저 지우지 않으면 지우는 일 전체가 되돌려집니다.
+
+### Storage 의 ai-log-images
+
+공개하지 않는 저장 공간입니다. 한 파일에 5MB 까지, 위의 네 가지 형식만 받습니다. 마이그레이션이 만들고 설정합니다.
+
+`storage.objects` 에 접근 규칙 세 개를 둡니다.
+
+| 동작 | 허용 조건 |
+|---|---|
+| 조회 | 경로의 첫 마디인 Club 의 Member. 또는 그 파일을 올린 본인 |
+| 올리기 | 경로의 Club 의 Member 이고, 경로의 기록의 작성자이고, `ai_log_attachments` 에 그 경로를 본인이 적어 둔 경우 |
+| 삭제 | 그 파일을 올린 본인, 경로의 Club 의 운영자, 경로의 기록의 작성자인 Member |
+| 고치기 | 없음. 같은 자리에 덮어쓸 수 없다 |
+
+올린 본인에게 조회와 삭제를 열어 둔 것은 Club 에서 나간 뒤에도 자기 파일을 거둘 수 있게 하려는 것입니다. 경로의 마디가 식별자 모양이 아니면 `private.uuid_or_null` 이 오류 없이 걸러 냅니다.
+
+### 계정을 지우는 함수
+
+`public.delete_my_account(delete_content boolean default false)` 이 지금 로그인한 사용자의 계정을 지웁니다. 로그인한 사용자만 부를 수 있습니다.
+
+- 내가 붙인 이미지의 줄을 지웁니다. 파일이 남아 있으면 여기서 막혀 아무것도 바뀌지 않습니다.
+- `delete_content` 가 true 이면 내가 쓴 댓글, 회고, AI Log 를 지웁니다. false 이면 작성자가 비워진 채 남습니다.
+- 계정을 지웁니다. 소속, 출석, Project 참여, 참여 요청, 표시, 알림을 확인한 시각이 함께 지워집니다.
+- 이 함수 안에서 지운 것은 `deletion_logs` 에 남기지 않습니다.
+
+계정이 지워지면서 Member 가 한 명도 남지 않게 된 Club 은 `members_remove_empty_club` trigger 가 지웁니다. 스스로 나가거나 내보내지는 경우에는 마지막 운영자 규칙 때문에 Club 이 비지 않습니다.
 
 ### notification_reads
 
@@ -726,8 +817,23 @@ AI Insight 를 만들 때 AI 로 보내지 않고, 발표에도 내보내지 않
 | `presentations` | 수정 | 생성과 같은 사람. 이름을 보일지와 소개 글만 고칠 수 있다 |
 | `retrospectives` | 조회 | 그 Club 의 Member. Project, Session, 한 달 회고 모두 그렇다 |
 | `retrospectives` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다. Project 회고는 그 Project 의 참여자만, Session 회고는 시작한 회차에만, 한 달 회고는 이번 달과 지난 달에만 쓴다. 한 대상에 하나만 쓴다 |
-| `retrospectives` | 수정 | 작성자 본인. 세 칸만 고칠 수 있다. 대상과 단위는 바꿀 수 없다 |
+| `retrospectives` | 수정 | 작성자 본인. 세 칸과 두 가지 쓰임(AI Insight 에 써도 됨, 발표에 넣어도 됨)만 고칠 수 있다. 대상과 단위는 바꿀 수 없다 |
 | `retrospectives` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 회고는 운영자만 지운다 |
+| `ai_log_comments` | 조회 | 그 Club 의 Member |
+| `ai_log_comments` | 생성 | 그 Club 의 Member. 쓴 사람은 본인으로 정해진다. 같은 Club 의 기록에만 단다 |
+| `ai_log_comments` | 수정 | 쓴 본인. 댓글의 글만 고칠 수 있다 |
+| `ai_log_comments` | 삭제 | 쓴 본인과 그 Club 의 운영자 |
+| `ai_log_reactions` | 조회 | 그 Club 의 Member |
+| `ai_log_reactions` | 생성 | 그 Club 의 Member 가 자기 이름으로. 자기 기록에는 넣을 수 없다 |
+| `ai_log_reactions` | 삭제 | 표시한 본인 |
+| `ai_log_reactions` | 수정 | 없음 |
+| `session_projects` | 조회 | 그 Club 의 Member |
+| `session_projects` | 생성, 삭제 | 그 Club 의 운영자와 그 Project 의 참여자 |
+| `session_projects` | 수정 | 없음 |
+| `ai_log_attachments` | 조회 | 그 Club 의 Member. 붙인 본인은 Club 에서 나간 뒤에도 자기 줄을 본다 |
+| `ai_log_attachments` | 생성 | 그 기록의 작성자. 붙인 사람은 본인으로 정해진다 |
+| `ai_log_attachments` | 삭제 | 그 기록의 작성자와 그 Club 의 운영자. 파일이 남아 있으면 누구도 지우지 못한다 |
+| `ai_log_attachments` | 수정 | 없음 |
 | `notification_reads` | 조회 | 본인의 것만 |
 | `notification_reads` | 생성, 수정 | 직접은 없음. `mark_notifications_seen` 으로 본인의 것만 적는다 |
 | `notification_reads` | 삭제 | 없음 |
@@ -748,6 +854,5 @@ Member 가 Club 에서 나가면 그 사람의 Attendance 와 Project 참여는 
 
 Attendance 상태 값과 AI Log 입력 항목은 `docs/REQUIREMENTS.md` 의 잠정 결정대로 구현했습니다. Attendance 상태의 종류가 바뀌면 check 제약과 `src/features/attendance/status.ts` 를, AI Log 입력 항목이 바뀌면 열과 check 제약, `src/features/ai-log/rules.ts` 를 함께 고칩니다.
 
-- Member 가 한 명도 남지 않은 Club 을 어떻게 할지. 지금은 아무에게도 보이지 않는 채로 남는다
-- 파일 첨부 범위
+- Club 마다 Storage 에 쓸 수 있는 용량의 한도. 지금은 기록마다 4장이라는 제한만 있다
 - 나머지 테이블의 행 단위 보안 정책
