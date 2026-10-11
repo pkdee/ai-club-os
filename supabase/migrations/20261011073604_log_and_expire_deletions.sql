@@ -1,8 +1,9 @@
 -- 지운 기록을 1년 동안만 두고, 회고를 지운 것도 지운 기록에 남긴다.
 -- 결정 배경은 docs/adr/0025-retention-and-ownerless-rules.md 와 docs/adr/0024-retrospectives.md 에 있다.
 
--- 앞 파일(create_retrospectives)을 먼저 적용해야 한다.
--- 이 파일은 기존 테이블 가운데 deletion_logs 하나만 잠근다. 다시 실행해도 결과가 같다.
+-- 앞 파일(create_retrospectives)을 먼저 적용해야 한다. 회고를 지울 때 이 파일의 함수를 부르는 trigger 는 그 파일에 있다.
+-- 이 파일은 deletion_logs 하나만 잠근다. 다시 실행해도 결과가 같다.
+-- 다른 테이블을 함께 잠그면, 무언가를 지우면서 지운 기록을 남기려는 앱의 요청과 서로를 기다리게 된다.
 
 -- 잠금을 오래 기다리지 않는다. 앱의 요청과 엇갈려 기다리게 되면 이 파일이 먼저 물러나고 아무것도 바뀌지 않는다.
 -- 그때는 다시 실행하면 된다.
@@ -138,10 +139,3 @@ end;
 $$;
 
 revoke all on function private.log_deletion() from public;
-
--- 회고를 지우면 지운 기록을 남긴다.
-drop trigger if exists retrospectives_log_deletion on public.retrospectives;
-create trigger retrospectives_log_deletion
-  after delete on public.retrospectives
-  for each row
-  execute function private.log_deletion();

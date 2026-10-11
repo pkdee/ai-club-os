@@ -133,6 +133,15 @@ create trigger retrospectives_set_updated_at
   )
   execute function private.set_updated_at();
 
+-- 회고를 지우면 지운 기록을 남긴다. 함수는 이미 있는 것을 쓴다.
+-- 다음 파일(log_and_expire_deletions)이 그 함수를 회고를 아는 것으로 바꾸기 전에는 아무것도 남기지 않는다.
+-- trigger 를 여기서 거는 것은 이 테이블이 아직 아무에게도 보이지 않아 잠금을 기다릴 일이 없기 때문이다.
+drop trigger if exists retrospectives_log_deletion on public.retrospectives;
+create trigger retrospectives_log_deletion
+  after delete on public.retrospectives
+  for each row
+  execute function private.log_deletion();
+
 -- ---------------------------------------------------------------------------
 -- 행 단위 보안
 -- ---------------------------------------------------------------------------
