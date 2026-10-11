@@ -2,6 +2,9 @@
 
 // 한 기록에 남겨 두는 수정의 수. 데이터베이스의 private.ai_log_revision_limit() 과 같은 값이어야 한다.
 export const AI_LOG_REVISION_LIMIT = 20
+// 수정 기록을 두는 날수. 데이터베이스의 private.ai_log_revision_days() 와 같은 값이어야 한다.
+// 기간이 지난 것은 데이터베이스가 보여 주지 않고, 다시 고칠 때 지운다.
+export const AI_LOG_REVISION_DAYS = 90
 
 export type AiLogContent = {
   title: string

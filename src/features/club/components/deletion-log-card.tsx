@@ -3,6 +3,7 @@ import { kstMonthDay, kstTime } from "@/features/session/time"
 
 import {
   DELETED_ENTITY_LABEL,
+  DELETION_LOG_DAYS,
   DELETION_LOG_LIMIT,
   type DeletionLogResult,
 } from "../deletions"
@@ -26,7 +27,8 @@ export function DeletionLogCard({ result }: { result: DeletionLogResult }) {
         <h2 className="text-h3">지운 기록</h2>
         <p className="text-body-s text-muted-foreground">
           누가 언제 무엇을 지웠는지 최근 {DELETION_LOG_LIMIT}건을 보여 줍니다.
-          지운 내용은 남기지 않고 종류와 제목만 남깁니다.
+          지운 내용은 남기지 않고 종류와 제목만 남깁니다. 지운 지{" "}
+          {DELETION_LOG_DAYS}일이 지나면 이 기록도 사라집니다.
         </p>
       </div>
       {result.status === "error" ? (
@@ -48,7 +50,7 @@ export function DeletionLogCard({ result }: { result: DeletionLogResult }) {
               <p className="text-body-s text-muted-foreground">
                 {log.deletedByName || "알 수 없는 사람"} 님이{" "}
                 {formatDeletedAt(log.deletedAt)} 에 지움
-                {log.entity === "ai_log" &&
+                {(log.entity === "ai_log" || log.entity === "retrospective") &&
                   ` · 작성자 ${log.ownerName ?? "탈퇴한 Member"}`}
               </p>
             </li>

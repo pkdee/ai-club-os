@@ -2,14 +2,24 @@ import { cache } from "react"
 
 import { createClient } from "@/lib/supabase/server"
 
-export type DeletedEntity = "ai_log" | "session" | "project" | "ai_insight"
+export type DeletedEntity =
+  | "ai_log"
+  | "session"
+  | "project"
+  | "ai_insight"
+  | "retrospective"
 
 export const DELETED_ENTITY_LABEL: Record<DeletedEntity, string> = {
   ai_log: "AI Log",
   session: "Session",
   project: "Project",
   ai_insight: "AI Insight",
+  retrospective: "회고",
 }
+
+// 지운 기록을 두는 날수. 데이터베이스의 private.deletion_log_days() 와 같은 값이어야 한다.
+// 기간이 지난 것은 데이터베이스가 보여 주지 않고, 새로 남길 때 지운다.
+export const DELETION_LOG_DAYS = 365
 
 export type DeletionLog = {
   id: string

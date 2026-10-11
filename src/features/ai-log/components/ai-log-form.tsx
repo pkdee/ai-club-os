@@ -40,7 +40,7 @@ import {
   removeDraft,
   writeDraft,
 } from "../draft-storage"
-import { AI_LOG_REVISION_LIMIT } from "../revisions"
+import { AI_LOG_REVISION_DAYS, AI_LOG_REVISION_LIMIT } from "../revisions"
 import {
   AI_LOG_TEXT_MAX,
   AI_LOG_TITLE_MAX,
@@ -71,7 +71,7 @@ const GUIDE = [
   "저장한 뒤에도 고칠 수 있습니다.",
 ]
 // 수정 기록을 남기는 구조가 있을 때만 보여 준다. 고치기 전에 알 수 있어야 한다.
-const REVISION_GUIDE = `고치면 고치기 전의 내용이 수정 기록으로 남습니다. 나와 운영자만 보고, 최근 ${AI_LOG_REVISION_LIMIT}번까지 남습니다.`
+const REVISION_GUIDE = `고치면 고치기 전의 내용이 수정 기록으로 남습니다. 나와 운영자만 보고, ${AI_LOG_REVISION_DAYS}일 동안 최근 ${AI_LOG_REVISION_LIMIT}번까지 남습니다.`
 const INSIGHT_GUIDE = [
   "운영자가 AI Insight 를 만들 때 기록 내용이 AI 서비스로 보내질 수 있습니다. 이름과 이메일은 보내지 않습니다.",
 ]

@@ -1,7 +1,7 @@
 import { History } from "lucide-react"
 
 import { formatLogDateTime } from "../format"
-import type { AiLogEdit } from "../revisions"
+import { AI_LOG_REVISION_DAYS, type AiLogEdit } from "../revisions"
 
 // AI Log 의 수정 기록. 작성자와 운영자에게만 보여 준다.
 // 한 번의 수정마다 무엇이 어떻게 바뀌었는지 펼쳐 볼 수 있다. 수정한 적이 없으면 아무것도 그리지 않는다.
@@ -31,8 +31,8 @@ export function AiLogRevisions({
           수정 기록 {edits.length}건
         </h2>
         <p className="text-body-s text-muted-foreground">
-          작성자와 운영자에게만 보입니다. 최근 {limit}번의 수정까지 남고,
-          기록을 지우면 함께 지워집니다.
+          작성자와 운영자에게만 보입니다. 최근 {AI_LOG_REVISION_DAYS}일 동안의
+          수정이 {limit}번까지 남고, 기록을 지우면 함께 지워집니다.
         </p>
       </div>
       <ul className="flex flex-col divide-y">
