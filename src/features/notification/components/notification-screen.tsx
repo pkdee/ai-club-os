@@ -4,6 +4,7 @@ import {
   CircleAlert,
   ListTodo,
   RefreshCw,
+  Shield,
   Sparkles,
   UserCheck,
   UserPlus,
@@ -32,6 +33,7 @@ const ICONS: Record<Notification["kind"], LucideIcon> = {
   "join-request": UserPlus,
   task: ListTodo,
   accepted: UserCheck,
+  admin: Shield,
   insight: Sparkles,
 }
 
@@ -44,7 +46,9 @@ function describe(clubId: string, item: Notification, today: string) {
       return {
         href: `${base}/projects/${item.projectId}`,
         title: `${item.requesterName} 님이 참여를 요청했습니다`,
-        detail: item.projectName,
+        detail: item.ownerless
+          ? `${item.projectName} · 참여자가 없어 운영자가 받아 줍니다`
+          : item.projectName,
       }
     case "task":
       return {
@@ -63,6 +67,13 @@ function describe(clubId: string, item: Notification, today: string) {
         // 요청이 받아들여진 것과 참여자가 나를 직접 넣은 것을 가르지 않는다. 둘 다 참여자가 된 것이다.
         title: "Project 의 참여자가 됐습니다",
         detail: item.projectName,
+      }
+    case "admin":
+      return {
+        href: `${base}/members`,
+        title: "이 Club 의 운영자가 됐습니다",
+        detail:
+          "Member 를 초대하고 Session 을 만들 수 있습니다. 맡기 어려우면 다른 사람을 운영자로 지정한 뒤 구성원으로 내려올 수 있습니다.",
       }
     case "insight":
       return {
@@ -236,7 +247,7 @@ export function NotificationScreen({
           />
           <Group
             title="소식"
-            description="내가 맡은 할 일과, 최근 2주 사이에 참여자가 된 Project, 공개된 AI Insight 입니다."
+            description="내가 맡은 할 일과, 최근 2주 사이에 참여자가 된 Project, 운영자가 된 것, 공개된 AI Insight 입니다."
             clubId={clubId}
             items={news}
             today={today}

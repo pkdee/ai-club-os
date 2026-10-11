@@ -114,7 +114,8 @@ export function ProjectParticipants({
         </ul>
       ) : (
         <p className="text-body-s text-muted-foreground">
-          참여자가 없습니다. 운영자가 참여자를 넣을 수 있습니다.
+          참여자가 없습니다. 지금은 운영자만 고칠 수 있습니다. 참여 요청은
+          운영자가 받아 줍니다.
         </p>
       )}
       {canEdit && requests.length > 0 && (

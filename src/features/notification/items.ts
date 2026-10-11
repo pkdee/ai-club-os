@@ -3,6 +3,7 @@
 
 export type NotificationSource =
   // 내가 참여하는 Project 에 들어온 참여 요청. 받거나 거절할 때까지 남는다.
+  // ownerless 는 참여자가 한 명도 없는 Project 라서 운영자인 나에게 온 요청이라는 뜻이다.
   | {
       kind: "join-request"
       id: string
@@ -10,6 +11,7 @@ export type NotificationSource =
       projectId: string
       projectName: string
       requesterName: string
+      ownerless?: boolean
     }
   // 내가 맡은, 아직 끝내지 않은 할 일. at 은 맡게 된 시각이고 알 수 없으면 null 이다.
   | {
@@ -28,6 +30,12 @@ export type NotificationSource =
       at: string
       projectId: string
       projectName: string
+    }
+  // 내가 이 Club 의 운영자가 됐다. 다른 운영자가 지정했거나, 마지막 운영자의 계정이 지워져 이어받은 것이다.
+  | {
+      kind: "admin"
+      id: string
+      at: string
     }
   // 운영자가 AI Insight 를 공개했다. month 는 한 달 정리일 때의 달(YYYY-MM)이다.
   | {

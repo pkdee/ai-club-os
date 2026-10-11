@@ -21,7 +21,12 @@ export default async function NotificationPage(
 
   const now = new Date();
   // layout 이 메뉴의 알림 수를 세려고 이미 읽었으므로 여기서는 다시 조회하지 않는다.
-  const result = await getNotifications(clubId, data.user.id, data.club.memberId);
+  const result = await getNotifications(
+    clubId,
+    data.user.id,
+    data.club.memberId,
+    data.club.role === "admin"
+  );
 
   return (
     <NotificationScreen

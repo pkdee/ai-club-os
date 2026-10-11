@@ -105,3 +105,19 @@ test("새것이면서 챙길 것이어도 한 번만 센다", () => {
   assert.equal(items[0].isNew && items[0].needsAttention, true)
   assert.equal(countNotifications(items), 1)
 })
+
+test("운영자가 된 것은 소식이고, 참여자 없는 Project 의 요청은 챙길 것이다", () => {
+  const admin: NotificationSource = { kind: "admin", id: "club", at: "2026-10-10T05:00:00Z" }
+  const ownerless: NotificationSource = { ...request, id: "r2", ownerless: true }
+  const items = buildNotifications([admin, ownerless], "2026-10-10T04:00:00Z", today)
+  assert.deepEqual(
+    items.map((item) => [item.kind, item.isNew, item.needsAttention]),
+    [
+      ["join-request", false, true],
+      ["admin", true, false],
+    ]
+  )
+  assert.equal(countNotifications(items), 2)
+  // 확인하고 나면 운영자가 된 소식은 수에서 빠지고 요청은 남는다.
+  assert.equal(countNotifications(buildNotifications([admin, ownerless], "2026-10-11T00:00:00Z", today)), 1)
+})

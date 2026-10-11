@@ -55,12 +55,15 @@ function rows<T>(
 //   내가 맡은, 아직 끝내지 않은 할 일
 //   최근에 내가 참여자가 된 Project (요청이 받아들여졌거나 참여자가 나를 넣은 것)
 //   최근에 공개된 AI Insight
-// memberId 는 이 Club 에서의 내 Member 식별자다.
+//   최근에 내가 운영자가 된 것
+// memberId 는 이 Club 에서의 내 Member 식별자다. isAdmin 은 내가 운영자라는 뜻이다.
+// 참여자가 한 명도 없는 Project 에 들어온 참여 요청은 받아 줄 사람이 운영자뿐이라 운영자에게 보여 준다.
 export const getNotifications = cache(
   async (
     clubId: string,
     userId: string,
-    memberId: string | null
+    memberId: string | null,
+    isAdmin: boolean
   ): Promise<NotificationsResult> => {
     const supabase = await createClient()
     const seen = await supabase
@@ -85,13 +88,22 @@ export const getNotifications = cache(
     const projectList = await listProjects(clubId)
     const projects = projectList.status === "ok" ? projectList.projects : []
     const byId = new Map(projects.map((project) => [project.id, project]))
+    const ownerless = new Set(
+      isAdmin
+        ? projects
+            .filter((project) => project.participants.length === 0)
+            .map((project) => project.id)
+        : []
+    )
     const mine = projects
-      .filter((project) =>
-        project.participants.some((item) => item.userId === userId)
+      .filter(
+        (project) =>
+          ownerless.has(project.id) ||
+          project.participants.some((item) => item.userId === userId)
       )
       .map((project) => project.id)
 
-    const [requests, tasks, joined, insights] = await Promise.all([
+    const [requests, tasks, joined, insights, role] = await Promise.all([
       mine.length > 0
         ? supabase
             .from("project_join_requests")
@@ -127,6 +139,16 @@ export const getNotifications = cache(
         .gte("published_at", since)
         .order("published_at", { ascending: false })
         .range(0, INSIGHT_LIMIT - 1),
+      // 역할이 바뀐 시각. 그 열이 아직 없으면 이 소식만 빠진다.
+      isAdmin
+        ? supabase
+            .from("members")
+            .select("role_changed_at")
+            .eq("club_id", clubId)
+            .eq("user_id", userId)
+            .eq("role", "admin")
+            .gte("role_changed_at", since)
+        : null,
     ])
 
     const sources: NotificationSource[] = [
@@ -146,6 +168,7 @@ export const getNotifications = cache(
                 projectId: project.id,
                 projectName: project.name,
                 requesterName: memberName(row.member),
+                ownerless: ownerless.has(project.id),
               },
             ]
           : []
@@ -190,6 +213,13 @@ export const getNotifications = cache(
             ]
           : []
       }),
+      ...rows<{ role_changed_at: string }>("역할이 바뀐 시각을", role).map(
+        (row) => ({
+          kind: "admin" as const,
+          id: clubId,
+          at: row.role_changed_at,
+        })
+      ),
       ...rows<{
         id: string
         session_id: string | null

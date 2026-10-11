@@ -24,7 +24,8 @@ export default async function ClubLayout(
   const notifications = await getNotifications(
     clubId,
     user.id,
-    access.club.memberId
+    access.club.memberId,
+    access.club.role === "admin"
   );
 
   return (
