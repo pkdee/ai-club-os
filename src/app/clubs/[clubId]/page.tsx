@@ -25,6 +25,7 @@ import { MyRecordCard } from "@/features/club/components/my-record-card";
 import { loadClubPage } from "@/features/club/page-data";
 import { MyProjectsCard } from "@/features/project/components/linked-cards";
 import { listProjects } from "@/features/project/queries";
+import { hasMonthRetrospective } from "@/features/retrospective/queries";
 import { SessionFormDialog } from "@/features/session/components/session-form-dialog";
 import { TodaySessionCard } from "@/features/session/components/today-session-card";
 import { UpcomingSessions } from "@/features/session/components/upcoming-sessions";
@@ -84,6 +85,7 @@ export default async function ClubOverviewPage(
     myAttendance,
     latestInsight,
     projectList,
+    monthRetro,
     todayCounts,
   ] = await Promise.all([
     listClubLogs(club.id, RECENT_LOG_LIMIT, null),
@@ -94,6 +96,7 @@ export default async function ClubOverviewPage(
     club.memberId ? listMemberAttendance(club.id, club.memberId) : null,
     getLatestPublishedInsight(club.id),
     listProjects(club.id),
+    hasMonthRetrospective(club.id, user.id, now),
     Promise.all(
       today.map(async (session) => {
         const [recorded, sessionLogs] = await Promise.all([
@@ -210,6 +213,15 @@ export default async function ClubOverviewPage(
                     href: `/clubs/${club.id}/logs/${lastLog.id}`,
                   }
                 : null
+            }
+            // 회고의 구조가 아직 없으면 길을 그리지 않는다.
+            retro={
+              monthRetro === "unavailable"
+                ? null
+                : {
+                    href: `/clubs/${club.id}/retros/${monthKeyOf(now)}`,
+                    written: monthRetro === "written",
+                  }
             }
           />
         </>

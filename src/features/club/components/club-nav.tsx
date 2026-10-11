@@ -8,6 +8,7 @@ import {
   FileText,
   FolderKanban,
   LayoutDashboard,
+  RotateCcw,
   Settings,
   Sparkles,
   Users,
@@ -24,6 +25,8 @@ type NavItem = {
   exact?: boolean
   // true 면 왼쪽 메뉴에서 맨 아래로 내려 보낸다.
   bottom?: boolean
+  // true 면 왼쪽 메뉴에만 둔다. 좁은 화면의 아래쪽 메뉴에는 자리가 모자라다.
+  sidebarOnly?: boolean
   // 이름 옆에 보여 줄 수. 0 이면 보여 주지 않는다.
   count?: number
 }
@@ -31,6 +34,7 @@ type NavItem = {
 // 기능을 만들 때마다 메뉴를 더한다.
 // Attendance 는 Session 안에서 다루므로 메뉴에 따로 두지 않는다. 설정은 운영자에게만 보인다.
 // 좁은 화면의 아래쪽 메뉴에는 설정을 넣지 않는다. 자리가 모자라서 위쪽 막대의 버튼으로 옮겼다.
+// 회고도 아래쪽 메뉴에 넣지 않는다. 좁은 화면에서는 개요의 내 기록과 Project, Session 화면에서 간다.
 // notificationCount 가 null 이면 알림을 아직 쓸 수 없는 것이라 메뉴에 넣지 않는다.
 function navItems(
   clubId: string,
@@ -44,6 +48,12 @@ function navItems(
     { href: `${base}/logs`, label: "AI Log", icon: FileText },
     { href: `${base}/insights`, label: "AI Insight", icon: Sparkles },
     { href: `${base}/projects`, label: "Project", icon: FolderKanban },
+    {
+      href: `${base}/retros`,
+      label: "회고",
+      icon: RotateCcw,
+      sidebarOnly: true,
+    },
     { href: `${base}/members`, label: "Member", icon: Users },
   ]
 
@@ -90,7 +100,7 @@ export function ClubNav({
   const pathname = usePathname()
   const tabbar = variant === "tabbar"
   const items = navItems(clubId, canManage, notificationCount).filter(
-    (item) => !(tabbar && item.bottom)
+    (item) => !(tabbar && (item.bottom || item.sidebarOnly))
   )
   // 아래로 내려 보내는 것들 가운데 첫째만 위를 벌린다. 나머지는 그 밑에 붙는다.
   const firstBottom = items.find((item) => item.bottom)

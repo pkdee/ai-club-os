@@ -89,6 +89,8 @@ function DeleteBody({
 type DeleteDialogProps = {
   // 여는 버튼의 글자.
   label: string
+  // 여는 버튼의 크기. 목록의 줄마다 놓을 때는 sm 을 쓴다.
+  size?: "default" | "sm"
   title: string
   description: React.ReactNode
 } & (
@@ -99,7 +101,7 @@ type DeleteDialogProps = {
 // 되돌릴 수 없는 삭제 앞에서 한 번 더 묻는다. 여는 버튼과 확인 창을 함께 그린다.
 // confirm 을 주면 그 글자를 입력해야 삭제 버튼이 눌린다. 입력한 글자는 onDelete 로 넘어가 서버에서 다시 확인한다.
 export function DeleteDialog(props: DeleteDialogProps) {
-  const { label, title, description, confirm } = props
+  const { label, size = "default", title, description, confirm } = props
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
 
@@ -113,7 +115,7 @@ export function DeleteDialog(props: DeleteDialogProps) {
         }
       }}
     >
-      <DialogTrigger render={<Button variant="outline" />}>
+      <DialogTrigger render={<Button variant="outline" size={size} />}>
         <Trash2 aria-hidden="true" strokeWidth={1.5} />
         {label}
       </DialogTrigger>

@@ -21,6 +21,8 @@ import {
   getProjectTaskDetails,
   listProjectJoinRequests,
 } from "@/features/project/queries";
+import { RetrospectiveSection } from "@/features/retrospective/components/retrospective-section";
+import { listProjectRetrospectives } from "@/features/retrospective/queries";
 import { kstDateKey } from "@/features/session/time";
 
 type Props = PageProps<"/clubs/[clubId]/projects/[projectId]">;
@@ -59,8 +61,15 @@ export default async function ProjectDetailPage(props: Props) {
   const canEdit = isParticipant || isAdmin;
   const now = new Date();
   // 참여자로 넣을 사람을 고르는 목록은 고칠 수 있는 사람에게만 필요하다.
-  const [members, logs, taskDetails, joinRequests, presentation, shared] =
-    await Promise.all([
+  const [
+    members,
+    logs,
+    taskDetails,
+    joinRequests,
+    presentation,
+    shared,
+    retrospectives,
+  ] = await Promise.all([
     canEdit ? listMembers(clubId) : null,
     // 기록 수를 세지 못했다면 AI Log 와의 연결이 아직 없는 것이라 기록을 읽지 않는다.
     project.logCount === null ? null : listProjectLogs(clubId, projectId),
@@ -70,6 +79,7 @@ export default async function ProjectDetailPage(props: Props) {
       getProjectPresentation(clubId, projectId),
       // 공개하기 전에 기록이 몇 개 나가는지 알리려고 센다. 공개할 수 있는 사람에게만 필요하다.
       canEdit ? countProjectSharedLogs(clubId, projectId) : null,
+      listProjectRetrospectives(clubId, projectId),
     ]);
   const joined = new Set(project.participants.map((item) => item.memberId));
   // 이미 참여자가 된 사람의 요청이 남아 있으면 보여 주지 않는다.
@@ -150,6 +160,21 @@ export default async function ProjectDetailPage(props: Props) {
           now={now}
         />
       )}
+      {/* 회고의 구조가 아직 없으면 안에서 아무것도 그리지 않는다. */}
+      <RetrospectiveSection
+        clubId={clubId}
+        target={{ scope: "project", projectId }}
+        subject={project.name}
+        title="이 Project 의 회고"
+        description="Project 를 마치거나 중간에 돌아볼 때 참여자가 하나씩 씁니다."
+        result={retrospectives}
+        currentUserId={data.user.id}
+        isAdmin={isAdmin}
+        // 참여자만 쓴다. 운영자라도 참여자가 아니면 쓰지 않는다.
+        canWrite={isParticipant}
+        cannotWriteText="이 Project 의 참여자가 쓸 수 있습니다."
+        now={now}
+      />
     </ProjectDetail>
   );
 }
