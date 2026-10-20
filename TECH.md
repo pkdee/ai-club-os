@@ -11,7 +11,7 @@
 | 데이터베이스 | Supabase PostgreSQL | 도입. `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives`, `ai_log_comments`, `ai_log_reactions`, `session_projects`, `ai_log_attachments` 정의 |
 | 인증 | Supabase Auth와 Google Login | 도입. 로그인과 로그아웃 구현 |
 | 파일 저장 | Supabase Storage | 2026-10-12 도입. AI Log 의 이미지를 공개하지 않는 저장 공간 `ai-log-images` 에 둔다. 새 패키지 없음 |
-| 배포 | Vercel | 도입 예정 |
+| 배포 | Vercel | 2026-10-20 도입. `vercel.json` 에 Framework 를 Next.js 로 고정한다. 프로젝트 설정이 다른 값으로 잡혀 있어도 정적 사이트로 배포되지 않게 하려는 것이다 |
 | 패키지 관리 | npm | 도입 |
 | AI Provider | Google 의 Gemini, Anthropic 의 Claude | 도입. 새 패키지 없이 `fetch` 로 부른다. 2026-10-20 부터 Gemini 3.8 Flash 무료 등급을 쓴다. 키와 모델은 서버의 환경 변수 |
 | 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
