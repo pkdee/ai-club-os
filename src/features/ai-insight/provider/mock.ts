@@ -6,6 +6,7 @@ export function createMockProvider(): InsightProvider {
   return {
     name: "mock",
     label: "시험용 Provider",
+    dataNotice: null,
     model: "mock",
     async generate(request) {
       const logs = [...request.user.matchAll(/<log n="(\d+)">\n([\s\S]*?)\n<\/log>/g)].map(

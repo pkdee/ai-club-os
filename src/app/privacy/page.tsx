@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
+import { insightProviderInfo } from "@/features/ai-insight/provider";
 import { AI_LOG_DRAFT_DAYS } from "@/features/ai-log/draft";
 import {
   AI_LOG_IMAGE_LIMIT,
@@ -18,6 +19,21 @@ export const metadata: Metadata = {
   title: "개인 정보 안내 | AI Club OS",
   description: "AI Club OS 가 무엇을 모으고, 누가 보고, 얼마나 두는지 적은 안내",
 };
+
+// AI Insight 를 만들 때 어디로 무엇을 보내는지. 서버에 설정한 AI Provider 에 따라 글이 바뀐다.
+// 이 화면은 빌드할 때 만들어지므로 Provider 를 바꾸면 다시 빌드해야 반영된다.
+function insightSentence() {
+  const provider = insightProviderInfo();
+  if (!provider) {
+    return "AI Insight 를 만드는 AI 서비스가 설정되어 있지 않아, 기록을 AI 서비스로 보내지 않습니다.";
+  }
+  return [
+    `운영자가 AI Insight 를 만들 때 그 Session 이나 그 달의 AI Log 내용을 ${provider.label} 로 보냅니다. 작성자가 정리에 쓰지 말라고 한 기록은 보내지 않고, 회고는 작성자가 써도 된다고 한 것만 보냅니다. 이름, 이메일, 이미지는 보내지 않습니다.`,
+    provider.dataNotice,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 // 문의를 받는 주소. 서버의 환경 변수 CONTACT_EMAIL 에 적는다. 비어 있거나 이메일 모양이 아니면 보여 주지 않는다.
 function contactEmail() {
@@ -89,7 +105,7 @@ export default function PrivacyPage() {
             items={[
               "기록, 로그인 정보, 이미지는 Supabase 에 둡니다.",
               "로그인은 Google 이 확인합니다. 프로필 사진은 Google 의 서버에서 바로 불러옵니다.",
-              "운영자가 AI Insight 를 만들 때 그 Session 이나 그 달의 AI Log 내용을 Anthropic 의 AI 서비스로 보냅니다. 작성자가 정리에 쓰지 말라고 한 기록은 보내지 않고, 회고는 작성자가 써도 된다고 한 것만 보냅니다. 이름, 이메일, 이미지는 보내지 않습니다.",
+              insightSentence(),
               "화면은 이 앱을 올려 둔 서버에서 만들어집니다. 그 서버에 요청 기록이 남을 수 있습니다.",
               "광고나 방문 분석을 위한 도구는 쓰지 않습니다.",
             ]}

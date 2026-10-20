@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { insightProviderInfo } from "@/features/ai-insight/provider";
 import { AiLogUnavailable } from "@/features/ai-log/components/ai-log-detail";
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
 import { draftKey } from "@/features/ai-log/draft";
@@ -81,6 +82,7 @@ export default async function AiLogEditPage(
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}
       draftKey={draftKey(data.user.id, clubId, log.id)}
+      insightNotice={insightProviderInfo()?.dataNotice ?? null}
     />
   );
 }

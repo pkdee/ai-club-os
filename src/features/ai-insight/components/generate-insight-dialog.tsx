@@ -27,6 +27,7 @@ export function GenerateInsightDialog({
   retrospectiveCount = 0,
   runsLeft = null,
   providerLabel,
+  providerNotice = null,
   replaces = false,
   published = false,
   onGenerate,
@@ -42,6 +43,8 @@ export function GenerateInsightDialog({
   runsLeft?: number | null
   // 예: Anthropic 의 Claude
   providerLabel: string
+  // 받은 글을 그 회사가 어떻게 쓰는지 따로 알릴 글. 없으면 null 이다.
+  providerNotice?: string | null
   replaces?: boolean
   published?: boolean
   onGenerate: () => Promise<InsightActionResult>
@@ -87,6 +90,7 @@ export function GenerateInsightDialog({
               {retrospectiveCount > 0 &&
                 ` 작성자가 써도 된다고 한 회고 ${retrospectiveCount}개도 참고 자료로 함께 보냅니다.`}
             </p>
+            {providerNotice && <p>{providerNotice}</p>}
             <p>
               만든 내용은 초안으로 저장됩니다. 확인해서 공개하기 전에는
               운영자에게만 보입니다.

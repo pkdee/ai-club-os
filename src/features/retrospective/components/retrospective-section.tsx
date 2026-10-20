@@ -1,4 +1,5 @@
 import { DeleteDialog } from "@/components/delete-dialog"
+import { insightProviderInfo } from "@/features/ai-insight/provider"
 
 import { deleteRetrospective } from "../actions"
 import type { RetrospectiveListResult } from "../queries"
@@ -42,6 +43,9 @@ export function RetrospectiveSection({
 
   const all = result.status === "ok" ? result.retrospectives : []
   const optionsReady = result.status === "ok" && result.optionsReady
+  // Project 회고는 AI Insight 에 쓰이지 않으므로 알릴 것이 없다.
+  const insightNotice =
+    target.scope === "project" ? null : (insightProviderInfo()?.dataNotice ?? null)
   const mine = all.find((item) => item.author?.userId === currentUserId)
   // 내 회고를 맨 앞에 둔다.
   const ordered = mine ? [mine, ...all.filter((item) => item !== mine)] : all
@@ -68,6 +72,7 @@ export function RetrospectiveSection({
             target={target}
             subject={subject}
             optionsReady={optionsReady}
+            insightNotice={insightNotice}
           />
         )}
       </div>
@@ -109,6 +114,7 @@ export function RetrospectiveSection({
                               options: item.options,
                             }}
                             optionsReady={optionsReady}
+                            insightNotice={insightNotice}
                           />
                         )}
                         <DeleteDialog

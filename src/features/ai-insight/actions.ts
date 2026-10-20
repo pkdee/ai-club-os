@@ -55,10 +55,12 @@ const EMPTY_CONTENT_MESSAGE =
   "남길 내용이 없습니다. 요약이나 항목을 하나 이상 남겨 주세요."
 
 const PROVIDER_MESSAGES: Record<InsightProviderFailure, string> = {
-  auth: "AI Provider 가 키를 받아들이지 않았습니다. 서버의 ANTHROPIC_API_KEY 가 맞는지 확인해 주세요.",
+  auth: "AI Provider 가 키를 받아들이지 않았습니다. 서버에 넣은 API 키(ANTHROPIC_API_KEY 나 GEMINI_API_KEY)가 맞는지 확인해 주세요.",
   model:
     "설정한 모델을 쓸 수 없습니다. 서버의 AI_INSIGHT_MODEL 값을 확인해 주세요.",
   busy: "AI Provider 가 지금 바쁘거나 응답이 늦습니다. 잠시 뒤 다시 시도해 주세요. 기록은 그대로 남아 있습니다.",
+  quota:
+    "AI 서비스에서 오늘 쓸 수 있는 횟수를 다 썼습니다. 횟수는 매일 한국 시간 오후 4시쯤(11월부터 3월 사이에는 오후 5시쯤) 다시 채워집니다. 기록은 그대로 남아 있습니다.",
   refused:
     "AI 가 이 기록들을 정리하지 않겠다고 답했습니다. 기록 내용을 확인한 뒤 다시 시도해 주세요.",
   "too-long":

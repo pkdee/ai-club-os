@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { insightProviderInfo } from "@/features/ai-insight/provider";
 import { AiLogForm } from "@/features/ai-log/components/ai-log-form";
 import { draftKey } from "@/features/ai-log/draft";
 import {
@@ -88,6 +89,7 @@ export default async function AiLogNewPage(
             : `/clubs/${clubId}/logs`
       }
       draftKey={draftKey(data.user.id, clubId)}
+      insightNotice={insightProviderInfo()?.dataNotice ?? null}
     />
   );
 }

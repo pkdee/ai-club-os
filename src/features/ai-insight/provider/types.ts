@@ -18,6 +18,8 @@ export type InsightProviderFailure =
   | "model"
   // 요청이 몰렸거나 응답이 늦다. 잠시 뒤에 다시 하면 된다.
   | "busy"
+  // AI 서비스에서 오늘 쓸 수 있는 횟수를 다 썼다. 한도가 다시 채워질 때까지 기다려야 한다.
+  | "quota"
   // AI 가 정리하기를 거절했다.
   | "refused"
   // 보낸 글이 너무 길다.
@@ -35,6 +37,8 @@ export type InsightProvider = {
   name: string
   // 화면에 보여 주는 이름.
   label: string
+  // 받은 글을 그 회사가 어떻게 쓰는지 사용자에게 따로 알려야 할 때의 글. 따로 알릴 것이 없으면 null 이다.
+  dataNotice: string | null
   model: string
   generate(request: InsightProviderRequest): Promise<InsightProviderResult>
 }

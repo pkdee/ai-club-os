@@ -112,6 +112,7 @@ export async function InsightSection({
         retrospectiveCount={retrospectiveCount}
         runsLeft={runsLeft}
         providerLabel={provider.label}
+        providerNotice={provider.dataNotice}
         replaces={replaces}
         published={insight?.status === "published"}
         onGenerate={onGenerate}

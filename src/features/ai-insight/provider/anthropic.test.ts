@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { createAnthropicProvider, extractJson } from "./anthropic"
+import { createAnthropicProvider } from "./anthropic"
+import { extractJson, redactSecrets } from "./shared"
 import { createMockProvider } from "./mock"
 
 const request = { system: "지킬 것", user: "자료", schema: { type: "object" } }
@@ -153,7 +154,6 @@ test("시험용 Provider 는 받은 자료로 정해진 모양의 답을 만든�
 })
 
 test("남기는 글에서 키와 키처럼 생긴 글자를 가린다", async () => {
-  const { redactSecrets } = await import("./anthropic")
   assert.equal(redactSecrets("x-api-key: sk-test-key 가 틀렸습니다", "sk-test-key"), "x-api-key: [가림] 가 틀렸습니다")
   assert.equal(redactSecrets("다른 키 sk-ant-api03-AbCdEfGh_1234-xyz 도 보인다", "sk-test-key"), "다른 키 [가림] 도 보인다")
   assert.equal(redactSecrets("키가 없는 글", "sk-test-key"), "키가 없는 글")

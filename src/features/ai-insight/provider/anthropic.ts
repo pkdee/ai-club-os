@@ -6,6 +6,7 @@ import type {
   InsightProviderRequest,
   InsightProviderResult,
 } from "./types"
+import { extractJson, redactSecrets } from "./shared"
 
 // Anthropic 의 Messages API 로 Claude 를 부른다. 패키지 없이 fetch 로 직접 보낸다.
 // 키를 다루는 파일이라 서버에서만 불러올 수 있게 막아 둔다. 브라우저로 가는 코드가 이 파일을 불러오면 빌드가 실패한다.
@@ -28,29 +29,6 @@ const FAILURE_BY_STATUS: Record<number, InsightProviderFailure> = {
   500: "busy",
   503: "busy",
   529: "busy",
-}
-
-// 답의 글에서 JSON 객체를 꺼낸다. 앞뒤에 다른 글이나 코드 표시가 붙어 있어도 찾는다. 없으면 undefined 다.
-export function extractJson(text: string): unknown {
-  const start = text.indexOf("{")
-  const end = text.lastIndexOf("}")
-  if (start === -1 || end <= start) {
-    return undefined
-  }
-  try {
-    return JSON.parse(text.slice(start, end + 1))
-  } catch {
-    return undefined
-  }
-}
-
-// 남기는 글에 키가 섞여 들어가지 않게 가린다. 지금 쓰는 키와, 키처럼 생긴 글자를 모두 가린다.
-// Provider 의 오류 설명에는 원래 키가 없지만, 중간의 다른 서버가 요청을 되돌려 적는 경우까지 막는다.
-export function redactSecrets(text: string, apiKey: string) {
-  return text
-    .split(apiKey)
-    .join("[가림]")
-    .replace(/sk-ant-[A-Za-z0-9_-]{8,}/g, "[가림]")
 }
 
 function fail(reason: InsightProviderFailure): InsightProviderResult {
@@ -101,6 +79,7 @@ export function createAnthropicProvider({
   return {
     name: "anthropic",
     label: "Anthropic 의 Claude",
+    dataNotice: null,
     model,
     async generate(request) {
       let response: Response

@@ -109,6 +109,7 @@ const TEXT_FIELDS = [
 // options 는 작성자가 정하는 두 가지 선택의 지금 값이다. null 이면 선택 칸을 그리지 않는다.
 // keepsRevisions 는 고치기 전의 내용이 수정 기록으로 남는다는 뜻이다. 그럴 때만 안내에 적는다.
 // draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
+// insightNotice 는 AI Insight 에 쓰는 AI 서비스가 받은 글을 어떻게 쓰는지 따로 알릴 글이다. 없으면 null 이다.
 export function AiLogForm({
   target,
   clubName,
@@ -120,6 +121,7 @@ export function AiLogForm({
   knownTools,
   cancelHref,
   draftKey,
+  insightNotice = null,
 }: {
   target: AiLogTarget
   clubName: string
@@ -131,6 +133,7 @@ export function AiLogForm({
   knownTools: string[]
   cancelHref: string
   draftKey: string
+  insightNotice?: string | null
 }) {
   const editing = Boolean(target.logId)
   const router = useRouter()
@@ -545,6 +548,7 @@ export function AiLogForm({
                 ...GUIDE,
                 ...(keepsRevisions ? [REVISION_GUIDE] : []),
                 ...INSIGHT_GUIDE,
+                ...(insightNotice ? [insightNotice] : []),
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2">
                   <Check

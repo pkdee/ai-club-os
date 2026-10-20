@@ -42,10 +42,12 @@ const NO_OPTIONS: RetrospectiveOptions = {
 // Dialog 가 닫히면 이 컴포넌트가 사라지므로, 다시 열 때 입력과 오류가 처음 상태로 돌아간다.
 // scope 는 무엇을 돌아보는지다. 그 단위에 뜻이 있는 쓰임만 고르게 한다.
 // defaultOptions 가 null 이면 쓰임을 정하는 열이 아직 없는 것이라 그 칸을 그리지 않는다.
+// insightNotice 는 AI Insight 에 쓰는 AI 서비스가 받은 글을 어떻게 쓰는지 따로 알릴 글이다. 없으면 null 이다.
 function FormBody({
   scope,
   defaults,
   defaultOptions,
+  insightNotice,
   editing,
   pending,
   onSave,
@@ -53,6 +55,7 @@ function FormBody({
   scope: RetrospectiveTarget["scope"]
   defaults: RetrospectiveInput
   defaultOptions: RetrospectiveOptions | null
+  insightNotice: string | null
   editing: boolean
   pending: boolean
   onSave: (
@@ -134,7 +137,12 @@ function FormBody({
               setOptions({ ...options, useInInsight: event.target.checked })
             }
             label="AI Insight 에 써도 됨"
-            description="켜면 운영자가 AI Insight 를 만들 때 이 회고를 AI 서비스로 보냅니다. 이름과 이메일은 보내지 않습니다."
+            description={[
+              "켜면 운영자가 AI Insight 를 만들 때 이 회고를 AI 서비스로 보냅니다. 이름과 이메일은 보내지 않습니다.",
+              insightNotice,
+            ]
+              .filter(Boolean)
+              .join(" ")}
           />
         ))}
       <DialogFooter>
@@ -155,18 +163,21 @@ function FormBody({
 // existing 이 있으면 그 회고를 고치고, 없으면 target 에 새로 쓴다.
 // subject 는 무엇을 돌아보는지 알리는 이름이다. 예: Project 이름, Session 제목, 2026년 10월
 // optionsReady 가 false 이면 쓰임을 정하는 열이 아직 없는 것이라 그 칸을 그리지 않는다.
+// insightNotice 는 FormBody 의 것과 같다.
 export function RetrospectiveFormDialog({
   clubId,
   target,
   subject,
   existing,
   optionsReady = false,
+  insightNotice = null,
 }: {
   clubId: string
   target: RetrospectiveTarget
   subject: string
   existing?: { id: string; options: RetrospectiveOptions | null } & RetrospectiveInput
   optionsReady?: boolean
+  insightNotice?: string | null
 }) {
   const [open, setOpen] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -209,6 +220,7 @@ export function RetrospectiveFormDialog({
           defaultOptions={
             optionsReady ? (existing?.options ?? NO_OPTIONS) : null
           }
+          insightNotice={insightNotice}
           defaults={
             existing
               ? {
