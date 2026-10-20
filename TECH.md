@@ -13,7 +13,7 @@
 | 파일 저장 | Supabase Storage | 2026-10-12 도입. AI Log 의 이미지를 공개하지 않는 저장 공간 `ai-log-images` 에 둔다. 새 패키지 없음 |
 | 배포 | Vercel | 도입 예정 |
 | 패키지 관리 | npm | 도입 |
-| AI Provider | Anthropic 의 Claude | 도입. 새 패키지 없이 Messages API 를 `fetch` 로 부른다. 키와 모델은 서버의 환경 변수 |
+| AI Provider | Google 의 Gemini, Anthropic 의 Claude | 도입. 새 패키지 없이 `fetch` 로 부른다. 2026-10-20 부터 Gemini 3.8 Flash 무료 등급을 쓴다. 키와 모델은 서버의 환경 변수 |
 | 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
 
 ## 도입한 패키지와 근거
@@ -64,6 +64,8 @@ MVP에서는 별도 Spring Boot 서버를 두지 않습니다. Next.js와 Supaba
 초기 공급자를 제품 핵심 영역에 직접 결합하지 않습니다. AI Insight 단계에서 공급자별 구현과 제품 기능 사이에 교체 가능한 경계를 둡니다.
 
 2026-10-10 에 경계를 `src/features/ai-insight/provider/` 에 두고 첫 구현으로 Claude 를 붙였습니다. 제품 쪽은 지킬 것, 자료, 답의 모양을 주고 JSON 을 받는다는 약속만 압니다. 키(`ANTHROPIC_API_KEY`)와 모델(`AI_INSIGHT_MODEL`, 기본값 `claude-sonnet-5-5`)은 서버의 환경 변수로 받고, 키가 없어도 기록 기능은 그대로 동작합니다. 키를 다루는 파일은 `server-only` 로 표시해 브라우저 코드가 불러오면 빌드가 실패하게 했고, 남기는 글에서는 키를 가립니다. 근거는 `docs/adr/0018-ai-provider-boundary-and-claude.md` 에 있습니다.
+
+2026-10-20 에 두 번째 구현으로 Google 의 Gemini 를 붙였습니다. Interactions API 를 `fetch` 로 부르고, 키는 `GEMINI_API_KEY`, 기본 모델은 `gemini-3.8-flash` 입니다. `AI_INSIGHT_PROVIDER` 로 둘 가운데 하나를 고르고, 비우면 키를 넣은 쪽을 씁니다. 무료 등급이라 Google 이 받은 글을 개선에 쓰므로, Provider 마다 이것을 알릴 글을 두고 쓰기 화면과 개인 정보 안내에 보여 줍니다. 근거는 `docs/adr/0029-gemini-free-tier-provider.md` 에 있습니다.
 
 ## 아직 정하지 않은 항목
 

@@ -47,7 +47,13 @@ AI Log 에 이미지를 붙이는 기능은 Supabase Storage 를 씁니다. 저�
 
 개인 정보 안내에 문의 주소를 보이려면 `CONTACT_EMAIL` 을 채웁니다. 이 화면은 빌드할 때 만들어지므로 값을 바꾸면 다시 빌드해야 반영됩니다.
 
-AI Insight 를 만들려면 `.env.local` 에 `ANTHROPIC_API_KEY` 도 채웁니다. 비워 두면 AI Insight 만 만들 수 없고 나머지는 그대로 동작합니다. 키 없이 화면만 확인하려면 `AI_INSIGHT_PROVIDER=mock` 으로 둡니다. 쓰는 모델은 `AI_INSIGHT_MODEL` 로 바꿉니다.
+AI Insight 를 만들려면 `.env.local` 에 AI 서비스의 키도 채웁니다. 비워 두면 AI Insight 만 만들 수 없고 나머지는 그대로 동작합니다.
+
+- Google 의 Gemini 를 쓰려면 `GEMINI_API_KEY` 를 채웁니다. 기본 모델은 무료 등급이 있는 `gemini-3.8-flash` 입니다. 무료 등급에서는 Google 이 받은 글을 서비스 개선에 쓰고, 하루에 부를 수 있는 횟수가 20번 안팎입니다.
+- Anthropic 의 Claude 를 쓰려면 `ANTHROPIC_API_KEY` 를 채웁니다.
+- 두 키를 모두 넣었으면 `AI_INSIGHT_PROVIDER` 를 `gemini` 나 `anthropic` 으로 정합니다. 정하지 않으면 Claude 를 씁니다.
+- 키 없이 화면만 확인하려면 `AI_INSIGHT_PROVIDER=mock` 으로 둡니다. 쓰는 모델은 `AI_INSIGHT_MODEL` 로 바꿉니다.
+- 개인 정보 안내는 빌드할 때 설정한 AI 서비스를 읽어 적습니다. 서비스를 바꾸면 다시 빌드해야 반영됩니다.
 
 데이터베이스 구조는 `supabase/migrations/` 의 SQL 파일에 있습니다. 새 Supabase 프로젝트에는 이 파일들을 이름 순서대로 적용해야 합니다. 대시보드의 SQL Editor 에 붙여 넣어 실행하거나 Supabase CLI 의 `supabase db push` 를 씁니다.
 

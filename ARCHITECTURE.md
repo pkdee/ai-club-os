@@ -208,7 +208,7 @@ Storage 를 부르는 서버 코드는 `src/features/ai-log/image-store.ts` 한 
 - 인증과 기본 데이터는 Supabase를 사용합니다.
 - 데이터베이스 구조와 접근 규칙은 `supabase/migrations/` 의 SQL 파일로 관리합니다.
 - 파일이 필요한 기능만 Supabase Storage를 사용합니다. 지금은 AI Log 의 이미지뿐이고, 공개하지 않는 저장 공간에 두어 잠깐 쓰는 주소로만 보여 줍니다.
-- AI Provider는 교체 가능한 연결부 뒤에 둡니다. 연결부는 `src/features/ai-insight/provider/` 이고 지금은 Claude 를 부릅니다. 서버에서만 부르며 키는 브라우저로 나가지 않습니다.
+- AI Provider는 교체 가능한 연결부 뒤에 둡니다. 연결부는 `src/features/ai-insight/provider/` 이고 Gemini 와 Claude 가운데 서버의 환경 변수로 고른 쪽을 부릅니다. 2026-10-20 부터 Gemini 의 무료 등급을 씁니다. 서버에서만 부르며 키는 브라우저로 나가지 않습니다.
 - 배포는 Vercel을 기본으로 합니다.
 
 ## 오류와 권한 원칙
