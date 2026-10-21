@@ -59,6 +59,9 @@ export function ClubSettingsForm({
       <Field>
         <FieldLabel htmlFor="settings-club-name">Club 이름</FieldLabel>
         <Input
+          // 저장한 뒤나 입력 오류로 처음 값이 바뀌면 칸을 새로 그린다.
+          // Base UI 의 Input 은 처음 그린 뒤에 바뀐 처음 값을 받지 않는다.
+          key={values.name}
           id="settings-club-name"
           name="name"
           required

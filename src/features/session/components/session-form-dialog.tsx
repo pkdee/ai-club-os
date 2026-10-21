@@ -82,6 +82,9 @@ function SessionForm({
       <Field>
         <FieldLabel htmlFor="session-title">제목</FieldLabel>
         <Input
+          // 입력 오류로 처음 값이 바뀌면 칸을 새로 그린다. 아래의 다른 Input 도 같다.
+          // Base UI 의 Input 은 처음 그린 뒤에 바뀐 처음 값을 받지 않는다.
+          key={values.title}
           id="session-title"
           name="title"
           required
@@ -100,6 +103,7 @@ function SessionForm({
         <Field className="col-span-2 sm:col-span-1">
           <FieldLabel htmlFor="session-date">날짜</FieldLabel>
           <Input
+            key={values.date}
             id="session-date"
             name="date"
             type="date"
@@ -115,6 +119,7 @@ function SessionForm({
         <Field>
           <FieldLabel htmlFor="session-start">시작</FieldLabel>
           <Input
+            key={values.startTime}
             id="session-start"
             name="startTime"
             type="time"
@@ -132,6 +137,7 @@ function SessionForm({
         <Field>
           <FieldLabel htmlFor="session-end">종료</FieldLabel>
           <Input
+            key={values.endTime}
             id="session-end"
             name="endTime"
             type="time"
@@ -148,6 +154,7 @@ function SessionForm({
       <Field>
         <FieldLabel htmlFor="session-location">장소</FieldLabel>
         <Input
+          key={values.location}
           id="session-location"
           name="location"
           maxLength={SESSION_LOCATION_MAX}
