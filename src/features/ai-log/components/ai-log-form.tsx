@@ -370,7 +370,7 @@ export function AiLogForm({
           </Alert>
         )
       )}
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">
           <div
             // 맡겨 둔 내용을 불러오거나 지우면 칸을 새로 만들어 그 값으로 채운다.
@@ -500,10 +500,6 @@ export function AiLogForm({
               </Field>
             ))}
           </div>
-          <div className="flex flex-col gap-2 sm:hidden">
-            {draftStatus}
-            <div className="flex gap-2">{actions}</div>
-          </div>
         </div>
         <aside className="flex flex-col gap-6">
           {selected && (
@@ -565,6 +561,11 @@ export function AiLogForm({
             </ul>
           </section>
         </aside>
+        {/* 좁은 화면에서는 저장 버튼을 맨 아래에 둔다. 이 기록의 쓰임을 고른 뒤에 저장하게 하려는 것이다. */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          {draftStatus}
+          <div className="flex gap-2">{actions}</div>
+        </div>
       </div>
     </form>
   )

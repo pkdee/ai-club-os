@@ -326,7 +326,7 @@ export function ProjectPresentationView({
       <Stats presentation={presentation} className="sm:grid-cols-3" />
       {links.length > 0 && (
         <Section title="결과물">
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {links.map((link, index) => (
               <li key={`${link.url}-${index}`}>
                 <a
@@ -453,7 +453,7 @@ export function ClubPresentationView({
           title="Project"
           description="발표를 공개한 Project 입니다. 누르면 그 Project 의 발표로 갑니다."
         >
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {projects.map((project) => (
               <li key={project.token}>
                 <Link

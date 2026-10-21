@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { docsHref } from "@/features/docs/catalog"
 import { cn } from "@/lib/utils"
 
 type NavItem = {
@@ -24,6 +25,8 @@ type NavItem = {
   icon: LucideIcon
   // true 면 주소가 정확히 같을 때만 선택된 것으로 본다.
   exact?: boolean
+  // 선택된 것으로 볼 주소의 앞부분. 없으면 href 다. href 가 묶음 안의 한 화면을 가리킬 때 쓴다.
+  match?: string
   // true 면 왼쪽 메뉴에서 맨 아래로 내려 보낸다.
   bottom?: boolean
   // true 면 왼쪽 메뉴에만 둔다. 좁은 화면의 아래쪽 메뉴에는 자리가 모자라다.
@@ -58,7 +61,8 @@ function navItems(
     },
     { href: `${base}/members`, label: "Member", icon: Users },
     {
-      href: `${base}/docs`,
+      href: docsHref(clubId),
+      match: `${base}/docs`,
       label: "Docs",
       icon: BookOpen,
       sidebarOnly: true,
@@ -86,9 +90,10 @@ function navItems(
 }
 
 function isActive(pathname: string, item: NavItem) {
+  const match = item.match ?? item.href
   return item.exact
-    ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(`${item.href}/`)
+    ? pathname === match
+    : pathname === match || pathname.startsWith(`${match}/`)
 }
 
 // sidebar 는 넓은 화면의 왼쪽 메뉴, tabbar 는 좁은 화면의 아래쪽 메뉴다.

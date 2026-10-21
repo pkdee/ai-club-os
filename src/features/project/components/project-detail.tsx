@@ -171,7 +171,7 @@ export function ProjectDetail({
         </div>
       </div>
       {/* 오른쪽 묶음이 더 길 때 남는 높이를 둘째 줄이 받게 한다. 그러지 않으면 목표와 할 일 사이가 벌어진다. */}
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:grid-rows-[auto_1fr]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:grid-rows-[auto_1fr]">
         <section className="flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-6 xl:col-start-1">
           <h2 className="text-h4">목표</h2>
           {project.goal ? (

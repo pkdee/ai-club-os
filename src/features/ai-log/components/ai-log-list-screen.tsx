@@ -94,7 +94,7 @@ export function AiLogListScreen({
       {/* 좁은 화면에서는 요약이 목록 아래로 내려간다. */}
       <div
         className={cn(
-          "grid items-start gap-6",
+          "grid grid-cols-1 items-start gap-6",
           showSummary && "xl:grid-cols-[minmax(0,1fr)_20rem]"
         )}
       >

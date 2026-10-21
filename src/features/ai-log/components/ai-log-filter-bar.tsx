@@ -86,45 +86,48 @@ export function AiLogFilterBar({
           className="pl-9"
         />
       </div>
-      <NativeSelect
-        name="session"
-        defaultValue={filters.session ?? ""}
-        aria-label="Session 으로 고르기"
-        onChange={applyOnChange}
-        className="w-full sm:w-48"
-      >
-        <option value="">모든 Session</option>
-        <option value={NO_SESSION}>Session 없는 기록</option>
-        {sessions.map((session) => (
-          <option key={session.id} value={session.id}>
-            {session.title}
-          </option>
-        ))}
-      </NativeSelect>
-      <NativeSelect
-        name="tool"
-        defaultValue={filters.tool ?? ""}
-        aria-label="도구로 고르기"
-        onChange={applyOnChange}
-        className="min-w-0 flex-1 sm:w-40 sm:flex-none"
-      >
-        <option value="">모든 도구</option>
-        {tools.map((tool) => (
-          <option key={tool} value={tool}>
-            {tool}
-          </option>
-        ))}
-      </NativeSelect>
-      <NativeSelect
-        name="sort"
-        defaultValue={filters.sort}
-        aria-label="정렬"
-        onChange={applyOnChange}
-        className="min-w-0 flex-1 sm:w-32 sm:flex-none"
-      >
-        <option value="newest">최신순</option>
-        <option value="oldest">오래된순</option>
-      </NativeSelect>
+      {/* 세 칸을 한 덩어리로 묶어 함께 줄을 바꾼다. 따로 두면 어떤 폭에서는 정렬 칸만 다음 줄에 혼자 남는다. */}
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+        <NativeSelect
+          name="session"
+          defaultValue={filters.session ?? ""}
+          aria-label="Session 으로 고르기"
+          onChange={applyOnChange}
+          className="w-full sm:w-48"
+        >
+          <option value="">모든 Session</option>
+          <option value={NO_SESSION}>Session 없는 기록</option>
+          {sessions.map((session) => (
+            <option key={session.id} value={session.id}>
+              {session.title}
+            </option>
+          ))}
+        </NativeSelect>
+        <NativeSelect
+          name="tool"
+          defaultValue={filters.tool ?? ""}
+          aria-label="도구로 고르기"
+          onChange={applyOnChange}
+          className="min-w-0 flex-1 sm:w-40 sm:flex-none"
+        >
+          <option value="">모든 도구</option>
+          {tools.map((tool) => (
+            <option key={tool} value={tool}>
+              {tool}
+            </option>
+          ))}
+        </NativeSelect>
+        <NativeSelect
+          name="sort"
+          defaultValue={filters.sort}
+          aria-label="정렬"
+          onChange={applyOnChange}
+          className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+        >
+          <option value="newest">최신순</option>
+          <option value="oldest">오래된순</option>
+        </NativeSelect>
+      </div>
       <button type="submit" className="sr-only">
         검색
       </button>

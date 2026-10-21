@@ -99,6 +99,8 @@ src/
 
 `content/docs/` 에는 Docs 의 MDX 파일과 순서를 적은 `list.ts` 가 있습니다. 문서마다의 제목, 소개, 날짜, 태그는 그 MDX 맨 앞의 frontmatter 에 있습니다. `features/docs/` 는 목록에서 문서를 찾고, 문서를 불러오고, 본문을 그립니다. 서버의 `features/docs/load.ts` 가 목록의 slug 로 빌드한 모듈을 불러 frontmatter 와 본문을 건넵니다. 목록에 있는 slug 로만 MDX 를 불러오므로 주소로 다른 파일을 열 수 없습니다. `mdx-components.tsx` 는 `@next/mdx` 가 모든 MDX 에 넘기는 부품이고, 지금은 Docs 의 부품을 돌려줍니다. 빌드할 때 목차를 만드는 플러그인 `features/docs/rehype-toc.mjs`, "마크다운으로 복사" 에 쓸 Markdown 을 만드는 플러그인 `features/docs/remark-markdown.mjs`, frontmatter 를 읽고 본문 맨 앞의 `#` 제목을 빼는 플러그인 `features/docs/remark-front-matter.mjs`(값의 규칙은 `front-matter.mjs`)는 `next.config.ts` 가 불러옵니다. Session 은 Docs 의 문서를 slug 로 가리켜 참고 자료로 이어 두고(`session_docs`), 제목과 소개는 `load.ts` 의 `listDocs` 로 frontmatter 에서 찾습니다.
 
+불러오는 동안의 자리 표시는 세 `loading.tsx`(루트, Club 안쪽, Session 상세)와 Docs 의 `loading.tsx` 가 그립니다. 한 `loading.tsx` 가 그 아래 여러 화면을 덮고 주소를 받지 못하므로, 앞의 셋은 브라우저의 주소를 읽어 `lib/skeleton-route.ts` 로 화면을 고르고 그 화면을 닮은 자리 표시를 그립니다. 공용 부품은 `components/page-skeleton.tsx`, Club 안쪽 화면들의 조합은 `features/club/components/club-page-skeleton.tsx` 에 있습니다. 화면을 더하거나 주소를 바꾸면 이 둘을 함께 고칩니다. 자세한 이유는 ADR 0034 에 있습니다.
+
 `components/` 는 디자인 시스템 컴포넌트와 여러 기능이 함께 쓰는 부품입니다. 예를 들어 `components/link-controls.tsx` 는 Session 과 Project 를 잇는 화면과 Session 에 참고 자료를 가져오는 화면이 함께 씁니다. `lib/supabase/` 는 Supabase 연결 경계입니다. `lib/supabase/` 에는 서버에서 쓰는 연결과, 브라우저가 파일을 올릴 때만 쓰는 로그인 정보 없는 연결이 있습니다. `lib/theme.ts` 는 화면 모드를 고르고 기억하는 규칙이고, 고르는 메뉴는 `components/theme-menu.tsx` 입니다. 이 메뉴와 내 프로필 메뉴(`features/auth/components/user-menu.tsx`)는 모든 화면의 상단 막대 오른쪽에 둡니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
 
 각 기능은 자신의 화면, 규칙, 데이터 접근 경계를 소유합니다. 여러 기능이 함께 쓰는 요소는 실제 중복이 확인된 뒤에만 공용 영역으로 이동합니다.

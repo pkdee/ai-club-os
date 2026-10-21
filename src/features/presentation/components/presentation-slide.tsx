@@ -90,7 +90,7 @@ export function PresentationSlide({
       return (
         <>
           <SlideTitle>{slide.title}</SlideTitle>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {slide.items.map((link, index) => (
               <li key={`${link.url}-${index}`}>
                 <a
@@ -132,7 +132,7 @@ export function PresentationSlide({
             <h2 className="text-h1 break-words">{log.title}</h2>
             <ToolChips tools={log.tools} />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {LOG_PARTS.map(
               ({ key, label, icon: Icon }) =>
                 log[key] && (
@@ -171,7 +171,7 @@ export function PresentationSlide({
               회고 {slide.position} / {slide.total}
             </h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {RETROSPECTIVE_PARTS.map(
               ({ key, label, icon: Icon, tone }) =>
                 retrospective[key] && (
@@ -247,7 +247,7 @@ export function PresentationSlide({
           <SlideTitle caption="발표를 공개한 Project 입니다. 누르면 그 Project 의 발표로 갑니다.">
             {slide.title}
           </SlideTitle>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {slide.items.map((project) => (
               <li key={project.token}>
                 <Link

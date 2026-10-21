@@ -3,6 +3,8 @@ import { BookOpen } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 
+import { docsHref } from "../catalog"
+
 // Club 개요의 옆 칸에 놓는 Docs 로 가는 길. 좁은 화면의 아래쪽 메뉴에는 Docs 를 둘 자리가 없어서 둔다.
 // 넓은 화면에서는 왼쪽 메뉴에 Docs 가 있으므로 그리지 않는다.
 export function DocsCard({ clubId }: { clubId: string }) {
@@ -15,7 +17,7 @@ export function DocsCard({ clubId }: { clubId: string }) {
         </p>
       </div>
       <Link
-        href={`/clubs/${clubId}/docs`}
+        href={docsHref(clubId)}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         <BookOpen aria-hidden="true" strokeWidth={1.5} />

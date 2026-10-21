@@ -83,7 +83,7 @@ export function RetrospectiveHub({
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <section className="flex min-w-0 flex-col gap-3 xl:col-start-2 xl:row-start-1">
             <div className="flex flex-col gap-1">
               <h2 className="text-h3">한 달 회고</h2>

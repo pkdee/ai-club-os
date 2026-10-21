@@ -51,7 +51,7 @@ export function AiLogRevisions({
                 {edit.changes.map((change) => (
                   <div key={change.label} className="flex flex-col gap-2">
                     <h3 className="text-label-m">{change.label}</h3>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div className="flex flex-col gap-1 rounded-lg bg-muted p-3">
                         <span className="text-caption text-muted-foreground">
                           고치기 전

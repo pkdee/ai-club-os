@@ -116,7 +116,7 @@ export function InsightView({
       {content.themes.length > 0 && (
         <section className="flex flex-col gap-3">
           <Heading icon={Repeat}>반복된 주제</Heading>
-          <ul className="grid gap-4 md:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {content.themes.map((theme, index) => (
               <li
                 key={index}
@@ -138,7 +138,7 @@ export function InsightView({
           </ul>
         </section>
       )}
-      <div className="grid items-start gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <ItemList
           icon={Lightbulb}
           title="배운 점"

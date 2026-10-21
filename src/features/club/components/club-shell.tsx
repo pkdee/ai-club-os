@@ -28,7 +28,8 @@ export function ClubShell({
 }) {
   return (
     <div className="flex min-h-dvh flex-1 flex-col lg:flex-row">
-      <aside className="hidden w-64 shrink-0 flex-col gap-4 border-r bg-app px-3 py-4 lg:flex">
+      {/* 화면 높이에 맞춰 붙여 둔다. 긴 화면을 내려도 Club 바꾸기와 맨 아래의 알림, 설정이 함께 보인다. */}
+      <aside className="hidden w-64 shrink-0 flex-col gap-4 border-r bg-app px-3 py-4 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:overflow-y-auto">
         <Link
           href="/"
           className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
@@ -113,7 +114,8 @@ export function ClubShell({
             <UserMenu user={user} />
           </div>
         </header>
-        <main className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-8 lg:px-10 lg:pb-12">
+        {/* 아주 넓은 화면에서 줄이 지나치게 길어지지 않게 폭을 막고 남은 자리의 가운데에 둔다. */}
+        <main className="mx-auto flex w-full max-w-[85rem] min-w-0 flex-1 flex-col gap-6 px-4 py-8 lg:px-10 lg:pb-12">
           {children}
         </main>
       </div>

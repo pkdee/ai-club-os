@@ -141,7 +141,7 @@ export function SessionLogs({
   }
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="flex flex-col gap-3">
         <h2 className="text-h3">AI Log {result.total}개</h2>
         {result.logs.length > 0 ? (

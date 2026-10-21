@@ -78,8 +78,8 @@ export function SessionListScreen({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-h1">Session</h1>
           <p className="text-muted-foreground">
             학습, 실험, 공유가 이루어지는 회차입니다.

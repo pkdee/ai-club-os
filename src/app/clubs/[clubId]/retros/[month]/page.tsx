@@ -94,7 +94,7 @@ export default async function MonthRetrospectivePage(props: Props) {
           </p>
         </div>
       </div>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <aside className="flex min-w-0 flex-col gap-6 xl:col-start-2 xl:row-start-1">
           <MonthActivityCard clubId={clubId} activity={activity} now={now} />
         </aside>

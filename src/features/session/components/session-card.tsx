@@ -35,7 +35,7 @@ export function SessionCard({ session, now }: { session: Session; now: Date }) {
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="text-h4">{session.title}</span>
+          <span className="min-w-0 text-h4">{session.title}</span>
           <SessionStatusBadge status={status} />
         </span>
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-s text-muted-foreground">

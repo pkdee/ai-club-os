@@ -234,7 +234,7 @@ export function AiLogDetail({
           )}
         </div>
       </div>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <article className="flex flex-col gap-8 rounded-xl border bg-card p-6 sm:p-8">
             <Part icon={FlaskConical} title="시도한 내용" text={log.attempt} />

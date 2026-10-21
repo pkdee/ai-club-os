@@ -10,7 +10,7 @@ function Stat({
   caption: string
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-xl border bg-card p-5">
+    <div className="flex flex-col gap-1 rounded-xl border bg-card p-4 sm:p-5">
       <dt className="text-body-s text-muted-foreground">{label}</dt>
       <dd className="text-h1">{value}</dd>
       <dd className="text-caption text-tertiary">{caption}</dd>
@@ -58,7 +58,7 @@ export function ClubOverview({
         </div>
         {actions}
       </div>
-      <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat
           label="Member"
           value={`${club.memberCount}명`}
@@ -97,7 +97,7 @@ export function ClubOverview({
           />
         )}
       </dl>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         {lead && <div className="min-w-0 xl:col-start-1">{lead}</div>}
         {aside && (
           <aside className="flex min-w-0 flex-col gap-6 xl:col-start-2 xl:row-span-2 xl:row-start-1">
