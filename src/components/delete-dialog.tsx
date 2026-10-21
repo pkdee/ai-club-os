@@ -115,7 +115,16 @@ export function DeleteDialog(props: DeleteDialogProps) {
         }
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size={size} />}>
+      {/* 여는 버튼은 붉은 테두리로 두고, 붉게 채운 버튼은 확인 창 안의 마지막 결정에만 쓴다. */}
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            size={size}
+            className="border-danger-border text-danger hover:bg-danger-subtle"
+          />
+        }
+      >
         <Trash2 aria-hidden="true" strokeWidth={1.5} />
         {label}
       </DialogTrigger>
