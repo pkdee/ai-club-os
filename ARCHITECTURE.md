@@ -31,6 +31,7 @@ flowchart LR
 - 회고: Project, Session, 한 달을 사람이 직접 돌아보는 글
 - 알림: 다른 영역의 기록에서 내가 챙길 것과 새 소식을 읽어 내 모아 보여 주는 화면. 자기 데이터는 마지막으로 확인한 시각뿐이다
 - 계정: 내 정보를 보고 계정을 지우는 화면. 자기 테이블이 없고, 지우는 일은 데이터베이스의 함수 하나가 한 묶음으로 한다
+- Docs: 앱을 쓰는 법을 안내하는 문서. 모든 Club 에 같고, 데이터베이스가 아닌 저장소의 MDX 파일을 빌드할 때 화면으로 바꾼다
 
 댓글, 도움이 됐어요 표시, 붙인 이미지는 AI Log 에 딸린 것이라 `ai-log` 안에 둡니다. Session 과 Project 를 잇는 것은 `project` 안에 둡니다.
 
@@ -86,11 +87,17 @@ src/
 │   ├── presentation/
 │   ├── notification/
 │   ├── retrospective/
-│   └── account/
+│   ├── account/
+│   └── docs/
+├── content/
+│   └── docs/
 ├── lib/
 │   └── supabase/
+├── mdx-components.tsx
 └── proxy.ts
 ```
+
+`content/docs/` 에는 Docs 의 MDX 파일과 순서를 적은 `list.ts` 가 있습니다. `features/docs/` 는 목록에서 문서를 찾고, 문서를 불러오고, 본문을 그립니다. 목록에 있는 slug 로만 MDX 를 불러오므로 주소로 다른 파일을 열 수 없습니다. `mdx-components.tsx` 는 `@next/mdx` 가 모든 MDX 에 넘기는 부품이고, 지금은 Docs 의 부품을 돌려줍니다. 빌드할 때 목차를 만드는 플러그인 `features/docs/rehype-toc.mjs` 는 `next.config.ts` 가 불러옵니다.
 
 `components/` 는 디자인 시스템 컴포넌트, `lib/supabase/` 는 Supabase 연결 경계입니다. `lib/supabase/` 에는 서버에서 쓰는 연결과, 브라우저가 파일을 올릴 때만 쓰는 로그인 정보 없는 연결이 있습니다. `lib/theme.ts` 는 화면 모드를 고르고 기억하는 규칙이고, 고르는 메뉴는 `components/theme-menu.tsx` 입니다. 이 메뉴와 내 프로필 메뉴(`features/auth/components/user-menu.tsx`)는 모든 화면의 상단 막대 오른쪽에 둡니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
 

@@ -23,6 +23,7 @@ import {
 import { ClubOverview } from "@/features/club/components/club-overview";
 import { MyRecordCard } from "@/features/club/components/my-record-card";
 import { loadClubPage } from "@/features/club/page-data";
+import { DocsCard } from "@/features/docs/components/docs-card";
 import { MyProjectsCard } from "@/features/project/components/linked-cards";
 import { listProjects } from "@/features/project/queries";
 import { hasMonthRetrospective } from "@/features/retrospective/queries";
@@ -224,6 +225,7 @@ export default async function ClubOverviewPage(
                   }
             }
           />
+          <DocsCard clubId={club.id} />
         </>
       }
     >

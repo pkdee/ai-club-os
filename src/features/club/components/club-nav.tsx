@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Bell,
+  BookOpen,
   Calendar,
   FileText,
   FolderKanban,
@@ -35,6 +36,7 @@ type NavItem = {
 // Attendance 는 Session 안에서 다루므로 메뉴에 따로 두지 않는다. 설정은 운영자에게만 보인다.
 // 좁은 화면의 아래쪽 메뉴에는 설정을 넣지 않는다. 자리가 모자라서 위쪽 막대의 버튼으로 옮겼다.
 // 회고도 아래쪽 메뉴에 넣지 않는다. 좁은 화면에서는 개요의 내 기록과 Project, Session 화면에서 간다.
+// Docs 도 아래쪽 메뉴에 넣지 않는다. 좁은 화면에서는 개요의 Docs 카드에서 간다.
 // notificationCount 가 null 이면 알림을 아직 쓸 수 없는 것이라 메뉴에 넣지 않는다.
 function navItems(
   clubId: string,
@@ -55,6 +57,12 @@ function navItems(
       sidebarOnly: true,
     },
     { href: `${base}/members`, label: "Member", icon: Users },
+    {
+      href: `${base}/docs`,
+      label: "Docs",
+      icon: BookOpen,
+      sidebarOnly: true,
+    },
   ]
 
   if (notificationCount !== null) {

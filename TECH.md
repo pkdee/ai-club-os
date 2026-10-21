@@ -16,6 +16,7 @@
 | AI Provider | Google 의 Gemini, Anthropic 의 Claude | 도입. 새 패키지 없이 `fetch` 로 부른다. 2026-10-20 부터 Gemini 3.8 Flash 무료 등급을 쓴다. 키와 모델은 서버의 환경 변수 |
 | 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
 | 디자인 문서 | Google 의 DESIGN.md 형식 | 2026-10-21 도입. `DESIGN.md` 에 디자인 토큰과 그 설명을 함께 둔다. 형식은 `npm run design:lint` 로, `globals.css` 와 같은지는 `npm test` 로 검사한다 |
+| 앱 안내 문서 | MDX, `@next/mdx`, Shiki | 2026-10-21 도입. `src/content/docs/` 의 MDX 를 빌드할 때 화면으로 바꾼다. 코드의 색은 빌드할 때 칠한다 |
 
 ## 도입한 패키지와 근거
 
@@ -33,6 +34,11 @@
 | `@supabase/supabase-js` 2.117.3, `@supabase/ssr` 0.12.7 | 2026-10-10 추가. Supabase 연결과 서버 쪽 세션 관리. 공급망 사고에 대비해 버전을 고정한다. |
 | `@lobehub/icons-static-svg` 1.95.1 | 2026-10-10 추가. AI 도구 로고의 SVG 파일. MIT 이고 의존성이 없다. 로고 모양이 모르는 사이에 바뀌지 않게 버전을 고정한다. 로고의 상표는 각 회사에 있다. 근거는 `docs/adr/0014-tool-logos-from-package.md`. |
 | `@google/design.md` 0.4.0 | 2026-10-21 추가. 개발 도구. DESIGN.md 형식의 lint 와 토큰을 읽는 함수를 준다. Google Labs 가 만들었고 Apache-2.0 이다. 형식이 alpha 라 규칙이 모르는 사이에 바뀌지 않게 버전을 고정한다. 배포되는 코드에는 들어가지 않는다. 근거는 `docs/adr/0030-design-md-format.md`. |
+| `@next/mdx` 16.4.0, `@mdx-js/loader` 3.1.1, `@mdx-js/react` 3.1.1, `@types/mdx` 2.0.14 | 2026-10-21 추가. Next.js 문서가 MDX 에 쓰라고 하는 묶음. `@next/mdx` 는 `next` 와 같은 버전으로 맞춘다. 모두 MIT. |
+| `remark-gfm` 4.0.1, `rehype-slug` 6.0.0 | 2026-10-21 추가. Docs 의 표를 읽고 제목에 목차가 가리킬 id 를 붙인다. 모두 MIT. |
+| `@shikijs/rehype` 4.5.0 | 2026-10-21 추가. Docs 코드 블록의 색을 빌드할 때 칠한다. `shiki` 4.5.0 이 따라 들어온다. 모두 MIT. 빌드 결과에 Shiki 의 실행 코드는 들어가지 않는 것을 확인했다. |
+
+Docs 에 쓰는 패키지는 모두 버전을 고정했습니다. 근거는 `docs/adr/0031-docs-as-mdx-at-build-time.md` 에 있습니다.
 
 Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행합니다. 지금은 마이그레이션 파일을 만들 때만 씁니다.
 
@@ -41,7 +47,7 @@ Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행
 - Cache Components 와 React Compiler 는 켜지 않았습니다. 필요한 근거가 생기면 검토합니다.
 - `agentRules` 를 껐습니다. 켜 두면 `next dev` 가 `AGENTS.md` 에 Next.js 안내 문단을 자동으로 넣고 지워도 다시 넣습니다. `AGENTS.md` 는 이 저장소의 단일 지침이라 직접 관리합니다.
 
-알려진 경고가 하나 있습니다. `npm audit` 가 `braces` 의 서비스 거부 취약점으로 high 9건을 보고합니다(2026-10-21 기준. `@google/design.md` 를 더하기 전에도 9건이었습니다). 모두 `eslint-config-next` 와 `shadcn` 의 명령줄 도구가 끌어오는 경로이고 배포되는 코드에는 들어가지 않습니다. 자동 수정은 `eslint-config-next` 를 14 로 내리는 방식이라 적용하지 않았습니다.
+알려진 경고가 하나 있습니다. `npm audit` 가 `braces` 의 서비스 거부 취약점으로 high 9건을 보고합니다(2026-10-21 기준. `@google/design.md` 와 Docs 의 패키지를 더하기 전에도 9건이었습니다). 모두 `eslint-config-next` 와 `shadcn` 의 명령줄 도구가 끌어오는 경로이고 배포되는 코드에는 들어가지 않습니다. 자동 수정은 `eslint-config-next` 를 14 로 내리는 방식이라 적용하지 않았습니다.
 
 ## 파일 저장 방향
 

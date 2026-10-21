@@ -35,6 +35,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - 2026-10-20 에 사용자가 Vercel 배포를 준비하면서 AI Insight 에 Gemini 3.8 Flash 무료 등급을 쓰기로 정했다. 무료 등급에서 Google 이 받은 글을 개선에 쓴다는 조건을 듣고 정했다. Gemini 구현과 안내 글을 더했다.
 - 2026-10-21 에 사용자가 Google 의 DESIGN.md 형식을 들이기로 했다. `@google/design.md` 를 개발 도구로 더하고 `DESIGN.md` 를 그 형식에 맞췄다. 같은 날 프로젝트 분석에서 나온 로그인 뒤 돌아갈 경로의 우회, Claude 호출의 제한 시간, 알림 수를 세는 조회의 순서를 고쳤다. AI Insight 는 Gemini 무료 모델을 쓰므로 Provider 가 없을 때의 안내도 Gemini 에 맞췄다.
 - 2026-10-21 에 사용자가 프로필 메뉴와 화면 모드의 자리, 계정 관련 버튼의 색을 고치자고 했다. 모든 화면의 상단 막대 오른쪽에 화면 모드 버튼과 내 프로필 메뉴(계정 설정, 로그아웃)를 두고, 내 계정 화면의 화면 모드를 뺐다. 계정 지우기와 로그아웃은 붉은 계열로 바꿨다. Figma 에는 아직 반영하지 않았다.
+- 2026-10-21 에 사용자가 앱 사용 안내인 Docs 를 MDX 로 쓰고 빌드할 때 올리기로 했다. 문서는 모든 Club 에 같고, 코드 블록은 macOS 창 모양에 복사 버튼을 둔다. `@next/mdx` 와 remark, rehype 플러그인, Shiki 를 더하고 Docs 화면과 첫 문서를 구현했다. Figma 에는 아직 반영하지 않았다.
 - 승인된 범위를 넘는 구현은 사용자가 다음 단계를 승인한 뒤에 진행한다.
 - 패키지 설치, 외부 서비스 연결, 데이터베이스 변경, 배포 설정을 임의로 진행하지 않는다.
 - 기존 파일을 삭제하거나 덮어쓰기 전에 반드시 상태와 사용자 변경 사항을 확인한다.
@@ -62,7 +63,8 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 ## 구조 원칙
 
 - 기능 단위 경계를 우선한다.
-- `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`, `project`, `presentation`, `notification`, `retrospective`, `account`를 서로 구분한다.
+- `auth`, `club`, `member`, `session`, `attendance`, `ai-log`, `ai-insight`, `project`, `presentation`, `notification`, `retrospective`, `account`, `docs`를 서로 구분한다.
+- Docs 의 문서는 `src/content/docs/` 에 `<slug>.mdx` 로 쓰고 같은 폴더의 `list.ts` 에 순서와 제목을 적는다. 문서는 저장소에 그대로 들어가므로 비밀 값과 개인 정보를 적지 않는다.
 - Storage 를 부르는 서버 코드는 `src/features/ai-log/image-store.ts` 한 곳에만 둔다.
 - 화면, 데이터 접근, 외부 서비스 연결이 한 파일에 섞이지 않게 한다.
 - 아직 필요하지 않은 기능과 추상화는 미리 구현하지 않는다.

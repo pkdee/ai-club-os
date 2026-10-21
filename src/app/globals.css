@@ -283,3 +283,16 @@
     @apply bg-background text-body-m wrap-break-word break-keep text-foreground;
   }
 }
+
+/*
+ * Docs 코드 블록의 글자 색. Shiki 가 빌드할 때 토큰마다 밝은 색과 어두운 색을 변수로 적어 두고,
+ * 여기서 지금의 화면 모드에 맞는 쪽을 고른다. 색은 GitHub 테마의 것이고 디자인 토큰이 아니다.
+ */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+}
