@@ -119,7 +119,7 @@ export async function InsightSection({
       />
     ) : null
   const blocked = !provider
-    ? "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 ANTHROPIC_API_KEY 를 넣으면 만들 수 있습니다."
+    ? "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 GEMINI_API_KEY 를 넣으면 만들 수 있습니다."
     : !enoughLogs
       ? `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다. 지금은 ${logCount}개입니다.${
           excludedCount > 0

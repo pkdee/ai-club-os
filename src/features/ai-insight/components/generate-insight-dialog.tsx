@@ -41,7 +41,7 @@ export function GenerateInsightDialog({
   retrospectiveCount?: number
   // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이다.
   runsLeft?: number | null
-  // 예: Anthropic 의 Claude
+  // 예: Google 의 Gemini
   providerLabel: string
   // 받은 글을 그 회사가 어떻게 쓰는지 따로 알릴 글. 없으면 null 이다.
   providerNotice?: string | null

@@ -40,7 +40,7 @@ const RETRY_MESSAGE =
 const ADMIN_ONLY_MESSAGE =
   "운영자만 할 수 있는 일입니다. 내 역할이 바뀌었을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
 const NOT_CONFIGURED_MESSAGE =
-  "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 ANTHROPIC_API_KEY 를 넣은 뒤 다시 시도해 주세요."
+  "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 GEMINI_API_KEY 를 넣은 뒤 다시 시도해 주세요."
 const NOT_READY_MESSAGE =
   "데이터베이스에 AI Insight 의 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
 const TARGET_GONE_MESSAGE =
