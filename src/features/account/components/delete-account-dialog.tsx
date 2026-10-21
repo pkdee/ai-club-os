@@ -124,7 +124,15 @@ export function DeleteAccountDialog({
         }
       }}
     >
-      <DialogTrigger render={<Button variant="outline" />}>
+      {/* 여는 버튼은 붉은 테두리로 두고, 붉게 채운 버튼은 확인 창 안의 마지막 결정에만 쓴다. */}
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            className="border-danger-border text-danger hover:bg-danger-subtle"
+          />
+        }
+      >
         <UserX aria-hidden="true" strokeWidth={1.5} />
         계정 지우기
       </DialogTrigger>

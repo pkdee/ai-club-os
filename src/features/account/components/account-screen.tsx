@@ -1,27 +1,49 @@
 import Link from "next/link"
-import { ArrowLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, ChevronRight, TriangleAlert } from "lucide-react"
 
-import { ThemeSwitch } from "@/components/theme-switch"
 import { Avatar } from "@/components/ui/avatar"
 import type { CurrentUser } from "@/features/auth/session"
+import { cn } from "@/lib/utils"
 
 import { accountDeleteConfirmValue, type AccountClub, type AccountDeletionPlan } from "../plan"
 import type { AccountContentCounts } from "../queries"
 import { DeleteAccountDialog } from "./delete-account-dialog"
 
+// tone 이 danger 이면 되돌릴 수 없는 일을 다루는 칸이라 테두리, 아이콘, 제목을 붉게 둔다.
 function Card({
   title,
   description,
+  tone = "default",
   children,
 }: {
   title: string
   description?: string
+  tone?: "default" | "danger"
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-card p-6">
+    <section
+      className={cn(
+        "flex flex-col gap-4 rounded-xl border bg-card p-6",
+        tone === "danger" && "border-danger-border"
+      )}
+    >
       <div className="flex flex-col gap-1">
-        <h2 className="text-h4">{title}</h2>
+        <h2
+          className={cn(
+            "flex items-center gap-2 text-h4",
+            tone === "danger" && "text-danger"
+          )}
+        >
+          {tone === "danger" && (
+            <TriangleAlert
+              aria-hidden="true"
+              strokeWidth={1.5}
+              className="size-5 shrink-0 text-icon-danger"
+            />
+          )}
+          {title}
+        </h2>
         {description && (
           <p className="text-body-s text-muted-foreground">{description}</p>
         )}
@@ -48,7 +70,8 @@ function ClubNames({ clubs }: { clubs: AccountClub[] }) {
   return <>{clubs.map((club) => `"${club.name}"`).join(", ")}</>
 }
 
-// 내 계정 화면. 내 정보, 화면 모드, 개인 정보 안내, 계정 지우기를 차례로 둔다.
+// 내 계정 화면. 내 정보, 개인 정보 안내, 계정 지우기를 차례로 둔다.
+// 화면 모드는 상단 막대의 오른쪽에서 고른다.
 // plan 이 null 이면 내 Club 을 읽지 못한 것이다.
 export function AccountScreen({
   user,
@@ -88,12 +111,6 @@ export function AccountScreen({
         </div>
       </Card>
       <Card
-        title="화면 모드"
-        description="고르면 바로 바뀌고 이 브라우저에 기억됩니다. 기기 설정을 고르면 기기의 밝은 화면과 어두운 화면을 따라갑니다."
-      >
-        <ThemeSwitch />
-      </Card>
-      <Card
         title="개인 정보"
         description="무엇을 모으고, 누가 보고, 얼마나 두는지 적어 두었습니다."
       >
@@ -106,6 +123,7 @@ export function AccountScreen({
         </Link>
       </Card>
       <Card
+        tone="danger"
         title="계정 지우기"
         description="계정과 모든 Club 의 소속이 지워집니다. 되돌릴 수 없습니다."
       >

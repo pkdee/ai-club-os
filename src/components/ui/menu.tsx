@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
+import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -43,7 +44,10 @@ function MenuContent({
   )
 }
 
-// tone 이 danger 이면 되돌릴 수 없는 일이라는 뜻으로 붉게 보여 준다.
+const itemClassName =
+  "flex h-9 cursor-default items-center gap-2 rounded-md px-2.5 text-label-m outline-none select-none data-disabled:pointer-events-none data-disabled:text-disabled-foreground [&_svg]:size-4 [&_svg]:shrink-0"
+
+// tone 이 danger 이면 되돌릴 수 없는 일이나 로그아웃처럼 지금의 흐름을 끝내는 일이라는 뜻으로 붉게 보여 준다.
 function MenuItem({
   className,
   tone = "default",
@@ -53,10 +57,71 @@ function MenuItem({
     <MenuPrimitive.Item
       data-slot="menu-item"
       className={cn(
-        "flex h-9 cursor-default items-center gap-2 rounded-md px-2.5 text-label-m outline-none select-none data-disabled:pointer-events-none data-disabled:text-disabled-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+        itemClassName,
         tone === "danger"
-          ? "text-danger data-highlighted:bg-danger-subtle"
+          ? "text-danger data-highlighted:bg-danger-subtle [&_svg]:text-icon-danger"
           : "data-highlighted:bg-accent",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+// 다른 화면으로 가는 항목. render 로 next/link 의 Link 를 넘긴다.
+function MenuLinkItem({
+  className,
+  closeOnClick = true,
+  ...props
+}: MenuPrimitive.LinkItem.Props) {
+  return (
+    <MenuPrimitive.LinkItem
+      data-slot="menu-link-item"
+      closeOnClick={closeOnClick}
+      className={cn(itemClassName, "data-highlighted:bg-accent", className)}
+      {...props}
+    />
+  )
+}
+
+function MenuRadioGroup({ ...props }: MenuPrimitive.RadioGroup.Props) {
+  return <MenuPrimitive.RadioGroup data-slot="menu-radio-group" {...props} />
+}
+
+// 여럿 가운데 하나를 고르는 항목. 고른 항목은 글자 색과 오른쪽의 표시로 알린다.
+function MenuRadioItem({
+  className,
+  children,
+  closeOnClick = true,
+  ...props
+}: MenuPrimitive.RadioItem.Props) {
+  return (
+    <MenuPrimitive.RadioItem
+      data-slot="menu-radio-item"
+      closeOnClick={closeOnClick}
+      className={cn(
+        itemClassName,
+        "data-highlighted:bg-accent data-checked:text-brand",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <MenuPrimitive.RadioItemIndicator className="ml-auto flex text-icon-brand">
+        <Check aria-hidden="true" strokeWidth={1.5} />
+      </MenuPrimitive.RadioItemIndicator>
+    </MenuPrimitive.RadioItem>
+  )
+}
+
+// 항목 묶음 위의 작은 제목. 읽어 주는 이름은 묶음의 aria-label 에 따로 둔다.
+function MenuLabel({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="menu-label"
+      aria-hidden="true"
+      className={cn(
+        "px-2.5 pt-1.5 pb-1 text-caption text-muted-foreground",
         className
       )}
       {...props}
@@ -91,4 +156,15 @@ function MenuNote({ className, ...props }: React.ComponentProps<"p">) {
   )
 }
 
-export { Menu, MenuContent, MenuItem, MenuNote, MenuSeparator, MenuTrigger }
+export {
+  Menu,
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuLinkItem,
+  MenuNote,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuTrigger,
+}
