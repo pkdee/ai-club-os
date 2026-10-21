@@ -43,10 +43,12 @@ registerHooks({
       return nextResolve(pathToFileURL(target).href, context)
     }
     if (specifier.startsWith(".") && context.parentURL?.startsWith("file:")) {
-      const target = withExtension(
-        fileURLToPath(new URL(specifier, context.parentURL))
-      )
-      return nextResolve(pathToFileURL(target).href, context)
+      const filePath = fileURLToPath(new URL(specifier, context.parentURL))
+      const target = withExtension(filePath)
+      // .ts 를 찾지 못한 주소는 Node 에 그대로 맡긴다. node_modules 의 CommonJS 가 확장자 없이 부르는 .js 가 그렇다.
+      if (target !== filePath) {
+        return nextResolve(pathToFileURL(target).href, context)
+      }
     }
     return nextResolve(specifier, context)
   },

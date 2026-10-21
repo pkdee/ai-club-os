@@ -3,6 +3,9 @@
 // Turbopack 의 로더가 Node 에서 바로 불러오므로 TypeScript 가 아닌 .mjs 로 쓴다.
 // 목차의 한 줄은 { id, text, depth } 이고 depth 는 2 나 3 이다. 형식은 catalog.ts 의 DocHeading 과 같다.
 
+import { exportConst } from "./esm-export.mjs"
+
+// 요소 안의 글자를 이어 붙인다.
 function textOf(node) {
   if (node.type === "text") {
     return node.value
@@ -32,58 +35,8 @@ export function headingsOf(tree) {
   return headings
 }
 
-function literal(value) {
-  return { type: "Literal", value }
-}
-
-// `export const toc = [{ id, text, depth }, ...]` 를 MDX 가 읽는 ESM 노드로 만든다.
-function tocExport(headings) {
-  const elements = headings.map((heading) => ({
-    type: "ObjectExpression",
-    properties: Object.entries(heading).map(([key, value]) => ({
-      type: "Property",
-      kind: "init",
-      method: false,
-      shorthand: false,
-      computed: false,
-      key: { type: "Identifier", name: key },
-      value: literal(value),
-    })),
-  }))
-
-  return {
-    type: "mdxjsEsm",
-    value: "",
-    data: {
-      estree: {
-        type: "Program",
-        sourceType: "module",
-        body: [
-          {
-            type: "ExportNamedDeclaration",
-            specifiers: [],
-            source: null,
-            attributes: [],
-            declaration: {
-              type: "VariableDeclaration",
-              kind: "const",
-              declarations: [
-                {
-                  type: "VariableDeclarator",
-                  id: { type: "Identifier", name: "toc" },
-                  init: { type: "ArrayExpression", elements },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    },
-  }
-}
-
 export default function rehypeToc() {
   return (tree) => {
-    tree.children.unshift(tocExport(headingsOf(tree)))
+    tree.children.unshift(exportConst("toc", headingsOf(tree)))
   }
 }

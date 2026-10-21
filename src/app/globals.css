@@ -296,3 +296,63 @@
 .dark .shiki span {
   color: var(--shiki-dark);
 }
+
+/*
+ * Docs 본문의 접는 칸. 자주 하는 질문 목록처럼 위아래에 선만 두고 상자로 감싸지 않는다.
+ * 상자로 감싸면 칸 하나만 있을 때 고르는 칸(select)처럼 보이고, 안쪽의 코드 블록이 상자 속 상자가 된다.
+ * MDX 에 직접 쓴 <details> 에는 Docs 컴포넌트가 붙지 않아 여기서 모양을 입힌다.
+ * 안쪽의 문단, 목록, 코드 블록은 Docs 컴포넌트가 그린다.
+ * 연달아 놓인 칸은 사이의 선을 하나만 남겨 한 목록으로 읽히게 한다.
+ */
+.doc-body details {
+  @apply mt-5 border-y first:mt-0;
+}
+.doc-body details + details {
+  @apply mt-0 border-t-0;
+}
+.doc-body summary {
+  @apply flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm py-4 text-label-l select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring;
+}
+.doc-body summary::-webkit-details-marker {
+  display: none;
+}
+/* 오른쪽의 펼침 표시. lucide 의 chevron-down 을 가면으로 써서 아이콘 색 토큰으로 칠하고, 펼치면 뒤집는다. */
+.doc-body summary::after {
+  content: "";
+  @apply size-5 shrink-0 bg-icon-subtle transition-[rotate,background-color] motion-reduce:transition-none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+.doc-body summary:hover::after {
+  @apply bg-icon-strong;
+}
+.doc-body details[open] > summary::after {
+  @apply rotate-180;
+}
+/*
+ * 펼칠 때 안쪽이 살짝 내려오며 나타난다. 높이를 움직이는 ::details-content 는
+ * Turbopack 의 CSS 처리가 받지 못해 파일 전체가 반영되지 않으므로 쓰지 않는다.
+ */
+.doc-body details[open] > :not(summary) {
+  animation: doc-details-open 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .doc-body details[open] > :not(summary) {
+    animation: none;
+  }
+}
+@keyframes doc-details-open {
+  from {
+    opacity: 0;
+    translate: 0 -0.25rem;
+  }
+}
+/* 대답과 예시는 질문 줄 바로 아래에서 시작하고, 본문과 같은 폭을 쓴다. */
+.doc-body details > summary + * {
+  @apply mt-0;
+}
+.doc-body details > :last-child {
+  @apply mb-5;
+}

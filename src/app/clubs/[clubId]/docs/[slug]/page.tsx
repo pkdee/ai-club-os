@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { loadClubPage } from "@/features/club/page-data";
-import { docNeighbors, findDoc } from "@/features/docs/catalog";
+import { docNeighbors } from "@/features/docs/catalog";
 import { DocArticle } from "@/features/docs/components/doc-article";
 import { DocToc } from "@/features/docs/components/doc-toc";
-import { loadDoc } from "@/features/docs/load";
+import { findDoc, listDocs, loadDoc } from "@/features/docs/load";
 
 export async function generateMetadata(
   props: PageProps<"/clubs/[clubId]/docs/[slug]">
 ): Promise<Metadata> {
   const { slug } = await props.params;
-  const entry = findDoc(slug);
+  const entry = await findDoc(slug);
   return {
     title: `${entry?.title ?? "Docs"} | AI Club OS`,
     description: entry?.description,
@@ -30,18 +30,20 @@ export default async function DocPage(
     return null;
   }
 
-  const doc = await loadDoc(slug);
+  const [doc, docs] = await Promise.all([loadDoc(slug), listDocs()]);
   if (!doc) {
     notFound();
   }
-  const { prev, next } = docNeighbors(doc.entry.slug);
+  const { prev, next } = docNeighbors(doc.entry.slug, docs);
 
   return (
     <>
       <DocArticle
         clubId={clubId}
         entry={doc.entry}
+        minutes={doc.minutes}
         Content={doc.Content}
+        markdown={doc.markdown}
         prev={prev}
         next={next}
       />

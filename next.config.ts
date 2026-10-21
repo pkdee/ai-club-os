@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import createMDX from "@next/mdx";
@@ -16,11 +18,37 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Docs 의 MDX 플러그인 파일들의 내용으로 만든 값.
+// Turbopack 은 .mdx 를 바꾼 결과를 캐시에 남기는데, 플러그인 파일이 바뀐 것은 알아채지 못한다.
+// 이 값을 플러그인 옵션에 넣어 플러그인을 고치면 문서를 다시 만들게 한다. 개발 서버는 다시 켤 때 이 값을 다시 셈한다.
+const docsPluginDir = path.join(process.cwd(), "src/features/docs");
+const docsPluginVersion = createHash("sha256")
+  .update(
+    readdirSync(docsPluginDir)
+      .filter((name) => name.endsWith(".mjs"))
+      .sort()
+      .map((name) => readFileSync(path.join(docsPluginDir, name), "utf8"))
+      .join("\0")
+  )
+  .digest("hex")
+  .slice(0, 16);
+
 // Docs 의 .mdx 파일을 빌드할 때 화면으로 바꾼다.
 // Turbopack 은 함수를 넘기지 못하므로 플러그인을 이름과 JSON 으로 적는다.
 const withMDX = createMDX({
   options: {
-    remarkPlugins: ["remark-gfm"],
+    remarkPlugins: [
+      // 문서 맨 앞의 frontmatter(제목, 소개, 날짜, 태그)를 읽어 `export const frontmatter` 로 내보낸다.
+      // MDX 가 원문을 읽기 전에 frontmatter 를 빈칸으로 바꾸므로 다른 플러그인보다 앞에 둔다.
+      // version 은 플러그인이 읽지 않는다. 캐시를 가르는 값이다.
+      [
+        path.join(process.cwd(), "src/features/docs/remark-front-matter.mjs"),
+        { version: docsPluginVersion },
+      ],
+      "remark-gfm",
+      // "마크다운으로 복사" 에 쓸 Markdown 을 MDX 원문에서 만들어 `export const markdown` 으로 내보낸다.
+      path.join(process.cwd(), "src/features/docs/remark-markdown.mjs"),
+    ],
     rehypePlugins: [
       // 목차가 제목으로 가도록 h2, h3 에 id 를 붙인다.
       "rehype-slug",

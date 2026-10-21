@@ -9,7 +9,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { DOCS } from "@/content/docs/list";
+import { DOC_SLUGS } from "@/content/docs/list";
 import { loadClubPage } from "@/features/club/page-data";
 
 export const metadata: Metadata = {
@@ -27,9 +27,9 @@ export default async function DocsPage(
     return null;
   }
 
-  const [first] = DOCS;
+  const [first] = DOC_SLUGS;
   if (first) {
-    redirect(`/clubs/${clubId}/docs/${first.slug}`);
+    redirect(`/clubs/${clubId}/docs/${first}`);
   }
 
   return (
