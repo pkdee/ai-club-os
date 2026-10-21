@@ -51,13 +51,14 @@ Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행
 
 ## 파일 저장 방향
 
-2026-10-12 에 Supabase Storage 를 들였습니다. 쓰는 곳은 AI Log 의 이미지 하나입니다.
+2026-10-12 에 Supabase Storage 를 들였습니다. 쓰는 곳은 AI Log 의 이미지(`ai-log-images`)와, 2026-10-21 에 더한 Club 로고(`club-logos`)입니다.
 
 - 저장 공간과 접근 규칙은 마이그레이션이 만듭니다. 대시보드에서 손으로 만들지 않습니다.
-- Storage 를 부르는 서버 코드는 `src/features/ai-log/image-store.ts` 한 곳에만 둡니다. `server-only` 로 표시했습니다.
+- Storage 를 부르는 서버 코드는 기능마다 한 파일에만 둡니다. AI Log 의 이미지는 `src/features/ai-log/image-store.ts`, Club 로고는 `src/features/club/logo-store.ts` 입니다. 둘 다 `server-only` 로 표시했습니다.
 - 파일은 브라우저가 Storage 로 바로 올립니다. 서버가 올릴 자리에만 쓰는 한 번짜리 표를 만들어 주고, 브라우저는 로그인 정보를 싣지 않는 연결(`src/lib/supabase/upload-client.ts`)로 그 표를 씁니다. 배포 서비스가 요청 하나의 크기를 5MB 보다 작게 막기 때문입니다.
 - 보여 줄 때는 서버가 한 시간짜리 주소를 만듭니다. `next/image` 의 변환은 거치지 않습니다.
 - 근거는 `docs/adr/0028-ai-log-images-in-storage.md` 에 있습니다.
+- Club 로고는 브라우저가 256px 정사각형으로 줄인 뒤 서버 동작으로 올립니다. 줄인 그림이 512KB 까지라 서버 동작의 요청 크기 한도 안에 듭니다. 보여 줄 때는 앱의 `/clubs/<Club>/logo/<파일 이름>` 이 로그인을 확인하고 Storage 에서 읽어 보냅니다. 근거는 `docs/adr/0032-club-directory-and-logos.md` 에 있습니다.
 
 ## 화면 모드
 

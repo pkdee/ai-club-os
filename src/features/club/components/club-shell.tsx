@@ -6,8 +6,10 @@ import { buttonVariants } from "@/components/ui/button"
 import { UserMenu } from "@/features/auth/components/user-menu"
 import type { CurrentUser } from "@/features/auth/session"
 
+import { clubLogoUrl } from "../logo-rules"
 import type { MyClub } from "../queries"
 import { ROLE_LABEL } from "../roles"
+import { ClubLogo } from "./club-logo"
 import { ClubNav } from "./club-nav"
 
 // Club 안쪽 화면이 함께 쓰는 틀. 넓은 화면은 Sidebar, 좁은 화면은 아래쪽 메뉴를 쓴다.
@@ -31,12 +33,11 @@ export function ClubShell({
           href="/"
           className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
         >
-          <span
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-inverse text-label-m text-inverse-foreground"
-          >
-            {Array.from(club.name)[0]}
-          </span>
+          <ClubLogo
+            name={club.name}
+            src={clubLogoUrl(club.id, club.logoPath)}
+            className="size-8 rounded-md bg-inverse text-label-m text-inverse-foreground"
+          />
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-label-m">{club.name}</span>
             <span className="text-caption text-muted-foreground">

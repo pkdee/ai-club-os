@@ -14,6 +14,7 @@ import {
 
 import { deleteClub } from "../actions"
 import type { MyClub } from "../queries"
+import { ClubLogoForm } from "./club-logo-form"
 import { ClubSettingsForm } from "./club-settings-form"
 
 // 운영자만 쓰는 화면이다. 구성원이 주소로 들어오면 이유를 알려 준다.
@@ -47,6 +48,11 @@ export function ClubSettingsScreen({
               defaults={{ name: club.name, description: club.description }}
             />
           </section>
+          <ClubLogoForm
+            clubId={club.id}
+            name={club.name}
+            logoPath={club.logoPath}
+          />
           {children}
           <section className="flex max-w-[720px] flex-col gap-4 rounded-xl border border-danger-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6">
             <div className="flex flex-col gap-1">

@@ -81,6 +81,9 @@ User
 | `ai_log_attachments`, 장수 제한, 파일이 남은 줄을 지키는 규칙 | `20261011145452_create_ai_log_attachments.sql` | `docs/adr/0028-ai-log-images-in-storage.md` |
 | Storage 의 `ai-log-images` 와 접근 규칙 | `20261011145455_create_ai_log_images_bucket.sql` | `docs/adr/0028-ai-log-images-in-storage.md` |
 | 계정을 지우는 함수, Member 가 없는 Club 지우기 | `20261011145459_add_account_deletion.sql` | `docs/adr/0027-account-deletion-and-privacy.md` |
+| `clubs` 의 로고 열, 로고 파일이 남은 Club 을 지키는 규칙 | `20261021052123_add_club_logo.sql` | `docs/adr/0032-club-directory-and-logos.md` |
+| Storage 의 `club-logos` 와 접근 규칙 | `20261021052125_create_club_logos_bucket.sql` | `docs/adr/0032-club-directory-and-logos.md` |
+| 로그인한 사용자 모두가 보는 Club 목록 함수 | `20261021052127_add_list_clubs.sql` | `docs/adr/0032-club-directory-and-logos.md` |
 
 ```mermaid
 erDiagram
@@ -128,6 +131,7 @@ erDiagram
     uuid id PK
     text name
     text description
+    text logo_path
     uuid created_by FK
     timestamptz created_at
   }
@@ -346,8 +350,19 @@ erDiagram
 | `id` | uuid | 기본 키 |
 | `name` | text | 앞뒤 공백을 뺀 길이가 1자 이상 50자 이하 |
 | `description` | text | 200자 이하. 기본값은 빈 문자열 |
+| `logo_path` | text | 로고 파일의 Storage 경로. Club 과 파일 이름의 두 마디이고, 첫 마디는 이 Club 이어야 한다. 파일 이름은 앱이 만든 식별자와 `png`, `jpg`, `webp` 가운데 하나의 확장자다. 로고가 없으면 null |
 | `created_by` | uuid | 만든 사용자. 사용자가 삭제되면 비운다 |
 | `created_at` | timestamptz | 만든 시각 |
+
+로고 파일이 Storage 에 남아 있는 Club 은 지울 수 없습니다. `clubs_keep_until_logo_is_gone` trigger 가 그 Club 의 자리에 남은 파일을 모두 보고, 하나라도 있으면 오류(`23503`)를 냅니다. `logo_path` 를 비워도 파일이 남아 있으면 같습니다. 계정이 지워지면서 Club 이 함께 지워질 때도 같아서, 앱은 Club 을 지우기 전에 그 Club 의 로고 파일을 먼저 지웁니다.
+
+### 모든 Club 을 읽는 함수
+
+`public.list_clubs()` 가 등록된 Club 을 모두 돌려줍니다. 로그인한 사용자만 부를 수 있습니다. Member 가 아닌 사람도 `clubs` 와 `members` 를 읽어야 해서 만든 사람의 권한으로 실행합니다.
+
+- 돌려주는 열은 `id`, `name`, `description`, `logo_path`, `member_count`, `my_role`, `created_at` 입니다. `my_role` 은 내 역할이고 Member 가 아니면 null 입니다.
+- Member 의 이름, 이메일, Club 안의 기록은 돌려주지 않습니다.
+- `clubs` 와 `members` 의 접근 규칙은 바꾸지 않았습니다. Member 가 아닌 사람이 두 테이블을 직접 읽으면 여전히 아무것도 보이지 않습니다.
 
 ### members
 
@@ -733,6 +748,19 @@ AI Log 에 붙인 이미지의 목록입니다. 파일은 Storage 의 `ai-log-im
 
 올린 본인에게 조회와 삭제를 열어 둔 것은 Club 에서 나간 뒤에도 자기 파일을 거둘 수 있게 하려는 것입니다. 경로의 마디가 식별자 모양이 아니면 `private.uuid_or_null` 이 오류 없이 걸러 냅니다.
 
+### Storage 의 club-logos
+
+Club 로고를 두는 공개하지 않는 저장 공간입니다. 한 파일에 512KB 까지, `image/png`, `image/jpeg`, `image/webp` 만 받습니다. 경로는 Club 과 파일 이름의 두 마디입니다. 마이그레이션이 만들고 설정합니다.
+
+| 동작 | 허용 조건 |
+|---|---|
+| 조회 | 로그인한 사용자 모두. Club 목록이 모두에게 보이기 때문이다 |
+| 올리기 | 경로의 첫 마디인 Club 의 운영자. 두 마디보다 깊은 경로에는 올릴 수 없다 |
+| 삭제 | 경로의 Club 의 운영자 |
+| 고치기 | 없음. 바꿀 때는 새 이름으로 올린다 |
+
+화면은 앱의 `/clubs/<Club>/logo/<파일 이름>` 을 거쳐 로고를 받습니다. 이 주소가 로그인을 확인하고 파일을 읽어 보냅니다.
+
 ### 계정을 지우는 함수
 
 `public.delete_my_account(delete_content boolean default false)` 이 지금 로그인한 사용자의 계정을 지웁니다. 로그인한 사용자만 부를 수 있습니다.
@@ -742,7 +770,7 @@ AI Log 에 붙인 이미지의 목록입니다. 파일은 Storage 의 `ai-log-im
 - 계정을 지웁니다. 소속, 출석, Project 참여, 참여 요청, 표시, 알림을 확인한 시각이 함께 지워집니다.
 - 이 함수 안에서 지운 것은 `deletion_logs` 에 남기지 않습니다.
 
-계정이 지워지면서 Member 가 한 명도 남지 않게 된 Club 은 `members_remove_empty_club` trigger 가 지웁니다. 스스로 나가거나 내보내지는 경우에는 마지막 운영자 규칙 때문에 Club 이 비지 않습니다.
+계정이 지워지면서 Member 가 한 명도 남지 않게 된 Club 은 `members_remove_empty_club` trigger 가 지웁니다. 그 Club 에 로고 파일이 남아 있으면 여기서 막혀 아무것도 바뀌지 않습니다. 스스로 나가거나 내보내지는 경우에는 마지막 운영자 규칙 때문에 Club 이 비지 않습니다.
 
 ### notification_reads
 
@@ -766,10 +794,10 @@ AI Log 에 붙인 이미지의 목록입니다. 파일은 Storage 의 `ai-log-im
 
 | 대상 | 동작 | 허용 조건 |
 |---|---|---|
-| `clubs` | 조회 | 그 Club 의 Member |
+| `clubs` | 조회 | 그 Club 의 Member. Member 가 아닌 로그인한 사용자는 `list_clubs` 가 돌려주는 값만 본다 |
 | `clubs` | 생성 | 로그인한 사용자. 이름과 소개만 넣을 수 있다 |
-| `clubs` | 수정 | 그 Club 의 운영자. 이름과 소개만 고칠 수 있다 |
-| `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, AI Insight, Project, 초대 링크가 함께 지워진다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
+| `clubs` | 수정 | 그 Club 의 운영자. 이름, 소개, 로고 경로만 고칠 수 있다 |
+| `clubs` | 삭제 | 그 Club 의 운영자. Member, Session, Attendance, AI Log, AI Insight, Project, 초대 링크가 함께 지워진다. 로고 파일이 남아 있으면 지우지 못한다. Club 이름을 입력해 확인하는 절차는 앱이 맡는다 |
 | `members` | 조회 | 같은 Club 의 Member |
 | `members` | 생성 | Club 을 만들 때 만든 사람이 운영자로 자동 등록된다. 그 밖에는 초대 링크로 `join_club` 을 불러 구성원으로 들어온다. 직접 넣을 수는 없다. `club_bans` 에 있는 사용자는 `join_club` 이 받아 주지 않는다 |
 | `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞추고, 본인의 이름은 `set_my_display_name` 으로 고친다 |

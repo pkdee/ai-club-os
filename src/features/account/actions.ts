@@ -8,6 +8,7 @@ import {
   removeAiLogImageFiles,
 } from "@/features/ai-log/image-store"
 import { getCurrentUser } from "@/features/auth/session"
+import { removeClubLogoFiles } from "@/features/club/logo-store"
 import { listMyClubs } from "@/features/club/queries"
 import { createClient } from "@/lib/supabase/server"
 
@@ -22,7 +23,7 @@ const CONFIRM_MISMATCH_MESSAGE =
 const NOT_READY_MESSAGE =
   "데이터베이스에 계정을 지우는 기능이 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
 const IMAGES_MESSAGE =
-  "붙인 이미지를 모두 지우지 못해 계정을 그대로 두었습니다. 잠시 뒤 다시 시도해 주세요."
+  "붙인 이미지나 함께 지워지는 Club 의 로고를 모두 지우지 못해 계정을 그대로 두었습니다. 잠시 뒤 다시 시도해 주세요."
 
 // 지금 로그인한 사용자의 계정을 지운다. 되돌릴 수 없다.
 // deleteContent 가 true 이면 내가 쓴 AI Log, 회고, 댓글도 함께 지운다. false 이면 작성자 없이 남는다.
@@ -65,6 +66,12 @@ export async function deleteMyAccount(
   }
   if (!(await removeAiLogImageFiles(supabase, [...paths]))) {
     return { ok: false, message: IMAGES_MESSAGE }
+  }
+  // 나와 함께 지워지는 Club 의 로고 파일도 지운다. 남아 있으면 데이터베이스가 그 Club 을 지우지 못하게 막는다.
+  for (const club of planAccountDeletion(clubs).removed) {
+    if (!(await removeClubLogoFiles(supabase, club.id))) {
+      return { ok: false, message: IMAGES_MESSAGE }
+    }
   }
 
   const { error } = await supabase.rpc("delete_my_account", {

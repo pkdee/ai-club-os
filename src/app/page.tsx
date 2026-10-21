@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { TopBar } from "@/features/auth/components/top-bar";
 import { getCurrentUser } from "@/features/auth/session";
 import { MyClubsScreen } from "@/features/club/components/my-clubs-screen";
-import { listMyClubs, type MyClub } from "@/features/club/queries";
+import { listClubs, type ClubListItem } from "@/features/club/queries";
 
 export const metadata: Metadata = {
-  title: "내 Club | AI Club OS",
+  title: "Club | AI Club OS",
 };
 
 export default async function Home() {
@@ -16,9 +16,9 @@ export default async function Home() {
     redirect("/login");
   }
 
-  let clubs: MyClub[] | null;
+  let clubs: ClubListItem[] | null;
   try {
-    clubs = await listMyClubs(user.id);
+    clubs = await listClubs();
   } catch (error) {
     console.error(error);
     clubs = null;

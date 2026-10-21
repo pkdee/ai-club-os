@@ -14,6 +14,7 @@ import {
   AI_LOG_REVISION_LIMIT,
 } from "@/features/ai-log/revisions";
 import { DELETION_LOG_DAYS } from "@/features/club/deletions";
+import { CLUB_LOGO_SIZE } from "@/features/club/logo-rules";
 
 export const metadata: Metadata = {
   title: "개인 정보 안내 | AI Club OS",
@@ -96,6 +97,7 @@ export default function PrivacyPage() {
               "Google 로 로그인할 때 받는 이름, 이메일, 프로필 사진의 주소. 비밀번호는 받지 않습니다.",
               "내가 적는 것. Club, Session, 출석, AI Log, 댓글, 회고, Project 와 할 일, 발표의 소개 글.",
               `AI Log 에 붙인 이미지. 한 기록에 ${AI_LOG_IMAGE_LIMIT}장, 한 장에 ${formatImageSize(AI_LOG_IMAGE_MAX_BYTES)} 까지입니다.`,
+              `Club 의 로고. 운영자가 고른 사진을 브라우저에서 ${CLUB_LOGO_SIZE}px 정사각형으로 줄여 한 장만 둡니다.`,
               "쓰면서 생기는 것. AI Log 를 고치기 전의 내용, 무엇을 누가 지웠는지의 기록, 알림을 마지막으로 확인한 시각.",
             ]}
           />
@@ -103,7 +105,7 @@ export default function PrivacyPage() {
         <Section title="두는 곳과 보내는 곳">
           <List
             items={[
-              "기록, 로그인 정보, 이미지는 Supabase 에 둡니다.",
+              "기록, 로그인 정보, 이미지, Club 로고는 Supabase 에 둡니다.",
               "로그인은 Google 이 확인합니다. 프로필 사진은 Google 의 서버에서 바로 불러옵니다.",
               insightSentence(),
               "화면은 이 앱을 올려 둔 서버에서 만들어집니다. 그 서버에 요청 기록이 남을 수 있습니다.",
@@ -114,7 +116,8 @@ export default function PrivacyPage() {
         <Section title="보는 사람">
           <List
             items={[
-              "내가 적은 것은 같은 Club 의 Member 만 봅니다. 다른 Club 의 사람은 볼 수 없습니다.",
+              "Club 안에서 내가 적은 것은 같은 Club 의 Member 만 봅니다. 다른 Club 의 사람은 볼 수 없습니다.",
+              "로그인한 사용자는 Member 가 아니어도 Club 목록에서 모든 Club 의 이름, 소개, 로고, Member 수를 봅니다. Member 의 이름과 Club 안의 기록은 보이지 않고, Club 에 들어갈 수도 없습니다.",
               "Member 목록에는 이름, 이메일, 사진이 보입니다. Club 안에서 보이는 이름은 내가 고칠 수 있습니다.",
               "AI Log 를 고치기 전의 내용은 작성자와 운영자가 봅니다. 무엇이 지워졌는지의 기록은 운영자가 봅니다.",
               "발표는 링크를 아는 사람이면 로그인하지 않아도 봅니다. 발표에는 작성자가 넣어도 된다고 한 AI Log 와 회고만 들어가고, 이름은 발표를 공개하는 사람이 보이기로 했을 때만 나옵니다. 이메일과 이미지는 나오지 않습니다.",
@@ -144,6 +147,7 @@ export default function PrivacyPage() {
           <List
             items={[
               "AI Log, 댓글, 회고, 이미지는 쓴 사람이 하나씩 지울 수 있습니다.",
+              "Club 로고는 운영자가 Club 설정에서 지웁니다. 로고를 바꾸면 앞의 사진은 지워집니다.",
               "Club 에서 나가면 소속과 출석 기록이 지워지고, 내가 쓴 AI Log, 회고, 댓글은 작성자 이름 없이 Club 에 남습니다.",
               "내 계정 화면에서 계정을 지울 수 있습니다. 그때 내가 쓴 AI Log, 회고, 댓글을 함께 지울지 고릅니다. 붙인 이미지는 언제나 지워집니다.",
               "계정을 지워도 Google 계정에 남은 이 앱과의 연결은 그대로입니다. Google 계정의 설정에서 끊을 수 있습니다.",

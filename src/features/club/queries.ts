@@ -13,6 +13,19 @@ export type MyClub = {
   memberId: string | null
   memberCount: number
   adminCount: number
+  // 로고 파일의 Storage 경로. 로고가 없으면 null 이다.
+  logoPath: string | null
+}
+
+// 로그인한 사용자 모두가 보는 Club 목록의 한 줄. Member 가 아닌 Club 도 들어 있다.
+// role 은 내 역할이고, Member 가 아니면 null 이다.
+export type ClubListItem = {
+  id: string
+  name: string
+  description: string
+  logoPath: string | null
+  memberCount: number
+  role: ClubRole | null
 }
 
 export type ClubAccess =
@@ -24,10 +37,12 @@ type ClubRow = {
   id: string
   name: string
   description: string
+  logo_path: string | null
   members: { id: string; user_id: string; role: ClubRole }[]
 }
 
-const CLUB_COLUMNS = "id, name, description, members(id, user_id, role)"
+const CLUB_COLUMNS =
+  "id, name, description, logo_path, members(id, user_id, role)"
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -43,7 +58,37 @@ function toMyClub(row: ClubRow, userId: string): MyClub {
     memberCount: row.members.length,
     adminCount: row.members.filter((member) => member.role === "admin")
       .length,
+    logoPath: row.logo_path,
   }
+}
+
+type ClubListRow = {
+  id: string
+  name: string
+  description: string
+  logo_path: string | null
+  member_count: number
+  my_role: ClubRole | null
+}
+
+// 등록된 Club 을 모두 읽는다. 최근에 만든 것부터다.
+// Club 안은 지금처럼 Member 만 보고, 이 목록은 데이터베이스 함수가 이름, 소개, 로고, Member 수만 돌려준다.
+export async function listClubs(): Promise<ClubListItem[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("list_clubs")
+
+  if (error) {
+    throw new Error(`Club 목록을 불러오지 못했습니다: ${error.message}`)
+  }
+
+  return (data as ClubListRow[]).map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    logoPath: row.logo_path,
+    memberCount: Number(row.member_count),
+    role: row.my_role,
+  }))
 }
 
 // 내가 속한 Club 목록.

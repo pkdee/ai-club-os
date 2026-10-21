@@ -509,7 +509,7 @@ DESIGN.md 형식의 컴포넌트에는 테두리 속성이 없어서 테두리 �
 ## MVP 정보 구조
 
 - 로그인
-- 내 Club
+- Club: 내 Club 과, 둘러보기만 하는 다른 Club
 - Club 개요
 - Session
   - Session 상세: 개요, Attendance, AI Log, AI Insight, 회고
@@ -588,6 +588,13 @@ Member 목록의 더 보기와 Session 소개 아래의 시간표는 2026-10-11 
   - 목차는 지금 읽는 제목에 브랜드 색의 왼쪽 선과 글자 색을 둡니다.
   - 코드 블록은 macOS 창 모양입니다. 둥근 테두리 안의 위쪽 막대(Muted 면)에 빨강, 노랑, 초록 점(`icon-danger`, `icon-warning`, `icon-success`)과 가운데의 언어 이름, 오른쪽의 복사 버튼(Ghost, SM)을 둡니다. 복사하면 "복사됨" 과 초록 체크로 바뀝니다. 코드 면은 Card 면이고 긴 줄은 가로로 넘겨 봅니다.
   - 본문 중간의 Callout 은 Alert 의 네 tone 을 쓰고, 아이콘은 info 가 `info`, success 가 `lightbulb`, warning 이 `triangle-alert`, danger 가 `circle-alert` 입니다.
+- Club 목록(처음 화면). 2026-10-21 에 로그인한 사용자 모두가 등록된 Club 을 보게 바꿨습니다.
+  - 제목은 "Club" 이고, 그 아래에 "내 Club" 과 "다른 Club" 두 구역(H2)을 둡니다. 다른 Club 구역은 Member 가 아닌 Club 이 있을 때만 보이고, 제목 아래에 초대 링크를 받으라는 한 줄(Body S, Muted)을 둡니다. 내 Club 이 없으면 내 Club 구역에 지금의 빈 상태가 보입니다.
+  - 카드의 제목은 H3 입니다. 다른 Club 의 카드는 역할 Badge 자리에 neutral Badge "Member 아님" 과 아이콘 `lock` 을 둡니다. 나머지 모양은 내 Club 의 카드와 같습니다.
+  - 다른 Club 의 카드를 누르면 Dialog 가 열립니다. 제목은 "이 Club 에 들어갈 권한이 없습니다", 설명은 Member 만 들어갈 수 있으니 운영자에게 초대 링크를 받으라는 글, 버튼은 Primary "확인" 하나입니다.
+- Club 로고. 2026-10-21 에 Club 의 첫 글자 자리에 로고 사진을 둘 수 있게 했습니다.
+  - Club 카드(44px, 모서리 lg)와 Sidebar 의 Club 이름 옆(32px, 모서리 md)에서 첫 글자 자리를 사진이 같은 크기로 덮습니다. 사진이 없거나 불러오지 못하면 지금처럼 첫 글자가 보입니다.
+  - Club 설정(`03-1`)의 기본 정보 카드 아래에 로고 카드를 둡니다. 왼쪽에 80px 로고(모서리 xl), 오른쪽에 "사진 올리기" 또는 "사진 바꾸기"(Secondary, 아이콘 `image-plus`)와, 로고가 있을 때 "로고 지우기"(Ghost, 아이콘 `trash-2`)를 둡니다. 버튼 아래에 고를 수 있는 형식과 크기(Caption, Muted)를 적습니다. 실패하면 카드 안에 danger Alert 가 나옵니다.
 
 ### 구현하면서 바꾸고 Figma 에 반영한 것
 
