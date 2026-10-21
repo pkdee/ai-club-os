@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft, Bell, ChevronsUpDown, Settings } from "lucide-react"
 
-import { ThemeMenu } from "@/components/theme-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { buttonVariants } from "@/components/ui/button"
 import { UserMenu } from "@/features/auth/components/user-menu"
 import type { CurrentUser } from "@/features/auth/session"
@@ -13,7 +13,7 @@ import { ClubLogo } from "./club-logo"
 import { ClubNav } from "./club-nav"
 
 // Club 안쪽 화면이 함께 쓰는 틀. 넓은 화면은 Sidebar, 좁은 화면은 아래쪽 메뉴를 쓴다.
-// 화면 모드와 내 프로필 메뉴는 화면 크기와 관계없이 상단 막대의 오른쪽에 둔다.
+// 화면 모드 토글과 내 프로필 메뉴는 화면 크기와 관계없이 상단 막대의 오른쪽에 둔다.
 // notificationCount 는 내가 챙길 알림의 수다. null 이면 알림을 아직 쓸 수 없는 것이라 메뉴에 넣지 않는다.
 export function ClubShell({
   club,
@@ -110,7 +110,7 @@ export function ClubShell({
                 <Settings aria-hidden="true" strokeWidth={1.5} />
               </Link>
             )}
-            <ThemeMenu />
+            <ThemeToggle />
             <UserMenu user={user} />
           </div>
         </header>

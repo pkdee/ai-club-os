@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
-import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -84,51 +83,6 @@ function MenuLinkItem({
   )
 }
 
-function MenuRadioGroup({ ...props }: MenuPrimitive.RadioGroup.Props) {
-  return <MenuPrimitive.RadioGroup data-slot="menu-radio-group" {...props} />
-}
-
-// 여럿 가운데 하나를 고르는 항목. 고른 항목은 글자 색과 오른쪽의 표시로 알린다.
-function MenuRadioItem({
-  className,
-  children,
-  closeOnClick = true,
-  ...props
-}: MenuPrimitive.RadioItem.Props) {
-  return (
-    <MenuPrimitive.RadioItem
-      data-slot="menu-radio-item"
-      closeOnClick={closeOnClick}
-      className={cn(
-        itemClassName,
-        "data-highlighted:bg-accent data-checked:text-brand",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <MenuPrimitive.RadioItemIndicator className="ml-auto flex text-icon-brand">
-        <Check aria-hidden="true" strokeWidth={1.5} />
-      </MenuPrimitive.RadioItemIndicator>
-    </MenuPrimitive.RadioItem>
-  )
-}
-
-// 항목 묶음 위의 작은 제목. 읽어 주는 이름은 묶음의 aria-label 에 따로 둔다.
-function MenuLabel({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="menu-label"
-      aria-hidden="true"
-      className={cn(
-        "px-2.5 pt-1.5 pb-1 text-caption text-muted-foreground",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
 function MenuSeparator({
   className,
   ...props
@@ -160,11 +114,8 @@ export {
   Menu,
   MenuContent,
   MenuItem,
-  MenuLabel,
   MenuLinkItem,
   MenuNote,
-  MenuRadioGroup,
-  MenuRadioItem,
   MenuSeparator,
   MenuTrigger,
 }
