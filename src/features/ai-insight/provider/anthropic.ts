@@ -18,7 +18,8 @@ const API_VERSION = "2023-06-01"
 export const ANTHROPIC_DEFAULT_MODEL = "claude-sonnet-5-5"
 const MAX_TOKENS = 4096
 // 이 시간 안에 답이 오지 않으면 그만둔다. 화면의 서버 동작 제한 시간보다 짧게 둔다.
-const TIMEOUT_MS = 50_000
+// 한 번 더 보내는 경우까지 합친 시간이다. 보낼 때마다 따로 세면 둘을 합쳐 제한 시간을 넘긴다.
+export const TIMEOUT_MS = 50_000
 
 const FAILURE_BY_STATUS: Record<number, InsightProviderFailure> = {
   401: "auth",
@@ -46,34 +47,32 @@ export function createAnthropicProvider({
   fetchFn?: typeof fetch
 }): InsightProvider {
   // structured 이면 답의 모양을 API 에 함께 넘겨 그 모양으로만 답하게 한다.
-  async function send(request: InsightProviderRequest, structured: boolean) {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-    try {
-      return await fetchFn(API_URL, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": API_VERSION,
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: MAX_TOKENS,
-          system: request.system,
-          messages: [{ role: "user", content: request.user }],
-          ...(structured && {
-            output_config: {
-              format: { type: "json_schema", schema: request.schema },
-            },
-          }),
+  function send(
+    request: InsightProviderRequest,
+    structured: boolean,
+    signal: AbortSignal
+  ) {
+    return fetchFn(API_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": API_VERSION,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: MAX_TOKENS,
+        system: request.system,
+        messages: [{ role: "user", content: request.user }],
+        ...(structured && {
+          output_config: {
+            format: { type: "json_schema", schema: request.schema },
+          },
         }),
-        signal: controller.signal,
-        cache: "no-store",
-      })
-    } finally {
-      clearTimeout(timer)
-    }
+      }),
+      signal,
+      cache: "no-store",
+    })
   }
 
   return {
@@ -82,12 +81,16 @@ export function createAnthropicProvider({
     dataNotice: null,
     model,
     async generate(request) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
       let response: Response
       try {
-        response = await send(request, true)
+        response = await send(request, true, controller.signal)
         // 답의 모양을 넘기는 값을 받지 않는 모델이면 그 값 없이 한 번 더 보낸다. 모양은 지킬 것에도 적혀 있다.
+        // 남은 시간 안에서만 보낸다.
         if (response.status === 400) {
-          response = await send(request, false)
+          await response.body?.cancel()
+          response = await send(request, false, controller.signal)
         }
       } catch (error) {
         // 오류를 통째로 남기지 않는다. 종류와 설명만, 키를 가린 뒤에 남긴다.
@@ -97,6 +100,8 @@ export function createAnthropicProvider({
           redactSecrets(error instanceof Error ? error.message : "", apiKey)
         )
         return fail("busy")
+      } finally {
+        clearTimeout(timer)
       }
 
       const body = (await response.json().catch(() => null)) as {

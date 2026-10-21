@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { createAnthropicProvider } from "./anthropic"
+import { createAnthropicProvider, TIMEOUT_MS } from "./anthropic"
 import { extractJson, redactSecrets } from "./shared"
 import { createMockProvider } from "./mock"
 
@@ -73,6 +73,38 @@ test("답의 모양을 넘기는 값을 받지 않으면 그 값 없이 한 번 
   assert.equal(calls.length, 2)
   assert.equal("output_config" in calls[1].body, false)
   assert.equal(calls[1].body.system, "지킬 것")
+})
+
+test("한 번 더 보내도 처음 보낸 때부터 제한 시간 안에 그만둔다", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] })
+  const tick = () => new Promise((resolve) => setImmediate(resolve))
+  let sent = 0
+  // 처음에는 30초 뒤에 400 을, 다음에는 그만두라는 신호가 올 때까지 답하지 않는다.
+  const fetchFn = ((_url: string, init: RequestInit) => {
+    sent += 1
+    if (sent === 1) {
+      return new Promise((resolve) =>
+        setTimeout(() => resolve(apiError(400, "invalid_request_error")), 30_000)
+      )
+    }
+    return new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new DOMException("멈춤", "AbortError")))
+    })
+  }) as unknown as typeof fetch
+  const claude = createAnthropicProvider({ apiKey: "sk-test-key", model: "claude-test", fetchFn })
+  t.mock.method(console, "error", () => {})
+
+  let result: unknown
+  void claude.generate(request).then((value) => {
+    result = value
+  })
+  t.mock.timers.tick(30_000)
+  await tick()
+  assert.equal(sent, 2)
+
+  t.mock.timers.tick(TIMEOUT_MS - 30_000)
+  await tick()
+  assert.deepEqual(result, { status: "error", reason: "busy" })
 })
 
 test("앞뒤에 다른 글이나 코드 표시가 붙어 있어도 JSON 을 꺼낸다", async () => {
