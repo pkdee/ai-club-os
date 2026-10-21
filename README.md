@@ -71,11 +71,14 @@ http://localhost:3000 을 열면 로그인 화면으로 이동합니다.
 
 ```bash
 npm run lint
+npm run design:lint
 npm run build
 npm test
 ```
 
-`npm test` 는 입력 규칙 시험과 접근 규칙 시험을 차례로 돌립니다. 접근 규칙 시험은 Docker 에 빈 Postgres 를 띄워 `supabase/migrations/` 를 적용한 뒤 시험하므로 Docker 가 켜져 있어야 합니다. 시험이 끝나면 띄운 컨테이너와 그 볼륨을 함께 지웁니다. 실제 Supabase 프로젝트에는 아무것도 보내지 않습니다. 하나만 돌리려면 `npm run test:unit` 이나 `npm run test:db` 를 씁니다.
+`npm run design:lint` 는 `DESIGN.md` 가 Google 의 DESIGN.md 형식에 맞는지 검사합니다. 테두리 색처럼 형식이 나타내지 못하는 토큰의 경고는 받아들이기로 했고, 까닭은 `DESIGN.md` 의 Components 절에 있습니다.
+
+`npm test` 는 입력 규칙 시험과 접근 규칙 시험을 차례로 돌립니다. 입력 규칙 시험에는 `DESIGN.md` 의 토큰이 `src/app/globals.css` 와 같은지 보는 시험도 들어 있습니다. 접근 규칙 시험은 Docker 에 빈 Postgres 를 띄워 `supabase/migrations/` 를 적용한 뒤 시험하므로 Docker 가 켜져 있어야 합니다. 시험이 끝나면 띄운 컨테이너와 그 볼륨을 함께 지웁니다. 실제 Supabase 프로젝트에는 아무것도 보내지 않습니다. 하나만 돌리려면 `npm run test:unit` 이나 `npm run test:db` 를 씁니다.
 
 화면에서의 흐름은 자동으로 확인하지 않습니다. 범위와 이유는 `docs/adr/0010-automated-checks-without-new-packages.md` 에 있습니다.
 
@@ -95,7 +98,7 @@ AI Log는 제품의 핵심 Entity이며, 이후 AI Insight와 Project로 이어�
 - [기능 단계](docs/FEATURES.md)
 - [기술 선택](TECH.md)
 - [구조 설계](ARCHITECTURE.md)
-- [제품 디자인 원칙](DESIGN.md)
+- [제품 디자인 원칙과 디자인 토큰](DESIGN.md)
 - [데이터 설계](docs/DATABASE.md)
 - [설계 결정 기록](docs/adr/README.md)
 
