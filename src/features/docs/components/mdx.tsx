@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 
 import { CodeBlock } from "./code-block"
+import { Diagram } from "./diagram"
 
 // Docs 본문의 글 요소. 앞 요소와의 간격은 각 요소의 위쪽 여백으로 둔다.
 // 본문을 담는 article 은 flex 가 아니어서 위아래 여백이 겹치고, 큰 쪽만 남는다.
@@ -190,4 +191,6 @@ export const docsComponents: MDXComponents = {
   code: InlineCode,
   pre: CodeBlock,
   Callout,
+  // ```mermaid 코드 블록을 빌드할 때 remark-diagram.mjs 가 이 컴포넌트로 바꾼다. 문서에 직접 쓰지 않는다.
+  Diagram,
 }

@@ -48,6 +48,8 @@ const withMDX = createMDX({
       "remark-gfm",
       // "마크다운으로 복사" 에 쓸 Markdown 을 MDX 원문에서 만들어 `export const markdown` 으로 내보낸다.
       path.join(process.cwd(), "src/features/docs/remark-markdown.mjs"),
+      // ```mermaid 코드 블록을 흐름도 그림으로 바꾼다. 복사할 Markdown 에는 코드 블록이 남도록 remark-markdown 뒤에 둔다.
+      path.join(process.cwd(), "src/features/docs/remark-diagram.mjs"),
     ],
     rehypePlugins: [
       // 목차가 제목으로 가도록 h2, h3 에 id 를 붙인다.

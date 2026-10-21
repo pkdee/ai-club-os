@@ -55,3 +55,21 @@ export function exportConst(name, value) {
   }
 }
 
+// MDX 의 JSX 요소에 붙이는 속성 `이름={값}`.
+export function expressionAttribute(name, value) {
+  return {
+    type: "mdxJsxAttribute",
+    name,
+    value: {
+      type: "mdxJsxAttributeValueExpression",
+      value: "",
+      data: {
+        estree: {
+          type: "Program",
+          sourceType: "module",
+          body: [{ type: "ExpressionStatement", expression: toEstree(value) }],
+        },
+      },
+    },
+  }
+}

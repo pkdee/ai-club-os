@@ -10,6 +10,18 @@ AI에게 평소 말하듯 물어봐도 쓸 만한 답을 받을 수 있어요. �
 
 AI에게 보내는 요청을 **프롬프트(Prompt)** 라고 해요. 프롬프트를 설계하고, 결과를 확인하고, 다시 고치는 과정을 **Prompt Engineering**이라고 해요.
 
+```mermaid
+flowchart LR
+  subgraph prompt [프롬프트]
+    goal["Goal<br>목표"]
+    context["Context<br>상황"]
+    exception["Exception<br>하지 말 것"]
+    output["Output<br>결과 형태"]
+  end
+  prompt --> ai[AI] --> result[결과]
+  result -->|확인하고 고치기| prompt
+```
+
 이 문서를 따라 하면 다음을 할 수 있어요.
 
 - 프롬프트를 Goal, Context, Exception, Output 네 부분으로 나눠 쓸 수 있어요.
@@ -266,6 +278,14 @@ AI가 다시 검토해도 오류가 남아 있을 수 있어요. 중요한 숫�
 ### 프롬프트 고치기
 
 결과가 아쉬우면 같은 대화에서 고칠 점을 구체적으로 요청해요. 이렇게 결과를 보며 반복해서 고치는 방식을 **Iterative Prompting**이라고 해요.
+
+```mermaid
+flowchart LR
+  send[프롬프트 보내기] --> check[결과 확인하기]
+  check -->|충분하면| use[결과 쓰기]
+  check -->|아쉬우면| fix[고칠 점 요청하기]
+  fix -->|새 결과| check
+```
 
 ```text
 1차: (4단계에서 완성한 프롬프트)

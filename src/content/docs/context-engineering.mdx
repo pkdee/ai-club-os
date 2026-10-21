@@ -73,6 +73,22 @@ Context Engineering은 AI에게 정보를 최대한 많이 주는 기술이 아�
 
 고른 정보는 목표, 사실, 규칙, 결정 사항으로 나눠 두세요. 이미 정한 것과 아직 정하지 않은 것을 나눠 두면, AI가 미정인 내용을 확정된 것처럼 쓰는 일을 줄일 수 있어요.
 
+```mermaid
+flowchart LR
+  gaps["1단계에서 적은<br>아쉬운 점"] --> pick["필요한 정보<br>고르기"]
+  pick --> goal[목표]
+  pick --> fact[사실]
+  pick --> rule[규칙]
+  pick --> decision[결정 사항]
+  subgraph doc [Context 문서]
+    goal
+    fact
+    rule
+    decision
+  end
+  doc --> ai["AI 도구에<br>함께 넣기"]
+```
+
 자료가 너무 많아 고르기 어렵다면 자료를 중심으로 답하는 도구를 써 보세요. 예를 들어 [Gemini Notebook](https://support.google.com/gemininotebook/answer/16164461?hl=ko)(옛 이름 NotebookLM)은 올린 자료를 바탕으로 답하고, 답의 근거가 된 부분을 인용으로 보여 줘요.
 
 <Callout tone="warning" title="민감한 정보는 넣기 전에 빼 주세요">
@@ -219,6 +235,16 @@ Context가 길다면 다음 순서를 지켜 주세요. 입력이 길어지면 A
 
 AI 모델은 대화를 기억하지 않아요. 서비스가 이전 대화를 요청마다 다시 넣어 줘서 대화가 이어지는 것처럼 보일 뿐이에요. 한 번에 다룰 수 있는 양(**Context Window**)에는 한도가 있어서, 대화가 길어지면 서비스가 앞부분을 요약하거나 일부만 넣기도 해요. 그래서 채팅 화면에 보이는 내용이 모두 AI에게 전달되는 건 아니에요.
 
+```mermaid
+flowchart LR
+  subgraph request [요청마다 AI에게 보내는 내용]
+    history["이전 대화<br>길면 요약되거나 빠지기도 해요"]
+    message[새 메시지]
+  end
+  request --> model[AI 모델] --> answer[답변]
+  answer -->|다음 요청의 이전 대화에 더해져요| request
+```
+
 자세한 원리는 Claude 공식 문서의 [컨텍스트 윈도우](https://platform.claude.com/docs/ko/build-with-claude/context-windows) 설명에서 볼 수 있어요.
 
 대화가 길어져 처음 정한 조건이나 최신 결정을 AI가 놓친다면 다음 방법 가운데 하나를 골라요.
@@ -308,12 +334,12 @@ AI가 정리한 인계 문서에도 빠지거나 잘못 요약된 내용이 있�
 
 도구마다 잘하는 일이 달라서 여러 도구를 이어 쓰기도 해요. 예를 들면 이런 흐름이에요.
 
-```text
-Gemini Notebook: 자료 조사와 분석
-  → ChatGPT: 기획안 구조 잡기
-  → Claude: 문서 작성과 다듬기
-  → 사람: 원문과 대조해 검증하기
-  → 최종 결과물
+```mermaid
+flowchart TD
+  gemini["Gemini Notebook<br>자료 조사와 분석"] -->|인계 문서| chatgpt["ChatGPT<br>기획안 구조 잡기"]
+  chatgpt -->|인계 문서| claude["Claude<br>문서 작성과 다듬기"]
+  claude --> person["사람<br>원문과 대조해 검증하기"]
+  person --> done[최종 결과물]
 ```
 
 도구별 역할이 정해져 있는 건 아니에요. 프로젝트와 쓸 수 있는 기능에 따라 바꿔 쓰면 돼요.

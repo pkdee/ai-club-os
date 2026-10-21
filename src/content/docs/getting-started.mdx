@@ -8,6 +8,12 @@ published: 2026-10-05
 
 AI Club OS는 동아리와 스터디에서 AI를 써 본 경험을 기록하고 나누는 공간이에요. 기록이 쌓이면 다른 구성원의 시도에서 배우고, 배운 것을 다음 실험과 Project로 이어 갈 수 있어요.
 
+```mermaid
+flowchart LR
+  log[AI Log 기록] --> share[구성원과 나누기] --> learn[배운 점 찾기] --> next["다음 실험과<br>Project"]
+  next -->|다시 기록| log
+```
+
 이 문서를 따라 하면 10분 안에 다음을 할 수 있어요.
 
 - 초대 링크로 Club에 참여해요.
@@ -54,6 +60,16 @@ Session 시각은 한국 시간으로 보여요. 출석은 운영자가 기록�
 AI Log는 AI로 시도한 방법과 결과, 배운 점을 남기는 기록이에요. 같은 Club의 구성원 모두가 읽을 수 있어서, 내 시도가 다른 사람의 출발점이 돼요.
 
 성공한 경험만 남길 필요는 없어요. 원하는 결과를 얻지 못한 시도도 좋은 기록이에요.
+
+저장한 AI Log는 이렇게 쓰여요. **이 기록의 쓰임**에서 AI Insight와 발표에 쓸지 고를 수 있어요.
+
+```mermaid
+flowchart LR
+  log[내 AI Log] --> read["같은 Club의 Member가<br>읽고 반응해요"]
+  log -->|Session을 고르면| tab["그 Session의<br>AI Log 탭에 모여요"]
+  log -->|쓰임을 그대로 두면| insight["운영자가 만드는<br>AI Insight에 쓰일 수 있어요"]
+  log -->|발표에 넣어도 됨을 켜면| present["묶인 Project의<br>발표에 들어가요"]
+```
 
 <Callout tone="warning" title="개인정보와 인증 정보는 적지 마세요">
 

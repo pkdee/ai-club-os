@@ -32,6 +32,7 @@
   - `src/features/docs/remark-front-matter.mjs` 가 frontmatter 를 읽어 `export const frontmatter` 로 내보냅니다. 본문 맨 앞의 `#` 제목도 여기서 뺍니다.
   - `remark-gfm` 이 표를 읽습니다.
   - `src/features/docs/remark-markdown.mjs` 가 "마크다운으로 복사" 에 쓸 Markdown 을 만들어 `export const markdown` 으로 내보냅니다.
+  - `src/features/docs/remark-diagram.mjs` 가 ```` ```mermaid ```` 코드 블록을 흐름도 컴포넌트로 바꿉니다. 복사할 Markdown 에 코드 블록이 남도록 `remark-markdown` 뒤에 둡니다(ADR 0035).
   - `rehype-slug` 가 제목에 id 를 붙입니다.
   - `src/features/docs/rehype-toc.mjs` 가 그 id 로 목차를 만들어 `export const toc` 로 내보냅니다.
   - `@shikijs/rehype` 가 코드에 색을 칠합니다.

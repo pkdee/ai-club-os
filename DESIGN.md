@@ -596,6 +596,7 @@ Member 목록의 더 보기와 Session 소개 아래의 시간표는 2026-10-11 
   - 목차는 지금 읽는 제목에 브랜드 색의 왼쪽 선과 글자 색을 둡니다.
   - 코드 블록은 macOS 창 모양입니다. 둥근 테두리 안의 위쪽 막대(Muted 면)에 빨강, 노랑, 초록 점(`icon-danger`, `icon-warning`, `icon-success`)과 가운데의 언어 이름, 오른쪽의 복사 버튼(Ghost, SM)을 둡니다. 복사하면 "복사됨" 과 초록 체크로 바뀝니다. 코드 면은 Card 면이고 긴 줄은 가로로 넘겨 봅니다.
   - 본문 중간의 Callout 은 Alert 의 네 tone 을 쓰고, 아이콘은 info 가 `info`, success 가 `lightbulb`, warning 이 `triangle-alert`, danger 가 `circle-alert` 입니다.
+  - 본문의 흐름도는 Muted 면의 둥근 판(`rounded-xl`, 14px) 위에 그립니다. 상자는 Primary 면(radius 8px)에 Primary Foreground 글(14px, 굵기 500)이고 줄마다 가운데에 둡니다. 묶음은 Primary Subtle 면(radius 12px)이고 위쪽에 Foreground 제목(13px, 굵기 500)을 둡니다. 화살표는 1.5px 의 `icon-subtle` 선과 채운 머리이고, 한 번 꺾이는 곳은 둥급니다. 화살표 글은 12px 의 Muted Foreground 입니다. 그림은 원래 너비를 넘지 않고 판 안의 가운데에 놓이며, 좁은 화면에서는 80% 까지 줄인 뒤 판 안에서 옆으로 밀어 봅니다. 2026-10-21 에 사용자의 요청으로 더했습니다.
 - Club 목록(처음 화면). 2026-10-21 에 로그인한 사용자 모두가 등록된 Club 을 보게 바꿨습니다.
   - 제목은 "Club" 이고, 그 아래에 "내 Club" 과 "다른 Club" 두 구역(H2)을 둡니다. 다른 Club 구역은 Member 가 아닌 Club 이 있을 때만 보이고, 제목 아래에 초대 링크를 받으라는 한 줄(Body S, Muted)을 둡니다. 내 Club 이 없으면 내 Club 구역에 지금의 빈 상태가 보입니다.
   - 카드의 제목은 H3 입니다. 다른 Club 의 카드는 역할 Badge 자리에 neutral Badge "Member 아님" 과 아이콘 `lock` 을 둡니다. 나머지 모양은 내 Club 의 카드와 같습니다.
