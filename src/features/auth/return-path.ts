@@ -28,6 +28,10 @@ export function safeReturnPath(value: unknown): string | null {
   if (url.origin !== BASE) {
     return null
   }
+  // "/.//evil.example" 처럼 . 과 .. 을 정리한 뒤에야 // 로 시작하는 값이 있다. 정리한 경로를 한 번 더 본다.
+  if (!/^\/(?![/\\])/.test(url.pathname)) {
+    return null
+  }
   // 처음 화면과 로그인 관련 경로는 돌아갈 곳으로 삼지 않는다.
   if (
     url.pathname === "/" ||
