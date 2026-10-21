@@ -69,54 +69,50 @@ export const getNotifications = cache(
     isAdmin: boolean
   ): Promise<NotificationsResult> => {
     const supabase = await createClient()
-    const seen = await supabase
-      .from("notification_reads")
-      .select("seen_at")
-      .eq("club_id", clubId)
-      .maybeSingle()
-
-    if (seen.error) {
-      if (isMissing(seen.error)) {
-        return { status: "unavailable" }
-      }
-      console.error("알림을 본 시각을 불러오지 못했습니다.", seen.error)
-      return { status: "error" }
-    }
-    const seenAt = (seen.data as { seen_at: string } | null)?.seen_at ?? null
-
     const now = new Date()
     const since = new Date(
       now.getTime() - RECENT_DAYS * 24 * 60 * 60 * 1000
     ).toISOString()
-    const projectList = await listProjects(clubId)
-    const projects = projectList.status === "ok" ? projectList.projects : []
-    const byId = new Map(projects.map((project) => [project.id, project]))
-    const ownerless = new Set(
-      isAdmin
-        ? projects
-            .filter((project) => project.participants.length === 0)
-            .map((project) => project.id)
-        : []
-    )
-    const mine = projects
-      .filter(
-        (project) =>
-          ownerless.has(project.id) ||
-          project.participants.some((item) => item.userId === userId)
-      )
-      .map((project) => project.id)
 
-    const [requests, tasks, joined, insights, role, comments, reactions] =
+    // Club 안쪽 화면마다 메뉴의 알림 수를 세려고 부르므로, 서로 기다릴 까닭이 없는 조회는 한꺼번에 보낸다.
+    // 참여 요청만 내가 챙길 Project 를 알아야 해서 Project 목록을 읽은 뒤에 보낸다.
+    const [seen, projectSide, tasks, joined, insights, role, comments, reactions] =
       await Promise.all([
-      mine.length > 0
-        ? supabase
-            .from("project_join_requests")
-            .select(
-              "project_id, member_id, created_at, member:members!project_join_requests_member_fkey(display_name, email)"
-            )
-            .eq("club_id", clubId)
-            .in("project_id", mine)
-        : null,
+      supabase
+        .from("notification_reads")
+        .select("seen_at")
+        .eq("club_id", clubId)
+        .maybeSingle(),
+      listProjects(clubId).then(async (projectList) => {
+        const projects =
+          projectList.status === "ok" ? projectList.projects : []
+        const byId = new Map(projects.map((project) => [project.id, project]))
+        const ownerless = new Set(
+          isAdmin
+            ? projects
+                .filter((project) => project.participants.length === 0)
+                .map((project) => project.id)
+            : []
+        )
+        const mine = projects
+          .filter(
+            (project) =>
+              ownerless.has(project.id) ||
+              project.participants.some((item) => item.userId === userId)
+          )
+          .map((project) => project.id)
+        const requests =
+          mine.length > 0
+            ? await supabase
+                .from("project_join_requests")
+                .select(
+                  "project_id, member_id, created_at, member:members!project_join_requests_member_fkey(display_name, email)"
+                )
+                .eq("club_id", clubId)
+                .in("project_id", mine)
+            : null
+        return { byId, ownerless, requests }
+      }),
       memberId
         ? supabase
             .from("project_tasks")
@@ -176,6 +172,16 @@ export const getNotifications = cache(
         .order("created_at", { ascending: false })
         .range(0, FEEDBACK_LIMIT - 1),
     ])
+
+    if (seen.error) {
+      if (isMissing(seen.error)) {
+        return { status: "unavailable" }
+      }
+      console.error("알림을 본 시각을 불러오지 못했습니다.", seen.error)
+      return { status: "error" }
+    }
+    const seenAt = (seen.data as { seen_at: string } | null)?.seen_at ?? null
+    const { byId, ownerless, requests } = projectSide
 
     // 표시는 기록마다 한 줄로 모은다. 최근 것부터 오므로 처음 본 것이 마지막으로 표시한 시각이다.
     const helpful = new Map<
