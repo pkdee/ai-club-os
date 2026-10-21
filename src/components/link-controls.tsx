@@ -6,18 +6,23 @@ import { Link2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { NativeSelect } from "@/components/ui/native-select"
 
-import type { ProjectActionResult } from "../actions"
+// 잇거나 끊는 동작이 돌려주는 값. 실패하면 화면에 보일 안내를 함께 준다.
+export type LinkActionResult = { ok: true } | { ok: false; message: string }
 
-// Session 과 Project 를 잇는 칸. 고를 것이 없으면 아무것도 그리지 않는다.
+// 목록에서 하나를 골라 잇는 칸. Session 과 Project 를 잇거나, Session 에 Docs 의 문서를 가져올 때 쓴다.
+// 고를 것이 없으면 아무것도 그리지 않는다.
 // label 은 무엇을 고르는지 알리는 이름이다. 예: 이을 Project
+// actionLabel 은 버튼의 글이다. 정하지 않으면 "잇기" 다.
 export function LinkPicker({
   label,
+  actionLabel = "잇기",
   options,
   onLink,
 }: {
   label: string
+  actionLabel?: string
   options: { id: string; name: string }[]
-  onLink: (id: string) => Promise<ProjectActionResult>
+  onLink: (id: string) => Promise<LinkActionResult>
 }) {
   const selectId = useId()
   const [picked, setPicked] = useState("")
@@ -72,7 +77,7 @@ export function LinkPicker({
           className="shrink-0"
         >
           <Link2 aria-hidden="true" strokeWidth={1.5} />
-          잇기
+          {actionLabel}
         </Button>
       </div>
       {error && (
@@ -90,7 +95,7 @@ export function UnlinkButton({
   onUnlink,
 }: {
   label: string
-  onUnlink: () => Promise<ProjectActionResult>
+  onUnlink: () => Promise<LinkActionResult>
 }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()

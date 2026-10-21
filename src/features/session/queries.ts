@@ -121,3 +121,45 @@ export const getSession = cache(
       : { status: "not-found" }
   }
 )
+
+// unavailable 은 데이터베이스에 참고 자료를 잇는 구조가 아직 없다는 뜻이다. 그때는 참고 자료 칸을 그리지 않는다.
+export type SessionDocsResult =
+  | { status: "ok"; slugs: string[] }
+  | { status: "unavailable" }
+  | { status: "error" }
+
+// 테이블이 아직 없을 때의 오류 번호. 뒤의 것은 데이터 API 가 테이블을 모를 때다.
+function isMissingTable(error: { code?: string }) {
+  return error.code === "42P01" || error.code === "PGRST205"
+}
+
+// 한 회차에 참고 자료로 이어 둔 Docs 문서의 slug 를 이은 순서로 읽는다.
+// 문서가 Docs 목록에 아직 있는지는 화면이 목록과 맞춰 본다.
+export const listSessionDocs = cache(
+  async (clubId: string, sessionId: string): Promise<SessionDocsResult> => {
+    if (!isUuid(sessionId)) {
+      return { status: "ok", slugs: [] }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from("session_docs")
+      .select("doc_slug")
+      .eq("club_id", clubId)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      if (isMissingTable(error)) {
+        return { status: "unavailable" }
+      }
+      console.error("Session 의 참고 자료를 불러오지 못했습니다.", error)
+      return { status: "error" }
+    }
+
+    return {
+      status: "ok",
+      slugs: (data as { doc_slug: string }[]).map((row) => row.doc_slug),
+    }
+  }
+)

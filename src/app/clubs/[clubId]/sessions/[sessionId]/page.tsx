@@ -19,10 +19,16 @@ import {
   listProjects,
   listSessionProjectLinks,
 } from "@/features/project/queries";
+import { listDocs } from "@/features/docs/load";
 import { listMembers } from "@/features/member/queries";
+import {
+  linkSessionDoc,
+  unlinkSessionDoc,
+} from "@/features/session/actions";
+import { SessionDocsCard } from "@/features/session/components/session-docs-card";
 import { SessionOverview } from "@/features/session/components/session-overview";
 import { loadSessionPage } from "@/features/session/page-data";
-import { listSessions } from "@/features/session/queries";
+import { listSessionDocs, listSessions } from "@/features/session/queries";
 
 type Props = PageProps<"/clubs/[clubId]/sessions/[sessionId]">;
 
@@ -45,7 +51,7 @@ export default async function SessionOverviewPage(props: Props) {
   }
 
   const base = `/clubs/${clubId}/sessions/${sessionId}`;
-  const [user, members, attendance, logs, links, projectList] =
+  const [user, members, attendance, logs, links, projectList, docLinks, docs] =
     await Promise.all([
       getCurrentUser(),
       listMembers(clubId),
@@ -53,8 +59,24 @@ export default async function SessionOverviewPage(props: Props) {
       listSessionLogs(clubId, sessionId),
       listSessionProjectLinks(clubId, sessionId),
       listProjects(clubId),
+      listSessionDocs(clubId, sessionId),
+      listDocs(),
     ]);
   const isAdmin = data.club.role === "admin";
+  // 이어 둔 참고 자료 가운데 Docs 목록에 아직 있는 문서만 보여 준다.
+  // 운영자는 아직 가져오지 않은 문서를 더 가져온다. 잇는 구조가 아직 없으면 칸을 그리지 않는다.
+  const docSlugs = docLinks.status === "ok" ? docLinks.slugs : [];
+  const referenceDocs = docSlugs.flatMap((slug) => {
+    const doc = docs.find((item) => item.slug === slug);
+    return doc ? [doc] : [];
+  });
+  const linkableDocs =
+    isAdmin && docLinks.status === "ok"
+      ? docs.filter((doc) => !docSlugs.includes(doc.slug)).map((doc) => ({
+          id: doc.slug,
+          name: doc.title,
+        }))
+      : null;
   // 내가 이을 수 있는 Project. 운영자는 모두, 다른 Member 는 자기가 참여하는 것만이다.
   // 잇는 구조가 아직 없으면 잇는 칸을 그리지 않는다.
   const mine = new Set(
@@ -116,6 +138,22 @@ export default async function SessionOverviewPage(props: Props) {
                 .map((log) => log.id)}
             />
           )}
+          <SessionDocsCard
+            clubId={clubId}
+            docs={referenceDocs}
+            linkable={linkableDocs}
+            onLink={
+              isAdmin
+                ? linkSessionDoc.bind(null, clubId, sessionId)
+                : undefined
+            }
+            unlink={
+              isAdmin
+                ? (slug) => unlinkSessionDoc.bind(null, clubId, sessionId, slug)
+                : undefined
+            }
+            notReady={isAdmin && docLinks.status === "unavailable"}
+          />
           <SessionProjectsCard
             clubId={clubId}
             projects={mergeProjectLinks(

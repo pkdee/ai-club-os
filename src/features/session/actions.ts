@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 import { getCurrentUser } from "@/features/auth/session"
+import { isListedDoc } from "@/features/docs/catalog"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
@@ -162,4 +163,97 @@ export async function deleteSession(
 
   revalidatePath(`/clubs/${clubId}`, "layout")
   redirect(`/clubs/${clubId}/sessions`)
+}
+
+export type SessionDocResult = { ok: true } | { ok: false; message: string }
+
+const DOC_NOT_READY_MESSAGE =
+  "데이터베이스에 참고 자료를 잇는 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요."
+const DOC_ADMIN_ONLY_MESSAGE =
+  "운영자만 참고 자료를 가져오거나 뺄 수 있습니다. 역할이 바뀌었을 수 있으니 화면을 새로 고쳐 확인해 주세요."
+const DOC_GONE_MESSAGE =
+  "그 문서나 Session 을 찾을 수 없습니다. 지워졌을 수 있습니다. 화면을 새로 고쳐 확인해 주세요."
+
+// 테이블이 아직 없을 때의 오류 번호. 뒤의 것은 데이터 API 가 테이블을 모를 때다.
+function isMissingTable(error: { code?: string }) {
+  return error.code === "42P01" || error.code === "PGRST205"
+}
+
+// Docs 의 문서를 이 회차의 참고 자료로 가져온다. 운영자만 할 수 있고, 그 판단은 데이터베이스의 접근 규칙이 한다.
+// Docs 목록에 있는 문서만 받는다.
+export async function linkSessionDoc(
+  clubId: string,
+  sessionId: string,
+  slug: string
+): Promise<SessionDocResult> {
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+  }
+  if (!isUuid(sessionId) || !isListedDoc(slug)) {
+    return { ok: false, message: DOC_GONE_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("session_docs")
+    .insert({ club_id: clubId, session_id: sessionId, doc_slug: slug })
+
+  // 23505 는 이미 가져온 것이다. 바라던 상태이므로 성공으로 본다.
+  if (error && error.code !== "23505") {
+    if (isMissingTable(error)) {
+      return { ok: false, message: DOC_NOT_READY_MESSAGE }
+    }
+    if (error.code === "42501") {
+      return { ok: false, message: DOC_ADMIN_ONLY_MESSAGE }
+    }
+    // 23503 은 Session 이 없거나 다른 Club 의 것이다.
+    if (error.code === "23503") {
+      return { ok: false, message: DOC_GONE_MESSAGE }
+    }
+    console.error("Session 에 참고 자료를 가져오지 못했습니다.", error)
+    return { ok: false, message: DELETE_RETRY_MESSAGE }
+  }
+
+  revalidatePath(`/clubs/${clubId}/sessions/${sessionId}`)
+  return { ok: true }
+}
+
+// 이 회차의 참고 자료에서 문서를 뺀다. Docs 의 문서는 그대로 남는다. 운영자만 할 수 있다.
+export async function unlinkSessionDoc(
+  clubId: string,
+  sessionId: string,
+  slug: string
+): Promise<SessionDocResult> {
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+  }
+  if (!isUuid(sessionId)) {
+    return { ok: false, message: DOC_GONE_MESSAGE }
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("session_docs")
+    .delete()
+    .eq("club_id", clubId)
+    .eq("session_id", sessionId)
+    .eq("doc_slug", slug)
+    .select("doc_slug")
+
+  if (error) {
+    if (isMissingTable(error)) {
+      return { ok: false, message: DOC_NOT_READY_MESSAGE }
+    }
+    console.error("Session 의 참고 자료를 빼지 못했습니다.", error)
+    return { ok: false, message: DELETE_RETRY_MESSAGE }
+  }
+  // 접근 규칙에 막혔거나 이미 뺀 것이면 오류 없이 0개가 돌아온다.
+  if (data.length === 0) {
+    return { ok: false, message: DOC_ADMIN_ONLY_MESSAGE }
+  }
+
+  revalidatePath(`/clubs/${clubId}/sessions/${sessionId}`)
+  return { ok: true }
 }

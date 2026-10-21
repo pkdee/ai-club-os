@@ -1,12 +1,12 @@
 import Link from "next/link"
 import { Calendar, FolderKanban } from "lucide-react"
 
+import { LinkPicker, UnlinkButton } from "@/components/link-controls"
 import { cn } from "@/lib/utils"
 
 import type { ProjectActionResult } from "../actions"
 import type { ProjectLinkItem, SessionLinkItem } from "../links"
 import type { ProjectStatus } from "../rules"
-import { LinkPicker, UnlinkButton } from "./link-controls"
 import { ProjectStatusBadge } from "./project-status-badge"
 
 const ROW =

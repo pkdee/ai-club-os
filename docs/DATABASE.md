@@ -40,7 +40,7 @@ User
 
 ## 구현된 구조
 
-지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives`, `ai_log_comments`, `ai_log_reactions`, `session_projects`, `ai_log_attachments` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다. 파일은 Storage 의 `ai-log-images` 한 곳에 둡니다.
+지금 있는 테이블은 `clubs`, `members`, `sessions`, `attendance`, `ai_logs`, `club_invites`, `ai_insights`, `projects`, `project_members`, `project_links`, `project_tasks`, `club_bans`, `deletion_logs`, `ai_insight_runs`, `project_join_requests`, `presentations`, `notification_reads`, `ai_log_revisions`, `retrospectives`, `ai_log_comments`, `ai_log_reactions`, `session_projects`, `ai_log_attachments`, `session_docs` 입니다. 정의는 `supabase/migrations/` 의 SQL 파일에 있습니다. 파일은 Storage 의 `ai-log-images` 와 `club-logos` 에 둡니다.
 
 | 테이블 | 마이그레이션 | 결정 배경 |
 |---|---|---|
@@ -84,6 +84,7 @@ User
 | `clubs` 의 로고 열, 로고 파일이 남은 Club 을 지키는 규칙 | `20261021052123_add_club_logo.sql` | `docs/adr/0032-club-directory-and-logos.md` |
 | Storage 의 `club-logos` 와 접근 규칙 | `20261021052125_create_club_logos_bucket.sql` | `docs/adr/0032-club-directory-and-logos.md` |
 | 로그인한 사용자 모두가 보는 Club 목록 함수 | `20261021052127_add_list_clubs.sql` | `docs/adr/0032-club-directory-and-logos.md` |
+| `session_docs` | `20261021055751_create_session_docs.sql` | `docs/adr/0033-session-reference-docs.md` |
 
 ```mermaid
 erDiagram
@@ -714,6 +715,18 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 
 회차와 Project 를 직접 잇습니다. AI Log 를 거쳐 이어진 것은 여기에 적지 않고 화면에서 함께 보여 줍니다.
 
+### session_docs
+
+| 열 | 형식 | 설명 |
+|---|---|---|
+| `session_id` | uuid | 회차. 같은 Club 의 것이어야 하고, 삭제되면 함께 삭제된다 |
+| `doc_slug` | text | Docs 의 문서 slug. 영어 소문자와 숫자를 하이픈으로 이은 100자 이하의 값이다 |
+| `club_id` | uuid | 소속 Club |
+| `created_by` | uuid | 이은 사용자. 만들 때 로그인한 사용자로 정해진다. 사용자가 삭제되면 비운다 |
+| `created_at` | timestamptz | 이은 시각 |
+
+회차에 참고 자료로 이어 둔 Docs 의 문서입니다. 기본 키가 회차와 slug 의 짝이라 같은 문서를 두 번 잇지 못합니다. Docs 의 문서는 저장소의 파일이라 데이터베이스는 slug 의 모양만 확인하고, Docs 목록에 있는 문서인지는 앱이 확인합니다. 목록에서 빠진 문서의 줄은 남지만 화면에 보이지 않습니다.
+
 ### ai_log_attachments
 
 | 열 | 형식 | 설명 |
@@ -858,6 +871,9 @@ Club 로고를 두는 공개하지 않는 저장 공간입니다. 한 파일에 
 | `session_projects` | 조회 | 그 Club 의 Member |
 | `session_projects` | 생성, 삭제 | 그 Club 의 운영자와 그 Project 의 참여자 |
 | `session_projects` | 수정 | 없음 |
+| `session_docs` | 조회 | 그 Club 의 Member |
+| `session_docs` | 생성, 삭제 | 그 Club 의 운영자. 넣을 수 있는 열은 `session_id`, `doc_slug`, `club_id` 뿐이다 |
+| `session_docs` | 수정 | 없음 |
 | `ai_log_attachments` | 조회 | 그 Club 의 Member. 붙인 본인은 Club 에서 나간 뒤에도 자기 줄을 본다 |
 | `ai_log_attachments` | 생성 | 그 기록의 작성자. 붙인 사람은 본인으로 정해진다 |
 | `ai_log_attachments` | 삭제 | 그 기록의 작성자와 그 Club 의 운영자. 파일이 남아 있으면 누구도 지우지 못한다 |
