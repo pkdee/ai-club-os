@@ -87,6 +87,7 @@ User
 | `session_docs` | `20261021055751_create_session_docs.sql` | `docs/adr/0033-session-reference-docs.md` |
 | 발표에 Project 의 AI Log 를 모두 싣도록 함수 교체 | `20261022030222_use_all_ai_logs_in_presentation.sql` | `docs/adr/0036-ai-logs-always-in-insight-and-presentation.md` |
 | `ai_logs` 의 선택 열 두 개 지우기 | `20261022030225_drop_ai_log_options.sql` | `docs/adr/0036-ai-logs-always-in-insight-and-presentation.md` |
+| `sessions` 의 시각을 비울 수 있게 하기(날짜 미정) | `20261022030702_session_date_undecided.sql` | `docs/adr/0037-session-date-undecided-and-time-picker.md` |
 
 ```mermaid
 erDiagram
@@ -390,14 +391,16 @@ erDiagram
 | `title` | text | 앞뒤 공백을 뺀 길이가 1자 이상 80자 이하 |
 | `description` | text | 목표와 소개. 2000자 이하 |
 | `location` | text | 장소. 80자 이하 |
-| `starts_at` | timestamptz | 시작 시각 |
-| `ends_at` | timestamptz | 종료 시각. 시작 시각보다 뒤여야 한다 |
+| `starts_at` | timestamptz | 시작 시각. 날짜를 정하지 않은 회차는 비어 있다 |
+| `ends_at` | timestamptz | 종료 시각. 시작 시각보다 뒤여야 한다. 시작 시각과 함께 비어 있거나 함께 있다 |
 | `agenda` | text | 시간표. 한 줄에 하나씩 적은 글이고 2000자 이하. 기본값은 빈 문자열 |
 | `created_by` | uuid | 만든 사용자. 사용자가 삭제되면 비운다 |
 | `created_at` | timestamptz | 만든 시각 |
 | `updated_at` | timestamptz | 마지막으로 고친 시각. 고칠 때 자동으로 바뀐다 |
 
 시간표는 줄마다 따로 저장하지 않고 글 하나로 둡니다. 줄 앞의 시각(`19:00`)을 가려 보여 주는 일은 앱의 `src/features/session/agenda.ts` 가 합니다.
+
+날짜를 정하지 않은 회차는 `starts_at` 과 `ends_at` 을 함께 비웁니다. 한쪽만 비운 행은 `sessions_time_both_or_neither` 가 막습니다(`23514`). 비어 있는 회차는 시작하지 않은 것으로 봐서 회고를 쓸 수 없고 Club 발표에 나가지 않습니다. 앱은 시작 시각 순서로 읽고 비어 있는 회차를 맨 뒤에 만든 순서로 둡니다.
 
 ### attendance
 
@@ -672,7 +675,7 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 
 돌아보는 대상은 `scope` 에 맞는 것 하나만 적습니다. 세 칸 가운데 하나는 적어야 하고, 공백과 줄바꿈만 있는 것은 적은 것으로 치지 않습니다. 한 사람이 한 대상에 하나만 쓸 수 있도록 `scope` 마다 대상과 작성자에 unique 색인이 있습니다. 작성자가 비워진 회고는 여러 개가 남을 수 있습니다.
 
-`retrospectives_check_target` trigger 가 넣을 때 확인합니다. 아직 시작하지 않은 Session 과 아직 오지 않은 달에는 쓸 수 없고, 그때는 오류(`23514`)를 냅니다. Project 회고를 참여자만 쓴다는 것은 접근 규칙이 확인합니다.
+`retrospectives_check_target` trigger 가 넣을 때 확인합니다. 아직 시작하지 않았거나 날짜를 정하지 않은 Session 과 아직 오지 않은 달에는 쓸 수 없고, 그때는 오류(`23514`)를 냅니다. Project 회고를 참여자만 쓴다는 것은 접근 규칙이 확인합니다.
 
 작성자가 켠 것만 씁니다. `use_in_insight` 를 켠 Session 회고와 한 달 회고는 운영자가 AI Insight 를 만들 때 세 칸의 글만 AI 로 보냅니다. `share_in_presentation` 을 켠 Project 회고는 `get_presentation` 이 그 Project 의 발표에 실어 내보냅니다. 두 열 모두 작성자만 고칩니다.
 
@@ -814,7 +817,7 @@ Club 로고를 두는 공개하지 않는 저장 공간입니다. 한 파일에 
 | `members` | 수정 | 그 Club 의 운영자. 역할만 바꿀 수 있다. 본인의 사진 주소는 `sync_my_avatar` 로 맞추고, 본인의 이름은 `set_my_display_name` 으로 고친다 |
 | `members` | 삭제 | 그 Club 의 운영자는 누구든 내보낼 수 있고, 누구나 자기 행을 지워 스스로 나갈 수 있다 |
 | `sessions` | 조회 | 그 Club 의 Member |
-| `sessions` | 생성, 수정 | 그 Club 의 운영자. 제목, 소개, 장소, 시각, 시간표를 넣고 고친다 |
+| `sessions` | 생성, 수정 | 그 Club 의 운영자. 제목, 소개, 장소, 시각, 시간표를 넣고 고친다. 시각은 시작과 종료를 함께 비워 날짜 미정으로 둘 수 있다 |
 | `sessions` | 삭제 | 그 Club 의 운영자. 그 회차의 Attendance 는 함께 지워지고 AI Log 는 Session 연결만 비워진 채 남는다 |
 | `attendance` | 조회 | 그 Club 의 Member |
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |

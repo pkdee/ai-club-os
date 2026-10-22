@@ -33,6 +33,9 @@ const RETRY_MESSAGE =
   "잠시 뒤 다시 시도해 주세요. 입력한 내용은 그대로 남아 있습니다."
 const ADMIN_ONLY_MESSAGE =
   "운영자만 Session 을 만들거나 고칠 수 있습니다. 역할이 바뀌었는지 운영자에게 확인해 주세요."
+// 날짜 미정을 받는 마이그레이션을 아직 적용하지 않은 데이터베이스는 빈 시각을 거부한다(23502).
+const UNDECIDED_NOT_READY_MESSAGE =
+  "데이터베이스에 날짜 미정을 받는 구조가 아직 없습니다. 최신 마이그레이션을 적용한 뒤 다시 시도해 주세요. 입력한 내용은 그대로 남아 있습니다."
 
 const DELETE_RETRY_MESSAGE =
   "연결이 끊겼거나 서버가 응답하지 않습니다. 잠시 뒤 다시 시도해 주세요."
@@ -60,6 +63,8 @@ export async function saveSession(
 
   const values: SessionInput = {
     title: text(formData, "title"),
+    // 날짜 미정을 켜면 시작과 종료를 함께 비워 저장한다. 그때도 칸에 남은 날짜와 시각은 돌려주어 다시 그린다.
+    dateUndecided: formData.get("dateUndecided") === "1",
     date: text(formData, "date"),
     startTime: text(formData, "startTime"),
     endTime: text(formData, "endTime"),
@@ -98,6 +103,9 @@ export async function saveSession(
       .select("id")
 
     if (error) {
+      if (error.code === "23502" && values.dateUndecided) {
+        return { status: "error", message: UNDECIDED_NOT_READY_MESSAGE, values }
+      }
       console.error("Session 을 고치지 못했습니다.", error)
       return { status: "error", message: RETRY_MESSAGE, values }
     }
@@ -111,6 +119,9 @@ export async function saveSession(
       .insert({ club_id: target.clubId, ...fields })
 
     if (error) {
+      if (error.code === "23502" && values.dateUndecided) {
+        return { status: "error", message: UNDECIDED_NOT_READY_MESSAGE, values }
+      }
       console.error("Session 을 만들지 못했습니다.", error)
       return {
         status: "error",

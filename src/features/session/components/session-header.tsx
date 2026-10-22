@@ -138,16 +138,20 @@ export function SessionHeader({
                 strokeWidth={1.5}
                 className="size-4 text-icon-subtle"
               />
-              {formatKstDate(session.startsAt)}
+              {session.startsAt === null
+                ? "날짜 미정"
+                : formatKstDate(session.startsAt)}
             </li>
-            <li className="flex items-center gap-1.5">
-              <Clock
-                aria-hidden="true"
-                strokeWidth={1.5}
-                className="size-4 text-icon-subtle"
-              />
-              {formatKstTimeRange(session.startsAt, session.endsAt)}
-            </li>
+            {session.startsAt !== null && (
+              <li className="flex items-center gap-1.5">
+                <Clock
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                  className="size-4 text-icon-subtle"
+                />
+                {formatKstTimeRange(session.startsAt, session.endsAt)}
+              </li>
+            )}
             {session.location && (
               <li className="flex items-center gap-1.5">
                 <MapPin
@@ -183,9 +187,13 @@ export function SessionHeader({
                 target={{ clubId: session.clubId, sessionId: session.id }}
                 defaults={{
                   title: session.title,
-                  date: kstDateKey(session.startsAt),
-                  startTime: kstTime(session.startsAt),
-                  endTime: kstTime(session.endsAt),
+                  ...(session.startsAt === null
+                    ? { dateUndecided: true }
+                    : {
+                        date: kstDateKey(session.startsAt),
+                        startTime: kstTime(session.startsAt),
+                        endTime: kstTime(session.endsAt),
+                      }),
                   location: session.location,
                   description: session.description,
                   // 시간표 열이 아직 없으면 넘기지 않아서 창에 칸이 나오지 않는다.

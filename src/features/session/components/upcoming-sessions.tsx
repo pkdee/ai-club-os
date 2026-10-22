@@ -1,10 +1,16 @@
 import Link from "next/link"
 
 import type { Session } from "../queries"
-import { kstMonthDay, kstTime, kstWeekday, sessionStatus } from "../time"
+import {
+  hasDate,
+  kstMonthDay,
+  kstTime,
+  kstWeekday,
+  sessionStatus,
+} from "../time"
 
 // Club 개요의 옆 칸에 놓는 예정 Session. 가까운 것부터 세 개까지 보여 준다.
-// 오늘 Session 은 본문의 안내가 따로 보여 주므로 여기에는 넣지 않는다.
+// 오늘 Session 은 본문의 안내가 따로 보여 주므로 여기에는 넣지 않는다. 날짜를 정하지 않은 회차도 넣지 않는다.
 export function UpcomingSessions({
   sessions,
   now,
@@ -13,6 +19,7 @@ export function UpcomingSessions({
   now: Date
 }) {
   const upcoming = sessions
+    .filter(hasDate)
     .filter((session) => sessionStatus(session.startsAt, now) === "upcoming")
     .slice(0, 3)
 

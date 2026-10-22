@@ -49,9 +49,16 @@ export default async function SessionRetrospectivesPage(props: Props) {
       result={result}
       currentUserId={user.id}
       isAdmin={data.club.role === "admin"}
-      // 아직 시작하지 않은 회차는 돌아볼 것이 없다.
-      canWrite={new Date(data.session.startsAt).getTime() <= now.getTime()}
-      cannotWriteText="Session 이 시작한 뒤에 쓸 수 있습니다."
+      // 아직 시작하지 않았거나 날짜를 정하지 않은 회차는 돌아볼 것이 없다.
+      canWrite={
+        data.session.startsAt !== null &&
+        new Date(data.session.startsAt).getTime() <= now.getTime()
+      }
+      cannotWriteText={
+        data.session.startsAt === null
+          ? "날짜를 정하고 Session 이 시작한 뒤에 쓸 수 있습니다."
+          : "Session 이 시작한 뒤에 쓸 수 있습니다."
+      }
       now={now}
     />
   );

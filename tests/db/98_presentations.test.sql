@@ -160,3 +160,14 @@ select test.affects($$ delete from public.clubs where id = test.get('club')::uui
 select test.anon();
 select test.is($$ select (public.get_presentation(test.get('ct')) is null)::text $$, 'true', 'Club 을 지우면 Club 발표의 링크도 쓸 수 없다');
 select test.sudo_is($$ select count(*) from public.presentations $$, '0', '남은 발표가 없다');
+
+-- 날짜를 정하지 않은 회차는 Club 발표에 나가지 않는다.
+select test.login('a');
+insert into public.clubs (name) values ('날짜를 정하는 Club');
+select test.remember('dated_club', $$ select id from public.clubs where name = '날짜를 정하는 Club' $$);
+insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('dated_club')::uuid, '지난 회차', now() - interval '1 day', now() - interval '23 hours');
+insert into public.sessions (club_id, title) values (test.get('dated_club')::uuid, '날짜 미정 회차');
+insert into public.presentations (club_id, scope) values (test.get('dated_club')::uuid, 'club');
+select test.remember('dated_ct', $$ select token from public.presentations where club_id = test.get('dated_club')::uuid $$);
+select test.anon();
+select test.is($$ select jsonb_array_length(public.get_presentation(test.get('dated_ct')) -> 'sessions')::text || '|' || (public.get_presentation(test.get('dated_ct')) #>> '{sessions,0,title}') $$, '1|지난 회차', '날짜를 정하지 않은 회차는 Club 발표에 나가지 않는다');

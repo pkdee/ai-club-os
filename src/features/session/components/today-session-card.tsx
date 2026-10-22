@@ -3,7 +3,7 @@ import { ArrowRight, ClipboardCheck, Clock, MapPin } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 
-import type { Session } from "../queries"
+import type { DatedSession } from "../queries"
 import { formatKstDate, formatKstTimeRange } from "../time"
 
 // Club 개요 맨 위에 놓는 오늘 Session 안내.
@@ -14,7 +14,7 @@ export function TodaySessionCard({
   attendance,
   logCount,
 }: {
-  session: Session
+  session: DatedSession
   canManage: boolean
   // recorded 는 기록이 남은 Member 수, total 은 전체 Member 수다.
   attendance: { recorded: number; total: number } | null

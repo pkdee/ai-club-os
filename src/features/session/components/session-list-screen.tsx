@@ -58,12 +58,17 @@ export function SessionListScreen({
   now: Date
 }) {
   const sessions = result.status === "ok" ? result.sessions : []
+  const status = (session: Session) => sessionStatus(session.startsAt, now)
   const current = sessions.filter(
-    (session) => sessionStatus(session.startsAt, now) !== "done"
+    (session) => status(session) === "today" || status(session) === "upcoming"
+  )
+  // 날짜를 정하지 않은 회차는 예정 아래에 따로 모은다. 목록이 만든 순서로 준다.
+  const undecided = sessions.filter(
+    (session) => status(session) === "undecided"
   )
   // 지난 Session 은 최근 것이 위에 오게 한다.
   const past = sessions
-    .filter((session) => sessionStatus(session.startsAt, now) === "done")
+    .filter((session) => status(session) === "done")
     .reverse()
   const createDialog = canManage ? (
     <SessionFormDialog
@@ -131,6 +136,7 @@ export function SessionListScreen({
       ) : (
         <>
           <SessionGroup title="오늘과 예정" sessions={current} now={now} />
+          <SessionGroup title="날짜 미정" sessions={undecided} now={now} />
           <SessionGroup title="지난 Session" sessions={past} now={now} />
         </>
       )}

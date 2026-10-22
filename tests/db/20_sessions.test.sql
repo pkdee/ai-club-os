@@ -30,6 +30,15 @@ select test.throws($$ insert into public.sessions (club_id, title, starts_at, en
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('club')::uuid, '   ', now(), now() + interval '1 hour') $$, '23514', '빈 제목은 넣을 수 없다');
 select test.throws($$ insert into public.sessions (club_id, title, starts_at, ends_at) values (test.get('club')::uuid, repeat('가', 81), now(), now() + interval '1 hour') $$, '23514', '81자 제목은 넣을 수 없다');
 
+-- 날짜를 정하지 않은 Session. 시작과 종료를 함께 비운다.
+select test.is($$ insert into public.sessions (club_id, title) values (test.get('club')::uuid, '날짜 미정 회차') returning (starts_at is null and ends_at is null)::text $$, 'true', '운영자 A 가 날짜를 정하지 않은 Session 을 만든다');
+select test.remember('undecided', $$ select id from public.sessions where title = '날짜 미정 회차' $$);
+select test.throws($$ insert into public.sessions (club_id, title, starts_at) values (test.get('club')::uuid, '시작만', now()) $$, '23514', '시작 시각만 있는 Session 은 넣을 수 없다');
+select test.throws($$ insert into public.sessions (club_id, title, ends_at) values (test.get('club')::uuid, '종료만', now()) $$, '23514', '종료 시각만 있는 Session 은 넣을 수 없다');
+select test.throws($$ update public.sessions set ends_at = null where id = test.get('session')::uuid $$, '23514', '날짜가 있는 Session 의 종료 시각만 비울 수 없다');
+select test.affects($$ update public.sessions set starts_at = '2026-10-15T19:00:00+09:00', ends_at = '2026-10-15T21:00:00+09:00' where id = test.get('undecided')::uuid $$, 1, '나중에 날짜와 시각을 정한다');
+select test.affects($$ update public.sessions set starts_at = null, ends_at = null where id = test.get('undecided')::uuid $$, 1, '정한 날짜를 다시 미정으로 돌린다');
+
 select test.anon();
 select test.throws($$ select count(*) from public.sessions $$, '42501', '로그인하지 않으면 Session 을 읽지 못한다');
 

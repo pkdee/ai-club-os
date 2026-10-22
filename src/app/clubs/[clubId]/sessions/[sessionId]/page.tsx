@@ -29,6 +29,7 @@ import { SessionDocsCard } from "@/features/session/components/session-docs-card
 import { SessionOverview } from "@/features/session/components/session-overview";
 import { loadSessionPage } from "@/features/session/page-data";
 import { listSessionDocs, listSessions } from "@/features/session/queries";
+import { hasDate } from "@/features/session/time";
 
 type Props = PageProps<"/clubs/[clubId]/sessions/[sessionId]">;
 
@@ -99,8 +100,10 @@ export default async function SessionOverviewPage(props: Props) {
           .map((project) => ({ id: project.id, name: project.name }))
       : null;
   // 바로 앞 회차의 공개된 AI Insight 에 다음 행동이 있으면 이 회차의 개요에 이어서 보여 준다.
+  // 앞뒤는 날짜를 정한 회차끼리만 본다. 날짜를 정하지 않은 회차에는 앞 회차가 없다.
   const sessions = await listSessions(clubId);
-  const order = sessions.status === "ok" ? sessions.sessions : [];
+  const order =
+    sessions.status === "ok" ? sessions.sessions.filter(hasDate) : [];
   const previous = order[order.findIndex((item) => item.id === sessionId) - 1];
   const previousInsight = previous
     ? await getSessionInsight(clubId, previous.id)

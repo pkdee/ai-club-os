@@ -109,10 +109,24 @@ export function kstWeekStart(now: Date) {
   return new Date(midnight.getTime() - sinceMonday * DAY_MS).toISOString()
 }
 
-export type SessionStatus = "today" | "upcoming" | "done"
+// 날짜를 정한 회차만 남길 때 쓴다. 시작 시각이 있으면 종료 시각도 있다.
+export function hasDate<T extends { startsAt: string | null }>(
+  session: T
+): session is Extract<T, { startsAt: string }> {
+  return session.startsAt !== null
+}
 
-// 한국 시간의 날짜로 오늘, 예정, 종료를 나눈다.
-export function sessionStatus(startsAt: string, now: Date): SessionStatus {
+export type SessionStatus = "today" | "upcoming" | "done" | "undecided"
+
+// 한국 시간의 날짜로 오늘, 예정, 종료를 나눈다. 날짜를 정하지 않은 회차(startsAt 이 null)는 미정이다.
+export function sessionStatus(
+  startsAt: string | null,
+  now: Date
+): SessionStatus {
+  if (startsAt === null) {
+    return "undecided"
+  }
+
   const day = kstDateKey(startsAt)
   const today = kstDateKey(now)
 

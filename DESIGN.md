@@ -465,10 +465,10 @@ Club 안쪽 화면은 1024px 폭부터 왼쪽에 256px 의 메뉴를 두고, 그
 | 토큰 | 코드 |
 |---|---|
 | `button-*` | `src/components/ui/button.tsx`. `primary` 는 variant `default`, `secondary` 는 `outline`, `ghost` 는 `ghost`, `danger` 는 `destructive`, `button-sm` 은 size `sm` 입니다. |
-| `input-*` | `input.tsx`, `textarea.tsx`, `native-select.tsx` 가 함께 쓰는 모양 |
+| `input-*` | `input.tsx`, `textarea.tsx`, `native-select.tsx`, `time-picker.tsx` 가 함께 쓰는 모양 |
 | `badge-*` | `badge.tsx` 의 tone |
 | `alert-*` | `alert.tsx` 의 tone |
-| `menu`, `menu-item-*`, `divider` | `menu.tsx` |
+| `menu`, `menu-item-*`, `divider` | `menu.tsx`. `time-picker.tsx` 의 시각 목록도 같은 면과 항목 모양을 쓴다 |
 | `dialog`, `dialog-overlay` | `dialog.tsx` |
 | `avatar` | `avatar.tsx` 의 기본 크기 md |
 | `skeleton` | `skeleton.tsx` |
@@ -617,6 +617,13 @@ Member 목록의 더 보기와 Session 소개 아래의 시간표는 2026-10-11 
   - AI Log 쓰기 화면들(`06-1`, `06-5`, `06-6`, `09-3`)의 옆 칸에서 "이 기록의 쓰임" 카드를 뺐습니다. 기록 안내 목록에 "Project 에 묶은 기록은 그 Project 의 발표에 들어가, 링크를 받은 Club 밖의 사람도 볼 수 있습니다." 줄을 AI Insight 줄 다음에 더했습니다.
   - AI Log 상세(`06-2`)의 기록 정보에서 AI Insight 와 발표 줄을 뺐습니다. Project 에 묶인 기록이면 "볼 수 있는 사람" 이 "Club 의 Member, Project 발표 링크를 받은 사람" 입니다.
   - AI Insight 만들기 확인 창(`10-2`)과 만들 수 없을 때의 안내에서 보내지 않는 기록 수를 뺐습니다. Project 상세의 발표 영역(`11-7`, `11-8`)은 묶인 AI Log 가 모두 보인다고 알립니다.
+
+- Session 의 날짜 미정과 시각 고르기. 2026-10-22 에 사용자의 요청으로 바꿨습니다.
+  - Session 만들기와 수정 창의 날짜, 시작, 종료 줄 아래에 Checkbox "날짜 미정" 과 그 설명(Caption, Muted) "켜면 날짜와 시각 없이 저장합니다. 정해지면 수정에서 적습니다." 를 둡니다. 켜면 세 칸이 막힌 모양(`input-disabled`)이 되고 그 칸의 오류는 보이지 않습니다.
+  - 시작과 종료 칸은 Google Calendar 처럼 고르는 칸입니다. 모양은 Input 과 같고 오른쪽에 16px `chevron-down`(`icon-subtle`)을 둡니다. 누르면 칸 아래에 Menu 와 같은 면(Card 면, `border`, 모서리 lg, 그림자 lg)의 목록이 열립니다. 목록은 칸 너비와 같고 224px 보다 좁아지지 않으며(시각과 걸리는 시간이 한 줄에 들어가는 폭), 화면 끝에 닿으면 안쪽으로 밀려 들어옵니다. 240px 까지 보이고 나머지는 안에서 내려 봅니다.
+  - 목록의 줄은 Menu 항목과 같은 높이 36px, Label M 이고 강조되면 Accent 면입니다. 왼쪽 16px 칸에 고른 시각의 `check`(Brand)를, 가운데에 "오후 7:00" 처럼 오전과 오후를 붙인 시각을 둡니다. 종료 목록은 시작에서 30분씩 더한 시각이고 오른쪽 끝에 걸리는 시간("30분", "1시간 30분", Caption, Muted)을 적습니다. 열면 고른 시각이 목록 가운데에 오고, 고른 것이 없는 시작 칸은 오후 7시 언저리를 보여 줍니다.
+  - 칸에 시각을 바로 적으면 목록이 맞는 시각만 남기고 읽은 시각을 맨 위에 강조해 둡니다. 읽지 못하면 목록 자리에 "시각을 읽지 못했습니다. 19:30 이나 오후 7시 30분처럼 적어 주세요."(Caption, Muted)가 나옵니다. 칸에 들어오면 글이 모두 골라져 있어 바로 새로 적습니다.
+  - Session 상태에 warning Badge "미정" 을 더했습니다. Session 목록은 "오늘과 예정" 과 "지난 Session" 사이에 "날짜 미정" 묶음(H4 와 수)을 둡니다. 카드의 날짜 자리(Muted 면)에는 위에 "날짜"(Label S, Muted), 아래에 "미정"(H4, Muted)을 두고 시각 줄을 뺍니다. Session 상세의 머리말은 아이콘 `calendar` 옆에 "날짜 미정" 을 적고 시각 줄을 뺍니다.
 
 ### 구현하면서 바꾸고 Figma 에 반영한 것
 

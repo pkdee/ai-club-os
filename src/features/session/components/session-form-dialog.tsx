@@ -36,6 +36,7 @@ import {
   SESSION_TITLE_MAX,
   type SessionInput,
 } from "../rules"
+import { SessionTimeFields } from "./session-time-fields"
 
 const initialState: SessionFormState = { status: "idle" }
 
@@ -99,58 +100,22 @@ function SessionForm({
           <FieldError id="session-title-error">{errors.title}</FieldError>
         )}
       </Field>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Field className="col-span-2 sm:col-span-1">
-          <FieldLabel htmlFor="session-date">날짜</FieldLabel>
-          <Input
-            key={values.date}
-            id="session-date"
-            name="date"
-            type="date"
-            required
-            defaultValue={values.date}
-            aria-invalid={invalid("date")}
-            aria-describedby={errorId("date")}
-          />
-          {errors.date && (
-            <FieldError id="session-date-error">{errors.date}</FieldError>
-          )}
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="session-start">시작</FieldLabel>
-          <Input
-            key={values.startTime}
-            id="session-start"
-            name="startTime"
-            type="time"
-            required
-            defaultValue={values.startTime}
-            aria-invalid={invalid("startTime")}
-            aria-describedby={errorId("startTime")}
-          />
-          {errors.startTime && (
-            <FieldError id="session-startTime-error">
-              {errors.startTime}
-            </FieldError>
-          )}
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="session-end">종료</FieldLabel>
-          <Input
-            key={values.endTime}
-            id="session-end"
-            name="endTime"
-            type="time"
-            required
-            defaultValue={values.endTime}
-            aria-invalid={invalid("endTime")}
-            aria-describedby={errorId("endTime")}
-          />
-          {errors.endTime && (
-            <FieldError id="session-endTime-error">{errors.endTime}</FieldError>
-          )}
-        </Field>
-      </div>
+      <SessionTimeFields
+        // 저장하지 못해 돌아온 값이 처음 값과 다르면 칸을 새로 그린다.
+        key={[
+          values.dateUndecided,
+          values.date,
+          values.startTime,
+          values.endTime,
+        ].join("|")}
+        defaults={{
+          dateUndecided: values.dateUndecided ?? false,
+          date: values.date ?? "",
+          startTime: values.startTime ?? "",
+          endTime: values.endTime ?? "",
+        }}
+        errors={errors}
+      />
       <Field>
         <FieldLabel htmlFor="session-location">장소</FieldLabel>
         <Input

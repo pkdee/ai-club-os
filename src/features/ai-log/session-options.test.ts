@@ -30,3 +30,14 @@ test("고르기 목록은 최근 회차가 위에 온다", () => {
     ["2회차|10월 8일 목요일 19:00 ~ 21:00", "1회차|10월 1일 목요일 19:00 ~ 21:00"]
   )
 })
+
+test("날짜를 정하지 않은 회차는 고르기 목록의 맨 아래에 날짜 미정으로 온다", () => {
+  const undecided = { id: "33333333-3333-4333-8333-333333333333", clubId: "c", title: "3회차", description: "", location: "", startsAt: null, endsAt: null, agenda: null }
+  assert.deepEqual(
+    toSessionOptions([...sessions, undecided]).map((option) => `${option.title}|${option.when}`),
+    ["2회차|10월 8일 목요일 19:00 ~ 21:00", "1회차|10월 1일 목요일 19:00 ~ 21:00", "3회차|날짜 미정"]
+  )
+  // 오늘 열리는 회차로 보지 않는다. 주소로 받았을 때만 고른다.
+  assert.equal(defaultSessionId([sessions[0], undecided], undefined, now), "")
+  assert.equal(defaultSessionId([sessions[0], undecided], undecided.id, now), undecided.id)
+})

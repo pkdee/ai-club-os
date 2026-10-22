@@ -292,6 +292,7 @@ export const listClubTools = cache(
 )
 
 // Session 마다 달린 AI Log 수를 최근 회차부터 읽는다. 기록이 없는 Session 도 0 으로 들어 있다.
+// 날짜를 정하지 않은 회차는 쓰기 화면의 Session 고르기처럼 맨 뒤에 둔다.
 // Session 으로 고르는 칸과 목록 옆의 요약이 함께 쓴다.
 export const listSessionLogCounts = cache(
   async (clubId: string): Promise<SessionLogCountsResult> => {
@@ -300,7 +301,8 @@ export const listSessionLogCounts = cache(
       .from("sessions")
       .select("id, title, ai_logs!ai_logs_session_fkey(count)")
       .eq("club_id", clubId)
-      .order("starts_at", { ascending: false })
+      .order("starts_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: true })
 
     if (error) {
       console.error("Session 별 AI Log 수를 불러오지 못했습니다.", error)

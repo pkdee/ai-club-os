@@ -2,24 +2,32 @@ import type { Session } from "@/features/session/queries"
 import {
   formatKstDate,
   formatKstTimeRange,
+  hasDate,
   sessionStatus,
 } from "@/features/session/time"
 import { isUuid } from "@/lib/uuid"
 
 import type { SessionOption } from "./components/ai-log-form"
 
-// 쓰기 화면의 Session 고르기에 넣을 값. 최근 회차가 위에 오게 한다.
+// 쓰기 화면의 Session 고르기에 넣을 값. 최근 회차가 위에 오고, 날짜를 정하지 않은 회차는 맨 아래에 둔다.
 export function toSessionOptions(sessions: Session[]): SessionOption[] {
-  return [...sessions].reverse().map((session) => ({
+  const dated = sessions.filter(hasDate).reverse()
+  const undecided = sessions.filter((session) => session.startsAt === null)
+
+  return [...dated, ...undecided].map((session) => ({
     id: session.id,
     title: session.title,
-    when: `${formatKstDate(session.startsAt)} ${formatKstTimeRange(session.startsAt, session.endsAt)}`,
+    when:
+      session.startsAt === null
+        ? "날짜 미정"
+        : `${formatKstDate(session.startsAt)} ${formatKstTimeRange(session.startsAt, session.endsAt)}`,
     description: session.description,
   }))
 }
 
 // 새 기록에서 미리 골라 둘 Session.
 // 주소로 받은 회차가 이 Club 의 것이면 그것을, 아니면 오늘 열리는 회차를 고른다. 둘 다 없으면 고르지 않는다.
+// 날짜를 정하지 않은 회차는 오늘 열리는 회차가 아니므로 주소로 받았을 때만 고른다.
 export function defaultSessionId(
   sessions: Session[],
   requested: string | string[] | undefined,

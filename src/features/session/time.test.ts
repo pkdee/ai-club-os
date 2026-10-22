@@ -51,6 +51,8 @@ test("오늘, 예정, 종료를 한국 시간의 날짜로 나눈다", () => {
   assert.equal(sessionStatus("2026-10-08T10:00:00.000Z", now), "today")
   assert.equal(sessionStatus("2026-10-07T10:00:00.000Z", now), "done")
   assert.equal(sessionStatus("2026-10-09T01:00:00.000Z", now), "upcoming")
+  // 날짜를 정하지 않은 회차는 오늘도 예정도 종료도 아니다.
+  assert.equal(sessionStatus(null, now), "undecided")
 })
 
 test("한국 시간의 요일을 읽는다", () => {

@@ -32,6 +32,7 @@ import { TodaySessionCard } from "@/features/session/components/today-session-ca
 import { UpcomingSessions } from "@/features/session/components/upcoming-sessions";
 import { listSessions } from "@/features/session/queries";
 import {
+  hasDate,
   kstDateKey,
   kstMonthStart,
   kstWeekStart,
@@ -68,12 +69,17 @@ export default async function ClubOverviewPage(
   const result = await listSessions(club.id);
   const sessions = result.status === "ok" ? result.sessions : null;
   const today =
-    sessions?.filter(
-      (session) => sessionStatus(session.startsAt, now) === "today"
-    ) ?? [];
+    sessions
+      ?.filter(hasDate)
+      .filter((session) => sessionStatus(session.startsAt, now) === "today") ??
+    [];
   // 이미 시작한 회차 가운데 최근 것들. 시작 시각이 빠른 순서로 오므로 뒤에서부터 고른다.
+  // 날짜를 정하지 않은 회차는 맨 뒤에 오지만 아직 열리지 않았으므로 뺀다.
   const recentIds = (sessions ?? [])
-    .filter((session) => sessionStatus(session.startsAt, now) !== "upcoming")
+    .filter((session) => {
+      const status = sessionStatus(session.startsAt, now);
+      return status === "today" || status === "done";
+    })
     .slice(-ATTENDANCE_SESSION_LIMIT)
     .map((session) => session.id);
 
@@ -141,6 +147,7 @@ export default async function ClubOverviewPage(
     <ClubOverview
       club={club}
       stats={{
+        // 예정에는 오늘과 날짜를 정하지 않은 회차도 든다. 아직 마치지 않은 회차의 수다.
         sessions: sessions ? { done, upcoming: sessions.length - done } : null,
         attendance: recentAttendance
           ? (averageAttendance(recentAttendance) ?? "none")

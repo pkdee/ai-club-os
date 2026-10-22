@@ -3,17 +3,21 @@ import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/uuid"
 
+import type { SessionTimes } from "./rules"
+
+// 날짜를 정하지 않은 회차는 startsAt 과 endsAt 이 함께 null 이다.
 export type Session = {
   id: string
   clubId: string
   title: string
   description: string
   location: string
-  startsAt: string
-  endsAt: string
   // 시간표. 한 줄에 하나씩 적은 글이다. 데이터베이스에 그 열이 아직 없으면 null 이다.
   agenda: string | null
-}
+} & SessionTimes
+
+// 날짜를 정한 회차.
+export type DatedSession = Extract<Session, { startsAt: string }>
 
 // agendaReady 는 데이터베이스에 시간표 열이 있다는 뜻이다. 없으면 만드는 창에 시간표 칸을 그리지 않는다.
 export type SessionListResult =
@@ -31,8 +35,8 @@ type SessionRow = {
   title: string
   description: string
   location: string
-  starts_at: string
-  ends_at: string
+  starts_at: string | null
+  ends_at: string | null
   // 시간표 열이 아직 없는 데이터베이스에서 읽으면 이 값이 없다.
   agenda?: string
 }
@@ -51,13 +55,15 @@ function toSession(row: SessionRow): Session {
     title: row.title,
     description: row.description,
     location: row.location,
-    startsAt: row.starts_at,
-    endsAt: row.ends_at,
+    // 데이터베이스가 둘 다 있거나 둘 다 비어 있게 지킨다.
+    ...(row.starts_at && row.ends_at
+      ? { startsAt: row.starts_at, endsAt: row.ends_at }
+      : { startsAt: null, endsAt: null }),
     agenda: typeof row.agenda === "string" ? row.agenda : null,
   }
 }
 
-// Club 의 Session 을 시작 시각이 빠른 순서로 읽는다.
+// Club 의 Session 을 시작 시각이 빠른 순서로 읽는다. 날짜를 정하지 않은 회차는 맨 뒤에 만든 순서로 온다.
 // 다른 Club 의 Session 은 데이터베이스의 접근 규칙이 막는다.
 export const listSessions = cache(
   async (clubId: string): Promise<SessionListResult> => {
@@ -67,7 +73,8 @@ export const listSessions = cache(
         .from("sessions")
         .select(columns)
         .eq("club_id", clubId)
-        .order("starts_at", { ascending: true })
+        .order("starts_at", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true })
 
     // 시간표와 함께 읽어 보고, 그 열이 아직 없으면 시간표 없이 다시 읽는다.
     let response = await read(SESSION_COLUMNS + AGENDA_COLUMN)

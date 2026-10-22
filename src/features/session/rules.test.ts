@@ -5,6 +5,7 @@ import { validateSession, type SessionInput } from "./rules"
 
 const base: SessionInput = {
   title: "3회차",
+  dateUndecided: false,
   date: "2026-10-08",
   startTime: "19:00",
   endTime: "21:00",
@@ -37,6 +38,18 @@ test("날짜와 시각의 형식을 확인한다", () => {
   assert.deepEqual(errorKeys({ ...base, date: "2026-02-31" }), ["date"])
   assert.deepEqual(errorKeys({ ...base, startTime: "" }), ["startTime"])
   assert.deepEqual(errorKeys({ ...base, endTime: "" }), ["endTime"])
+})
+
+test("날짜 미정이면 날짜와 시각 없이 저장하고 둘 다 비운다", () => {
+  const undecided = { ...base, dateUndecided: true, date: "", startTime: "", endTime: "" }
+  assert.deepEqual(validateSession(undecided), { ok: true, startsAt: null, endsAt: null })
+  // 칸에 남은 값은 보지 않는다. 틀린 값이어도 오류가 아니다.
+  assert.deepEqual(
+    validateSession({ ...base, dateUndecided: true, date: "2026-02-31", endTime: "18:00" }),
+    { ok: true, startsAt: null, endsAt: null }
+  )
+  // 다른 칸의 규칙은 그대로다.
+  assert.deepEqual(errorKeys({ ...undecided, title: "" }), ["title"])
 })
 
 test("종료 시각은 시작 시각보다 뒤여야 한다", () => {
