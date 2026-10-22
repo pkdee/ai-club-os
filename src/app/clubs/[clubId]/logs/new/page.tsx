@@ -7,11 +7,7 @@ import {
   defaultSessionId,
   toSessionOptions,
 } from "@/features/ai-log/session-options";
-import {
-  hasAiLogOptions,
-  keepsAiLogRevisions,
-  listClubTools,
-} from "@/features/ai-log/queries";
+import { keepsAiLogRevisions, listClubTools } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { listProjects } from "@/features/project/queries";
 import { listSessions } from "@/features/session/queries";
@@ -31,14 +27,12 @@ export default async function AiLogNewPage(
     return null;
   }
 
-  const [result, tools, projectList, optionsReady, keepsRevisions] =
-    await Promise.all([
-      listSessions(clubId),
-      listClubTools(clubId),
-      listProjects(clubId),
-      hasAiLogOptions(),
-      keepsAiLogRevisions(),
-    ]);
+  const [result, tools, projectList, keepsRevisions] = await Promise.all([
+    listSessions(clubId),
+    listClubTools(clubId),
+    listProjects(clubId),
+    keepsAiLogRevisions(),
+  ]);
   // 내가 참여하는 Project 만 고를 수 있다. Project 를 아직 쓸 수 없거나 AI Log 와의 연결이 아직 없으면
   // 고르는 칸을 그리지 않는다. 칸을 그리면 저장할 때 없는 열을 보내게 되어 저장이 실패한다.
   const projects =
@@ -72,12 +66,6 @@ export default async function AiLogNewPage(
       }}
       sessions={sessions ? toSessionOptions(sessions) : null}
       projects={projects}
-      // 새 기록의 선택은 둘 다 꺼진 채로 시작한다.
-      options={
-        optionsReady
-          ? { excludeFromInsight: false, shareInPresentation: false }
-          : null
-      }
       keepsRevisions={keepsRevisions}
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       // Session 이나 Project 에서 들어왔으면 취소할 때 그곳으로 돌아간다.

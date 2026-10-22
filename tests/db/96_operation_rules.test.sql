@@ -67,21 +67,16 @@ select test.login('c');
 select test.is($$ select (public.join_club(test.get('token')) is not null)::text $$, 'true', '풀린 C 는 다시 참여한다');
 
 -- ---------------------------------------------------------------------------
--- AI Log 의 선택
+-- AI Log 의 쓰임
 -- ---------------------------------------------------------------------------
 
+-- 작성자가 기록마다 쓰임을 고르지 않는다. 모든 기록을 AI Insight 와 Project 발표에 쓴다.
+select test.sudo_is($$ select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'ai_logs' and column_name in ('exclude_from_insight', 'share_in_presentation') $$, '0', 'AI Log 에는 쓰임을 고르는 열이 없다');
 select test.login('b');
-select test.is($$ insert into public.ai_logs (club_id, title, attempt) values (test.get('club')::uuid, 'B 의 기록', '시도')
-  returning exclude_from_insight || '|' || share_in_presentation $$, 'false|false', '두 선택은 기본으로 꺼져 있다');
+select test.affects($$ insert into public.ai_logs (club_id, title, attempt) values (test.get('club')::uuid, 'B 의 기록', '시도') $$, 1, '작성자 B 가 기록을 남긴다');
 select test.remember('log_b', $$ select id from public.ai_logs where title = 'B 의 기록' $$);
-select test.is($$ insert into public.ai_logs (club_id, title, attempt, exclude_from_insight, share_in_presentation) values (test.get('club')::uuid, 'B 의 둘째 기록', '시도', true, true)
-  returning exclude_from_insight || '|' || share_in_presentation $$, 'true|true', '작성자는 쓰면서 두 선택을 켤 수 있다');
+select test.affects($$ insert into public.ai_logs (club_id, title, attempt) values (test.get('club')::uuid, 'B 의 둘째 기록', '시도') $$, 1, '작성자 B 가 둘째 기록을 남긴다');
 select test.remember('log_b2', $$ select id from public.ai_logs where title = 'B 의 둘째 기록' $$);
-select test.affects($$ update public.ai_logs set share_in_presentation = true where id = test.get('log_b')::uuid $$, 1, '작성자 B 는 발표에 넣기를 켠다');
-select test.login('a');
-select test.affects($$ update public.ai_logs set share_in_presentation = false, exclude_from_insight = true where id = test.get('log_b')::uuid $$, 0, '운영자 A 도 남의 기록의 선택은 바꾸지 못한다');
-select test.login('c');
-select test.affects($$ update public.ai_logs set share_in_presentation = false where id = test.get('log_b')::uuid $$, 0, '다른 구성원 C 도 바꾸지 못한다');
 
 -- ---------------------------------------------------------------------------
 -- 지운 기록

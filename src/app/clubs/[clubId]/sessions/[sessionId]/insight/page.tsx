@@ -37,7 +37,7 @@ export default async function SessionInsightPage(props: Props) {
   const canManage = data.club.role === "admin";
   // 오늘 만든 횟수는 운영자에게만 보이므로 운영자일 때만 센다.
   // 함께 보낼 회고의 수는 만드는 창에서만 쓰므로 운영자일 때만 센다.
-  const [result, logs, runs, retrospectiveCount] = await Promise.all([
+  const [result, logCount, runs, retrospectiveCount] = await Promise.all([
     getSessionInsight(clubId, sessionId),
     countInsightLogs(clubId, { sessionId }),
     canManage ? countTodayInsightRuns(clubId, now) : null,
@@ -50,8 +50,7 @@ export default async function SessionInsightPage(props: Props) {
       canManage={canManage}
       result={result}
       targetLabel={data.session.title}
-      logCount={logs ? logs.usable : null}
-      excludedCount={logs ? logs.excluded : 0}
+      logCount={logCount}
       retrospectiveCount={retrospectiveCount}
       runsLeft={runs === null ? null : insightRunsLeft(runs)}
       retryHref={`/clubs/${clubId}/sessions/${sessionId}/insight`}

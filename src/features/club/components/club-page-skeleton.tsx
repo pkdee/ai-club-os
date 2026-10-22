@@ -343,7 +343,6 @@ function ClubPageContent({ page }: { page: ClubPage }) {
           <div className={TWO_COLUMNS}>
             <FormCardSkeleton fields={3} textarea />
             <div className="flex flex-col gap-6">
-              <PanelSkeleton lines={2} />
               <PanelSkeleton lines={4} />
             </div>
           </div>

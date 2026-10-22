@@ -30,11 +30,11 @@ insert into public.project_links (project_id, club_id, label, url) values (test.
 insert into public.project_tasks (project_id, club_id, title) values (test.get('project')::uuid, test.get('club')::uuid, '평가 질문 만들기');
 update public.project_tasks set done = true where title = '평가 질문 만들기';
 insert into public.project_tasks (project_id, club_id, title) values (test.get('project')::uuid, test.get('club')::uuid, '화면 만들기');
-insert into public.ai_logs (club_id, project_id, title, attempt, learned, tools, share_in_presentation) values
-  (test.get('club')::uuid, test.get('project')::uuid, '공개해도 되는 기록', '청크 크기를 바꿔 봤다', '중간 크기가 낫다', array['Claude'], true),
-  (test.get('club')::uuid, test.get('project')::uuid, '공개하지 않는 기록', '안에서만 볼 내용', '', '{}', false);
-insert into public.ai_logs (club_id, title, attempt, share_in_presentation) values
-  (test.get('club')::uuid, 'Project 에 묶지 않은 기록', '묶지 않았다', true);
+insert into public.ai_logs (club_id, project_id, title, attempt, learned, tools) values
+  (test.get('club')::uuid, test.get('project')::uuid, '청크 크기 실험', '청크 크기를 바꿔 봤다', '중간 크기가 낫다', array['Claude']),
+  (test.get('club')::uuid, test.get('project')::uuid, '임베딩 실험', '임베딩 모델을 바꿔 봤다', '', '{}');
+insert into public.ai_logs (club_id, title, attempt) values
+  (test.get('club')::uuid, 'Project 에 묶지 않은 기록', '묶지 않았다');
 
 -- ---------------------------------------------------------------------------
 -- 공개하고 거두는 사람
@@ -91,10 +91,11 @@ select test.is($$ select (public.get_presentation('abc') is null)::text $$, 'tru
 select test.is($$ select (public.get_presentation(null) is null)::text $$, 'true', '빈 링크는 아무것도 돌려주지 않는다');
 select test.is($$ select public.get_presentation(test.get('pt')) ->> 'scope' $$, 'project', '로그인하지 않아도 링크로 Project 발표를 읽는다');
 select test.is($$ select (public.get_presentation(test.get('pt')) #>> '{project,name}') || '|' || (public.get_presentation(test.get('pt')) #>> '{project,goal}') || '|' || (public.get_presentation(test.get('pt')) ->> 'clubName') $$, 'RAG 챗봇|자료를 찾아 준다|AI 모각코', '이름과 목표, Club 이름이 나간다');
-select test.is($$ select jsonb_array_length(public.get_presentation(test.get('pt')) -> 'logs')::text || '|' || (public.get_presentation(test.get('pt')) #>> '{logs,0,title}') || '|' || (public.get_presentation(test.get('pt')) ->> 'logCount') $$, '1|공개해도 되는 기록|2', '작성자가 허락한 기록만 나가고 전체 수는 따로 알린다');
-select test.is($$ select (public.get_presentation(test.get('pt'))::text like '%안에서만 볼 내용%')::text $$, 'false', '허락하지 않은 기록의 내용은 어디에도 없다');
-select test.is($$ select (public.get_presentation(test.get('pt'))::text like '%묶지 않았다%')::text $$, 'false', 'Project 에 묶지 않은 기록은 허락했어도 나가지 않는다');
-select test.is($$ select (public.get_presentation(test.get('pt')) #>> '{logs,0,learned}') || '|' || (public.get_presentation(test.get('pt')) #>> '{logs,0,tools,0}') $$, '중간 크기가 낫다|Claude', '기록의 내용과 도구가 나간다');
+-- 두 기록은 같은 때에 남겨 순서가 정해지지 않으므로 제목으로 찾는다.
+select test.is($$ select jsonb_array_length(public.get_presentation(test.get('pt')) -> 'logs')::text || '|' || (public.get_presentation(test.get('pt')) ->> 'logCount') $$, '2|2', 'Project 에 묶인 기록은 작성자가 따로 허락하지 않아도 모두 나간다');
+select test.is($$ select string_agg(item ->> 'title', ',' order by item ->> 'title') from jsonb_array_elements(public.get_presentation(test.get('pt')) -> 'logs') as item $$, '임베딩 실험,청크 크기 실험', '묶인 기록의 제목이 모두 나간다');
+select test.is($$ select (public.get_presentation(test.get('pt'))::text like '%묶지 않았다%')::text $$, 'false', 'Project 에 묶지 않은 기록은 나가지 않는다');
+select test.is($$ select (item ->> 'learned') || '|' || (item #>> '{tools,0}') from jsonb_array_elements(public.get_presentation(test.get('pt')) -> 'logs') as item where item ->> 'title' = '청크 크기 실험' $$, '중간 크기가 낫다|Claude', '기록의 내용과 도구가 나간다');
 select test.is($$ select (public.get_presentation(test.get('pt')) #>> '{links,0,url}') || '|' || jsonb_array_length(public.get_presentation(test.get('pt')) -> 'tasks') || '|' || (public.get_presentation(test.get('pt')) #>> '{tasks,0,done}') $$, 'https://example.com/repo|2|true', '결과물 링크와 할 일이 나간다');
 select test.is($$ select (public.get_presentation(test.get('pt')) ->> 'participantCount') || '|' || coalesce(public.get_presentation(test.get('pt')) ->> 'participantNames', '없음') || '|' || coalesce(public.get_presentation(test.get('pt')) #>> '{logs,0,author}', '없음') $$, '1|없음|없음', '이름을 가린 발표에는 참여자 수만 나가고 이름은 없다');
 select test.is($$ select (public.get_presentation(test.get('pt'))::text ~ '박서연|seoyeon|example\.com/a|googleusercontent|00000000-0000')::text $$, 'false', '이름, 이메일, 사진 주소, 식별자가 어디에도 없다');
@@ -106,12 +107,6 @@ select test.anon();
 select test.is($$ select (public.get_presentation(test.get('pt')) #>> '{participantNames,0}') || '|' || (public.get_presentation(test.get('pt')) #>> '{logs,0,author}') $$, '박서연|박서연', '이름을 보이게 하면 참여자와 작성자의 이름이 나간다');
 select test.is($$ select (public.get_presentation(test.get('pt'))::text ~ 'seoyeon|googleusercontent|00000000-0000')::text $$, 'false', '이름을 보여도 이메일, 사진 주소, 식별자는 나가지 않는다');
 
--- 작성자가 허락을 거두면 바로 빠진다.
-select test.login('b');
-update public.ai_logs set share_in_presentation = false where title = '공개해도 되는 기록';
-select test.anon();
-select test.is($$ select jsonb_array_length(public.get_presentation(test.get('pt')) -> 'logs')::text $$, '0', '작성자가 허락을 거두면 발표에서 바로 빠진다');
-
 -- ---------------------------------------------------------------------------
 -- 링크로 읽기: Club 발표
 -- ---------------------------------------------------------------------------
@@ -122,7 +117,7 @@ select test.is($$ select jsonb_array_length(public.get_presentation(test.get('ct
 select test.is($$ select jsonb_array_length(public.get_presentation(test.get('ct')) -> 'projects')::text || '|' || (public.get_presentation(test.get('ct')) #>> '{projects,0,name}') || '|' || ((public.get_presentation(test.get('ct')) #>> '{projects,0,token}') = test.get('pt'))::text $$, '1|RAG 챗봇|true', '발표를 공개한 Project 만 그 링크와 함께 나간다');
 select test.is($$ select (public.get_presentation(test.get('ct'))::text like '%공개하지 않은 Project%')::text $$, 'false', '발표를 공개하지 않은 Project 는 이름도 나가지 않는다');
 select test.is($$ select coalesce(public.get_presentation(test.get('ct')) ->> 'memberNames', '없음') || '|' || (public.get_presentation(test.get('ct'))::text ~ '김하늘|박서연|haneul|other@example')::text $$, '없음|false', '이름을 가린 Club 발표에는 Member 의 이름과 이메일이 없다');
-select test.is($$ select (public.get_presentation(test.get('ct'))::text ~ '청크 크기|안에서만 볼 내용|묶지 않았다')::text $$, 'false', 'Club 발표에는 AI Log 의 내용이 나가지 않는다');
+select test.is($$ select (public.get_presentation(test.get('ct'))::text ~ '청크 크기|임베딩|묶지 않았다')::text $$, 'false', 'Club 발표에는 AI Log 의 내용이 나가지 않는다');
 select test.login('a');
 select test.affects($$ update public.presentations set show_names = true where scope = 'club' $$, 1, '운영자 A 가 Club 발표에 이름을 보이게 한다');
 select test.anon();

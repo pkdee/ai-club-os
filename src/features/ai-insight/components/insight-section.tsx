@@ -33,7 +33,6 @@ export async function InsightSection({
   result,
   targetLabel,
   logCount,
-  excludedCount = 0,
   retrospectiveCount = 0,
   runsLeft = null,
   retryHref,
@@ -47,8 +46,6 @@ export async function InsightSection({
   targetLabel: string
   // 지금 이 대상에서 정리에 쓸 수 있는 AI Log 수. 세지 못했으면 null 이다.
   logCount: number | null
-  // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
-  excludedCount?: number
   // 작성자가 AI Insight 에 써도 된다고 해서 함께 보내는 회고 수.
   retrospectiveCount?: number
   // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이고 그때는 보여 주지 않는다.
@@ -108,7 +105,6 @@ export async function InsightSection({
       <GenerateInsightDialog
         targetLabel={targetLabel}
         logCount={logCount ?? 0}
-        excludedCount={excludedCount}
         retrospectiveCount={retrospectiveCount}
         runsLeft={runsLeft}
         providerLabel={provider.label}
@@ -121,11 +117,7 @@ export async function InsightSection({
   const blocked = !provider
     ? "AI Provider 가 설정되지 않았습니다. 서버의 환경 변수에 GEMINI_API_KEY 를 넣으면 만들 수 있습니다."
     : !enoughLogs
-      ? `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다. 지금은 ${logCount}개입니다.${
-          excludedCount > 0
-            ? ` 작성자가 AI Insight 에 쓰지 말라고 한 기록 ${excludedCount}개는 세지 않았습니다.`
-            : ""
-        }`
+      ? `AI Log 가 ${INSIGHT_MIN_LOGS}개 이상 있어야 정리할 수 있습니다. 지금은 ${logCount}개입니다.`
       : runsLeft === 0
         ? `오늘은 이 Club 에서 AI Insight 를 ${INSIGHT_DAILY_LIMIT}번 만들었습니다. 내일 다시 만들 수 있습니다.`
         : null

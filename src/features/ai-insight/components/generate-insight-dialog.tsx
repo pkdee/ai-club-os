@@ -23,7 +23,6 @@ import type { InsightActionResult } from "../actions"
 export function GenerateInsightDialog({
   targetLabel,
   logCount,
-  excludedCount = 0,
   retrospectiveCount = 0,
   runsLeft = null,
   providerLabel,
@@ -35,8 +34,6 @@ export function GenerateInsightDialog({
   // 예: 3회차 · RAG 기초 실습, 2026년 10월
   targetLabel: string
   logCount: number
-  // 작성자가 AI Insight 에 쓰지 말라고 해서 보내지 않는 기록 수.
-  excludedCount?: number
   // 작성자가 AI Insight 에 써도 된다고 해서 함께 보내는 회고 수.
   retrospectiveCount?: number
   // 오늘 더 만들 수 있는 횟수. 알 수 없으면 null 이다.
@@ -85,8 +82,6 @@ export function GenerateInsightDialog({
               {targetLabel}의 AI Log {logCount}개에서 제목, 사용한 도구, 적은
               내용을 {providerLabel} 로 보내 정리합니다. 작성자의 이름과
               이메일은 보내지 않습니다.
-              {excludedCount > 0 &&
-                ` 작성자가 AI Insight 에 쓰지 말라고 한 기록 ${excludedCount}개는 보내지 않습니다.`}
               {retrospectiveCount > 0 &&
                 ` 작성자가 써도 된다고 한 회고 ${retrospectiveCount}개도 참고 자료로 함께 보냅니다.`}
             </p>

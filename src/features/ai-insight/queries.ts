@@ -213,38 +213,25 @@ export const listClubInsights = cache(
 
 // AI 에 보낼 기록을 남긴 순서대로 읽는다. 작성자는 읽지 않는다. 불러오지 못하면 null 이다.
 // 회차를 주면 그 회차의 기록을, 기간을 주면 그 기간에 남긴 Club 의 기록을 읽는다.
-// 작성자가 AI Insight 에 쓰지 말라고 한 기록은 읽지 않는다. 그 기록은 AI 로 나가지 않는다.
 export async function listInsightSourceLogs(
   clubId: string,
   target: InsightLogTarget
 ): Promise<InsightSourceLog[] | null> {
   const supabase = await createClient()
-  const read = (respectChoice: boolean) => {
-    let query = supabase
-      .from("ai_logs")
-      .select("id, title, tools, attempt, result, learned, next_action")
-      .eq("club_id", clubId)
-    query =
-      "sessionId" in target
-        ? query.eq("session_id", target.sessionId)
-        : query.gte("created_at", target.from).lt("created_at", target.to)
-    if (respectChoice) {
-      query = query.eq("exclude_from_insight", false)
-    }
+  let query = supabase
+    .from("ai_logs")
+    .select("id, title, tools, attempt, result, learned, next_action")
+    .eq("club_id", clubId)
+  query =
+    "sessionId" in target
+      ? query.eq("session_id", target.sessionId)
+      : query.gte("created_at", target.from).lt("created_at", target.to)
 
-    // 한도를 넘으면 최근 것을 남기려고 최신순으로 읽은 뒤 뒤집는다.
-    return query
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .range(0, SOURCE_LOG_LIMIT - 1)
-  }
-
-  let response = await read(true)
-  // 선택을 담는 열이 아직 없으면 빼 달라고 한 기록도 없으므로 모두 읽는다.
-  if (response.error?.code === MISSING_COLUMN) {
-    response = await read(false)
-  }
-  const { data, error } = response
+  // 한도를 넘으면 최근 것을 남기려고 최신순으로 읽은 뒤 뒤집는다.
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(0, SOURCE_LOG_LIMIT - 1)
 
   if (error) {
     console.error("AI Insight 에 쓸 AI Log 를 불러오지 못했습니다.", error)
@@ -319,42 +306,28 @@ export async function listInsightSourceRetrospectives(
   }))
 }
 
-// 한 대상에서 정리에 쓸 수 있는 AI Log 수와, 작성자가 쓰지 말라고 한 기록 수. 세지 못하면 null 이다.
+// 한 대상에서 정리에 쓸 AI Log 수. 세지 못하면 null 이다.
 // 만들기 전에 몇 개를 보내는지 알릴 때와, 만든 뒤로 기록이 더 생겼는지 볼 때 쓴다.
 export async function countInsightLogs(
   clubId: string,
   target: InsightLogTarget
-): Promise<{ usable: number; excluded: number } | null> {
+): Promise<number | null> {
   const supabase = await createClient()
-  const count = (onlyExcluded: boolean) => {
-    let query = supabase
-      .from("ai_logs")
-      .select("id", { count: "exact" })
-      .eq("club_id", clubId)
-    query =
-      "sessionId" in target
-        ? query.eq("session_id", target.sessionId)
-        : query.gte("created_at", target.from).lt("created_at", target.to)
-    if (onlyExcluded) {
-      query = query.eq("exclude_from_insight", true)
-    }
-    return query.range(0, 0)
-  }
+  let query = supabase
+    .from("ai_logs")
+    .select("id", { count: "exact" })
+    .eq("club_id", clubId)
+  query =
+    "sessionId" in target
+      ? query.eq("session_id", target.sessionId)
+      : query.gte("created_at", target.from).lt("created_at", target.to)
 
-  const [all, excluded] = await Promise.all([count(false), count(true)])
-  if (all.error || all.count === null) {
-    console.error("정리에 쓸 AI Log 수를 세지 못했습니다.", all.error)
+  const { count, error } = await query.range(0, 0)
+  if (error || count === null) {
+    console.error("정리에 쓸 AI Log 수를 세지 못했습니다.", error)
     return null
   }
-  // 선택을 담는 열이 아직 없으면 빼 달라고 한 기록은 없다.
-  if (excluded.error?.code === MISSING_COLUMN) {
-    return { usable: all.count, excluded: 0 }
-  }
-  if (excluded.error || excluded.count === null) {
-    console.error("AI Insight 에서 뺀 AI Log 수를 세지 못했습니다.", excluded.error)
-    return null
-  }
-  return { usable: all.count - excluded.count, excluded: excluded.count }
+  return count
 }
 
 // 함께 보낼 회고의 수. 만들기 전에 알리는 데 쓴다. 회고의 구조가 아직 없거나 세지 못하면 0 이다.

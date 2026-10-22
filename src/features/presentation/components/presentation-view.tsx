@@ -354,7 +354,7 @@ export function ProjectPresentationView({
       )}
       <Section
         title="과정"
-        description="작성자가 발표에 넣어도 된다고 한 AI Log 를 남긴 순서대로 보여 줍니다."
+        description="이 Project 에 묶인 AI Log 를 남긴 순서대로 보여 줍니다."
       >
         {logs.length > 0 ? (
           <div className="flex flex-col gap-4">
@@ -427,7 +427,7 @@ export function ProjectPresentationView({
 }
 
 // Club 의 활동 전체를 보여 주는 발표. 진행한 회차와, 발표를 공개한 Project 를 모아 보여 준다.
-// AI Log 의 내용과 AI Insight 는 담지 않는다. 그것들은 작성자마다 허락을 받지 않았다.
+// AI Log 의 내용과 AI Insight 는 담지 않는다. 기록의 내용은 그 기록이 묶인 Project 의 발표에서만 보인다.
 export function ClubPresentationView({
   presentation,
 }: {

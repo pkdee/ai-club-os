@@ -6,10 +6,7 @@ import { listProjectLogs } from "@/features/ai-log/queries";
 import { loadClubPage } from "@/features/club/page-data";
 import { listMembers } from "@/features/member/queries";
 import { PresentationCard } from "@/features/presentation/components/presentation-card";
-import {
-  countProjectSharedLogs,
-  getProjectPresentation,
-} from "@/features/presentation/queries";
+import { getProjectPresentation } from "@/features/presentation/queries";
 import { ProjectSessionsCard } from "@/features/project/components/linked-cards";
 import {
   ProjectDetail,
@@ -75,7 +72,6 @@ export default async function ProjectDetailPage(props: Props) {
     taskDetails,
     joinRequests,
     presentation,
-    shared,
     retrospectives,
     sessionLinks,
     sessionList,
@@ -87,8 +83,6 @@ export default async function ProjectDetailPage(props: Props) {
       // 고칠 수 있는 사람에게는 들어온 요청이 모두, 다른 Member 에게는 자기 요청만 돌아온다.
       listProjectJoinRequests(clubId, projectId),
       getProjectPresentation(clubId, projectId),
-      // 공개하기 전에 기록이 몇 개 나가는지 알리려고 센다. 공개할 수 있는 사람에게만 필요하다.
-      canEdit ? countProjectSharedLogs(clubId, projectId) : null,
       listProjectRetrospectives(clubId, projectId),
       listProjectSessionLinks(clubId, projectId),
       // 이을 Session 을 고르는 목록은 고칠 수 있는 사람에게만 필요하다.
@@ -165,11 +159,11 @@ export default async function ProjectDetailPage(props: Props) {
               canManage={canEdit}
               notes={[
                 "이름, 목표, 진행 상태, 결과물 링크, 할 일이 보입니다.",
-                shared
-                  ? `AI Log 는 작성자가 발표에 넣어도 된다고 한 ${shared.shared}개만 보입니다. 이 Project 에 묶인 것은 모두 ${shared.total}개입니다.`
-                  : "AI Log 는 작성자가 발표에 넣어도 된다고 한 것만 보입니다.",
-                "회고도 작성자가 발표에 넣어도 된다고 한 것만 보입니다.",
-                "작성자가 나중에 허락을 거두면 그 기록과 회고는 발표에서 바로 빠집니다.",
+                // 공개하기 전에 기록이 몇 개 나가는지 알린다.
+                project.logCount === null
+                  ? "이 Project 에 묶인 AI Log 가 모두 보입니다."
+                  : `이 Project 에 묶인 AI Log ${project.logCount}개가 모두 보입니다.`,
+                "회고는 작성자가 발표에 넣어도 된다고 한 것만 보입니다. 작성자가 나중에 허락을 거두면 발표에서 바로 빠집니다.",
               ]}
             />
           )}

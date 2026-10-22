@@ -2,7 +2,7 @@
 
 ## 상태
 
-채택. 2026-10-11.
+채택. 2026-10-11. 2026-10-22 에 `0036-ai-logs-always-in-insight-and-presentation.md` 가 "AI 에 쓰지 않기" 를 없앴습니다. 이제 모든 AI Log 를 AI Insight 에 씁니다. 나머지 세 규칙은 그대로입니다.
 
 ## 배경
 

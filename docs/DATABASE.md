@@ -36,7 +36,7 @@ User
 - 사용자가 작성한 원본 AI Log와 이후 생성된 AI Insight를 구분한다.
 - 지운 것은 바로 없어지고 되살리지 않는다. 숨겨 두는 열이나 보관 기간은 두지 않는다. 2026-10-10 결정.
 - 누가 무엇을 지웠는지는 종류와 제목만 따로 남긴다. 지운 내용은 남기지 않는다. 2026-10-11 결정.
-- Club 밖으로 나가는 것은 공개한 발표뿐이고, 발표에 들어가는 AI Log 는 작성자가 허락한 것뿐이다. 2026-10-11 결정.
+- Club 밖으로 나가는 것은 공개한 발표뿐이다. 2026-10-11 결정. Project 발표에는 그 Project 에 묶인 AI Log 가 작성자의 허락 없이 모두 들어간다. 2026-10-22 결정.
 
 ## 구현된 구조
 
@@ -60,7 +60,7 @@ User
 | `ai_logs` 의 Project 열과 참여자 확인 | `20261010153246_link_ai_logs_to_projects.sql` | `docs/adr/0019-project-structure-and-participants.md` |
 | `club_bans`, `deletion_logs`, `ai_insight_runs` | `20261010160037_create_operation_records.sql` | `docs/adr/0020-operation-rules.md` |
 | 막힌 사람을 받지 않도록 참여 함수 교체 | `20261010160040_block_banned_users_from_joining.sql` | `docs/adr/0020-operation-rules.md` |
-| `ai_logs` 의 선택 열 두 개와 지운 기록 trigger | `20261010160042_add_ai_log_options.sql` | `docs/adr/0020-operation-rules.md` |
+| `ai_logs` 의 선택 열 두 개와 지운 기록 trigger. 선택 열은 2026-10-22 에 지웠다 | `20261010160042_add_ai_log_options.sql` | `docs/adr/0020-operation-rules.md` |
 | `sessions`, `ai_insights`, `projects` 의 지운 기록 trigger | `20261010160044_log_session_deletions.sql` 부터 세 파일 | `docs/adr/0020-operation-rules.md` |
 | `project_join_requests` | `20261010161229_create_project_join_requests.sql` | `docs/adr/0021-project-requests-and-task-details.md` |
 | `project_tasks` 의 담당자와 기한 열 | `20261010161232_add_project_task_details.sql` | `docs/adr/0021-project-requests-and-task-details.md` |
@@ -85,6 +85,8 @@ User
 | Storage 의 `club-logos` 와 접근 규칙 | `20261021052125_create_club_logos_bucket.sql` | `docs/adr/0032-club-directory-and-logos.md` |
 | 로그인한 사용자 모두가 보는 Club 목록 함수 | `20261021052127_add_list_clubs.sql` | `docs/adr/0032-club-directory-and-logos.md` |
 | `session_docs` | `20261021055751_create_session_docs.sql` | `docs/adr/0033-session-reference-docs.md` |
+| 발표에 Project 의 AI Log 를 모두 싣도록 함수 교체 | `20261022030222_use_all_ai_logs_in_presentation.sql` | `docs/adr/0036-ai-logs-always-in-insight-and-presentation.md` |
+| `ai_logs` 의 선택 열 두 개 지우기 | `20261022030225_drop_ai_log_options.sql` | `docs/adr/0036-ai-logs-always-in-insight-and-presentation.md` |
 
 ```mermaid
 erDiagram
@@ -186,8 +188,6 @@ erDiagram
     text result
     text learned
     text next_action
-    boolean exclude_from_insight
-    boolean share_in_presentation
     timestamptz created_at
     timestamptz updated_at
   }
@@ -429,12 +429,10 @@ erDiagram
 | `result` | text | 결과. 5000자 이하. 기본값은 빈 문자열 |
 | `learned` | text | 배운 점. 5000자 이하. 기본값은 빈 문자열 |
 | `next_action` | text | 다음 행동. 5000자 이하. 기본값은 빈 문자열 |
-| `exclude_from_insight` | boolean | 켜면 AI Insight 를 만들 때 이 기록을 AI 로 보내지 않는다. 작성자가 정하고 기본값은 false |
-| `share_in_presentation` | boolean | 켜면 이 기록이 묶인 Project 의 발표에 들어간다. 작성자가 정하고 기본값은 false |
 | `created_at` | timestamptz | 작성한 시각 |
-| `updated_at` | timestamptz | 작성자가 마지막으로 고친 시각. Session 연결, Project 연결, 내용이 실제로 바뀌었을 때만 바뀐다. 두 가지 선택만 바꾸거나, 운영자가 도구 표기를 합치거나, Session 이나 Project 가 지워져 연결이 비워질 때는 바뀌지 않는다 |
+| `updated_at` | timestamptz | 작성자가 마지막으로 고친 시각. Session 연결, Project 연결, 내용이 실제로 바뀌었을 때만 바뀐다. 운영자가 도구 표기를 합치거나, Session 이나 Project 가 지워져 연결이 비워질 때는 바뀌지 않는다 |
 
-사용자가 쓴 원본 기록입니다. AI Insight 는 이 테이블에 덮어쓰지 않고 `ai_insights` 에 따로 둡니다.
+사용자가 쓴 원본 기록입니다. AI Insight 는 이 테이블에 덮어쓰지 않고 `ai_insights` 에 따로 둡니다. 작성자가 기록마다 쓰임을 고르는 열은 없습니다. 모든 기록을 AI Insight 에 쓰고, Project 에 묶인 기록은 그 Project 의 발표에 넣습니다.
 
 `project_id` 는 작성자가 참여하는 Project 만 넣을 수 있습니다. `ai_logs_check_project` trigger 가 넣거나 다른 Project 로 바꿀 때 확인하고, 참여자가 아니면 오류(`42501`)를 냅니다. 이미 묶어 둔 기록은 참여를 그만둔 뒤에도 다른 내용을 고칠 수 있고, 연결을 비우는 것은 언제나 됩니다.
 
@@ -462,7 +460,7 @@ erDiagram
 | `replaced_at` | timestamptz | 이 내용이 고쳐져 지난 것이 된 시각 |
 | `replaced_by` | uuid | 고친 사용자. 사용자가 삭제되면 비운다 |
 
-AI Log 의 내용이 바뀔 때마다 `ai_logs_keep_revision` trigger 가 고치기 전의 내용을 한 줄로 남깁니다. Session 이나 Project 연결, 두 가지 선택만 바꿀 때는 남기지 않습니다. 한 기록에 최근 20줄까지만 두고 넘으면 오래된 것부터 지웁니다. 수는 `private.ai_log_revision_limit()` 에 있습니다. 앱이 넣거나 고치거나 지울 수 없습니다.
+AI Log 의 내용이 바뀔 때마다 `ai_logs_keep_revision` trigger 가 고치기 전의 내용을 한 줄로 남깁니다. Session 이나 Project 연결만 바꿀 때는 남기지 않습니다. 한 기록에 최근 20줄까지만 두고 넘으면 오래된 것부터 지웁니다. 수는 `private.ai_log_revision_limit()` 에 있습니다. 앱이 넣거나 고치거나 지울 수 없습니다.
 
 90일 동안만 둡니다. 날수는 `private.ai_log_revision_days()` 에 있습니다. 기간이 지난 줄은 접근 규칙이 보여 주지 않고, 그 Club 에서 누군가 AI Log 를 다시 고칠 때 trigger 가 지웁니다. 따로 도는 청소 작업이 없어서, 아무도 고치지 않는 Club 에는 기간이 지난 줄이 보이지 않는 채로 남아 있을 수 있습니다.
 
@@ -648,7 +646,7 @@ AI Insight 를 만들려고 AI 를 부를 때마다 한 줄을 남깁니다. `ai
 
 | 발표 | 내보내는 것 |
 |---|---|
-| Project | Club 이름, 소개 글, Project 의 이름과 목표와 진행 상태, 결과물 링크, 할 일의 글과 끝냈는지, 참여자 수, 묶인 AI Log 의 전체 수, 작성자가 `share_in_presentation` 을 켠 AI Log 의 내용 |
+| Project | Club 이름, 소개 글, Project 의 이름과 목표와 진행 상태, 결과물 링크, 할 일의 글과 끝냈는지, 참여자 수, 묶인 AI Log 의 전체 수와 먼저 남긴 100개까지의 내용 |
 | Club | Club 의 이름과 소개, 소개 글, Member 수, AI Log 수, Project 수, 이미 시작한 Session 의 제목과 날짜, 발표를 공개한 Project 의 이름과 목표와 그 링크 값 |
 
 이름은 `show_names` 가 켜져 있을 때만 내보냅니다. 이메일, 사진 주소, 식별자는 어느 경우에도 내보내지 않습니다. 이메일을 이름으로 쓰는 Member 의 이름은 `private.public_name` 이 비워서 내보냅니다. AI Insight 와 할 일의 담당자, 기한은 내보내지 않습니다.
@@ -822,7 +820,7 @@ Club 로고를 두는 공개하지 않는 저장 공간입니다. 한 파일에 
 | `attendance` | 생성, 수정, 삭제 | 그 Club 의 운영자. 고칠 수 있는 것은 상태뿐이다 |
 | `ai_logs` | 조회 | 그 Club 의 Member |
 | `ai_logs` | 생성 | 그 Club 의 Member. 작성자는 본인으로 정해진다 |
-| `ai_logs` | 수정 | 작성자 본인. Session 연결, Project 연결, 내용, 두 가지 선택(AI Insight 에 쓰지 않기, 발표에 넣어도 됨)만 고칠 수 있다. Project 는 본인이 참여하는 것만 고를 수 있다 |
+| `ai_logs` | 수정 | 작성자 본인. Session 연결, Project 연결, 내용만 고칠 수 있다. Project 는 본인이 참여하는 것만 고를 수 있다 |
 | `ai_logs` | 삭제 | 작성자 본인과 그 Club 의 운영자. 작성자가 빠진 기록은 운영자만 지운다 |
 | `ai_insights` | 조회 | 그 Club 의 운영자는 모두, 구성원은 공개된 것만 |
 | `ai_insights` | 생성 | 그 Club 의 운영자. 만든 사람은 본인으로, 상태는 초안으로 정해진다 |

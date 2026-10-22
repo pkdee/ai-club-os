@@ -77,7 +77,6 @@ export default async function AiLogEditPage(
         sessions.status === "ok" ? toSessionOptions(sessions.sessions) : null
       }
       projects={projects}
-      options={log.options}
       keepsRevisions={keepsRevisions}
       knownTools={tools.status === "ok" ? tools.tools.map((tool) => tool.name) : []}
       cancelHref={`/clubs/${clubId}/logs/${log.id}`}

@@ -29,7 +29,7 @@ function insightSentence() {
     return "AI Insight 를 만드는 AI 서비스가 설정되어 있지 않아, 기록을 AI 서비스로 보내지 않습니다.";
   }
   return [
-    `운영자가 AI Insight 를 만들 때 그 Session 이나 그 달의 AI Log 내용을 ${provider.label} 로 보냅니다. 작성자가 정리에 쓰지 말라고 한 기록은 보내지 않고, 회고는 작성자가 써도 된다고 한 것만 보냅니다. 이름, 이메일, 이미지는 보내지 않습니다.`,
+    `운영자가 AI Insight 를 만들 때 그 Session 이나 그 달의 AI Log 내용을 ${provider.label} 로 보냅니다. AI Log 는 모두 보내고, 회고는 작성자가 써도 된다고 한 것만 보냅니다. 이름, 이메일, 이미지는 보내지 않습니다.`,
     provider.dataNotice,
   ]
     .filter(Boolean)
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
               "로그인한 사용자는 Member 가 아니어도 Club 목록에서 모든 Club 의 이름, 소개, 로고, Member 수를 봅니다. Member 의 이름과 Club 안의 기록은 보이지 않고, Club 에 들어갈 수도 없습니다.",
               "Member 목록에는 이름, 이메일, 사진이 보입니다. Club 안에서 보이는 이름은 내가 고칠 수 있습니다.",
               "AI Log 를 고치기 전의 내용은 작성자와 운영자가 봅니다. 무엇이 지워졌는지의 기록은 운영자가 봅니다.",
-              "발표는 링크를 아는 사람이면 로그인하지 않아도 봅니다. 발표에는 작성자가 넣어도 된다고 한 AI Log 와 회고만 들어가고, 이름은 발표를 공개하는 사람이 보이기로 했을 때만 나옵니다. 이메일과 이미지는 나오지 않습니다.",
+              "발표는 링크를 아는 사람이면 로그인하지 않아도 봅니다. Project 발표에는 그 Project 에 묶인 AI Log 가 모두 들어가고 회고는 작성자가 넣어도 된다고 한 것만 들어갑니다. 이름은 발표를 공개하는 사람이 보이기로 했을 때만 나옵니다. 이메일과 이미지는 나오지 않습니다.",
             ]}
           />
         </Section>

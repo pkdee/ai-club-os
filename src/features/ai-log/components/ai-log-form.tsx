@@ -16,7 +16,6 @@ import { Calendar, Check, CircleAlert, History } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { CheckboxField } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -46,7 +45,6 @@ import {
   AI_LOG_TITLE_MAX,
   readAiLogForm,
   type AiLogInput,
-  type AiLogOptions,
 } from "../rules"
 import { ToolsInput } from "./tools-input"
 
@@ -72,8 +70,10 @@ const GUIDE = [
 ]
 // 수정 기록을 남기는 구조가 있을 때만 보여 준다. 고치기 전에 알 수 있어야 한다.
 const REVISION_GUIDE = `고치면 고치기 전의 내용이 수정 기록으로 남습니다. 나와 운영자만 보고, ${AI_LOG_REVISION_DAYS}일 동안 최근 ${AI_LOG_REVISION_LIMIT}번까지 남습니다.`
-const INSIGHT_GUIDE = [
+// 저장한 기록이 어디에 쓰이는지. 작성자가 고르지 않고 모든 기록에 같다.
+const USAGE_GUIDE = [
   "운영자가 AI Insight 를 만들 때 기록 내용이 AI 서비스로 보내질 수 있습니다. 이름과 이메일은 보내지 않습니다.",
+  "Project 에 묶은 기록은 그 Project 의 발표에 들어가, 링크를 받은 Club 밖의 사람도 볼 수 있습니다.",
 ]
 
 const TEXT_FIELDS = [
@@ -106,7 +106,6 @@ const TEXT_FIELDS = [
 // logId 가 있으면 고치는 화면, 없으면 새로 쓰는 화면이다.
 // sessions 가 null 이면 Session 목록을 불러오지 못한 것이다. knownTools 는 이 Club 에서 이미 쓰는 도구 이름이다.
 // projects 는 고를 수 있는 Project 다. 내가 참여하는 것만 들어 있고, null 이면 Project 를 고르는 칸을 그리지 않는다.
-// options 는 작성자가 정하는 두 가지 선택의 지금 값이다. null 이면 선택 칸을 그리지 않는다.
 // keepsRevisions 는 고치기 전의 내용이 수정 기록으로 남는다는 뜻이다. 그럴 때만 안내에 적는다.
 // draftKey 는 쓰다 만 내용을 브라우저에 맡겨 둘 때 쓰는 이름이다.
 // insightNotice 는 AI Insight 에 쓰는 AI 서비스가 받은 글을 어떻게 쓰는지 따로 알릴 글이다. 없으면 null 이다.
@@ -116,7 +115,6 @@ export function AiLogForm({
   defaults,
   sessions,
   projects,
-  options,
   keepsRevisions = false,
   knownTools,
   cancelHref,
@@ -128,7 +126,6 @@ export function AiLogForm({
   defaults: AiLogInput
   sessions: SessionOption[] | null
   projects: { id: string; name: string }[] | null
-  options: AiLogOptions | null
   keepsRevisions?: boolean
   knownTools: string[]
   cancelHref: string
@@ -160,8 +157,6 @@ export function AiLogForm({
   )
   // 상세 화면으로 넘어갈 때까지 버튼을 잠가 둔다.
   const saving = pending || state.status === "success"
-  // 저장하지 못해 다시 그릴 때는 방금 고른 선택을 보여 준다.
-  const shownOptions = options && (state.options ?? options)
 
   // 화면을 열었을 때 맡겨져 있던 내용. 서버에서 그릴 때와 처음 그릴 때는 없는 것으로 본다.
   const subscribe = useCallback(
@@ -521,32 +516,13 @@ export function AiLogForm({
               )}
             </section>
           )}
-          {shownOptions && (
-            <section className="flex flex-col gap-4 rounded-xl border bg-card p-5">
-              <h2 className="text-h4">이 기록의 쓰임</h2>
-              {/* 이 칸들이 화면에 있었다는 표시. 서버는 이 표시가 있을 때만 선택을 저장한다. */}
-              <input type="hidden" name="optionsField" value="1" />
-              <CheckboxField
-                name="excludeFromInsight"
-                defaultChecked={shownOptions.excludeFromInsight}
-                label="AI Insight 에 쓰지 않기"
-                description="켜면 운영자가 AI Insight 를 만들 때 이 기록을 AI 서비스로 보내지 않습니다."
-              />
-              <CheckboxField
-                name="shareInPresentation"
-                defaultChecked={shownOptions.shareInPresentation}
-                label="발표에 넣어도 됨"
-                description="켜면 이 기록이 묶인 Project 의 발표에 들어가, 링크를 받은 Club 밖의 사람도 볼 수 있습니다. 끄면 발표에서 바로 빠집니다."
-              />
-            </section>
-          )}
           <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
             <h2 className="text-h4">기록 안내</h2>
             <ul className="flex flex-col gap-2 text-body-s">
               {[
                 ...GUIDE,
                 ...(keepsRevisions ? [REVISION_GUIDE] : []),
-                ...INSIGHT_GUIDE,
+                ...USAGE_GUIDE,
                 ...(insightNotice ? [insightNotice] : []),
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2">
@@ -561,7 +537,7 @@ export function AiLogForm({
             </ul>
           </section>
         </aside>
-        {/* 좁은 화면에서는 저장 버튼을 맨 아래에 둔다. 이 기록의 쓰임을 고른 뒤에 저장하게 하려는 것이다. */}
+        {/* 좁은 화면에서는 저장 버튼을 맨 아래에 둔다. 기록이 어디에 쓰이는지 안내를 지나서 저장하게 하려는 것이다. */}
         <div className="flex flex-col gap-2 sm:hidden">
           {draftStatus}
           <div className="flex gap-2">{actions}</div>

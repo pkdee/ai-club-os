@@ -279,27 +279,15 @@ export function AiLogDetail({
                   value={formatLogDateTime(log.updatedAt, now)}
                 />
               )}
-              <Info label="볼 수 있는 사람" value="Club 의 Member" />
-              {log.options && (
-                <>
-                  <Info
-                    label="AI Insight"
-                    value={
-                      log.options.excludeFromInsight
-                        ? "정리에 쓰지 않음"
-                        : "정리에 쓸 수 있음"
-                    }
-                  />
-                  <Info
-                    label="발표"
-                    value={
-                      log.options.shareInPresentation
-                        ? "넣어도 됨"
-                        : "넣지 않음"
-                    }
-                  />
-                </>
-              )}
+              {/* Project 에 묶인 기록은 그 Project 의 발표에도 들어간다. */}
+              <Info
+                label="볼 수 있는 사람"
+                value={
+                  log.project
+                    ? "Club 의 Member, Project 발표 링크를 받은 사람"
+                    : "Club 의 Member"
+                }
+              />
             </dl>
           </section>
         </aside>

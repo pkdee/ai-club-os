@@ -131,43 +131,6 @@ export const getClubPresentation = cache(
   }
 )
 
-// 한 Project 에 묶인 AI Log 가운데 작성자가 발표에 넣어도 된다고 한 것의 수와 전체 수.
-// 공개하기 전에 무엇이 나가는지 알리는 데 쓴다. 세지 못하면 null 이다.
-export async function countProjectSharedLogs(
-  clubId: string,
-  projectId: string
-): Promise<{ shared: number; total: number } | null> {
-  if (!isUuid(projectId)) {
-    return null
-  }
-
-  const supabase = await createClient()
-  const count = (onlyShared: boolean) => {
-    let query = supabase
-      .from("ai_logs")
-      .select("id", { count: "exact" })
-      .eq("club_id", clubId)
-      .eq("project_id", projectId)
-    if (onlyShared) {
-      query = query.eq("share_in_presentation", true)
-    }
-    return query.range(0, 0)
-  }
-
-  const [all, shared] = await Promise.all([count(false), count(true)])
-  if (all.error || shared.error || all.count === null || shared.count === null) {
-    // 열이 아직 없을 때의 오류는 남기지 않는다.
-    if (all.error?.code !== "42703" && shared.error?.code !== "42703") {
-      console.error(
-        "발표에 넣을 AI Log 수를 세지 못했습니다.",
-        all.error ?? shared.error
-      )
-    }
-    return null
-  }
-  return { shared: shared.count, total: all.count }
-}
-
 // 링크 값으로 발표의 내용을 읽는다. 로그인하지 않은 사람도 읽을 수 있는 단 하나의 조회다.
 // 무엇을 내보낼지는 데이터베이스의 get_presentation 함수가 정하고, 여기서는 받은 값의 모양을 한 번 더 확인한다.
 export const getPublicPresentation = cache(

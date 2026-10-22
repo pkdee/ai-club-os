@@ -4,7 +4,6 @@ import { test } from "node:test"
 import {
   canonicalTools,
   normalizeTools,
-  readAiLogOptions,
   toolKey,
   validateAiLog,
   type AiLogInput,
@@ -90,29 +89,3 @@ test("Session 은 비우거나 식별자 형식이어야 한다", () => {
   assert.deepEqual(errorKeys({ ...base, projectId: "22222222-2222-4222-8222-222222222222" }), [])
 })
 
-test("선택 칸이 화면에 없었으면 선택을 읽지 않는다", () => {
-  const formData = new FormData()
-  formData.set("excludeFromInsight", "on")
-  assert.equal(readAiLogOptions(formData), null)
-})
-
-test("선택 칸이 있었으면 켠 것만 켜진 것으로 읽는다", () => {
-  const formData = new FormData()
-  formData.set("optionsField", "1")
-  assert.deepEqual(readAiLogOptions(formData), {
-    excludeFromInsight: false,
-    shareInPresentation: false,
-  })
-
-  formData.set("shareInPresentation", "on")
-  assert.deepEqual(readAiLogOptions(formData), {
-    excludeFromInsight: false,
-    shareInPresentation: true,
-  })
-
-  formData.set("excludeFromInsight", "on")
-  assert.deepEqual(readAiLogOptions(formData), {
-    excludeFromInsight: true,
-    shareInPresentation: true,
-  })
-})

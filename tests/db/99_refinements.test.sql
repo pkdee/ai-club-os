@@ -75,8 +75,8 @@ select test.remember('log', $$ select id from public.ai_logs where title = '처�
 select test.is($$ select count(*) from public.ai_log_revisions $$, '0', '쓰기만 한 기록에는 수정 기록이 없다');
 select test.remember('before', $$ select updated_at::text from public.ai_logs where id = test.get('log')::uuid $$);
 select pg_sleep(0.01);
-select test.affects($$ update public.ai_logs set title = '처음 제목', attempt = '처음 시도', share_in_presentation = true where id = test.get('log')::uuid $$, 1, '작성자 B 가 선택만 바꾼다');
-select test.is($$ select (select count(*) from public.ai_log_revisions) || '|' || ((select updated_at::text from public.ai_logs where id = test.get('log')::uuid) = test.get('before')) $$, '0|true', '선택만 바꾸면 수정 기록이 남지 않고 고친 시각도 그대로다');
+select test.affects($$ update public.ai_logs set title = '처음 제목', attempt = '처음 시도' where id = test.get('log')::uuid $$, 1, '작성자 B 가 같은 내용으로 다시 저장한다');
+select test.is($$ select (select count(*) from public.ai_log_revisions) || '|' || ((select updated_at::text from public.ai_logs where id = test.get('log')::uuid) = test.get('before')) $$, '0|true', '내용이 그대로면 수정 기록이 남지 않고 고친 시각도 그대로다');
 select test.affects($$ update public.ai_logs set title = '처음 제목', session_id = test.get('session')::uuid where id = test.get('log')::uuid $$, 1, '작성자 B 가 Session 만 바꾼다');
 select test.is($$ select (select count(*) from public.ai_log_revisions) || '|' || ((select updated_at::text from public.ai_logs where id = test.get('log')::uuid) > test.get('before')) $$, '0|true', 'Session 만 바꾸면 고친 시각은 바뀌지만 수정 기록은 남지 않는다');
 select test.affects($$ update public.ai_logs set title = '고친 제목', attempt = '고친 시도' where id = test.get('log')::uuid $$, 1, '작성자 B 가 내용을 고친다');

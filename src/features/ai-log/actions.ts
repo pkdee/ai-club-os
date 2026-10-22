@@ -14,11 +14,9 @@ import {
   canonicalTools,
   normalizeTools,
   readAiLogForm,
-  readAiLogOptions,
   validateAiLog,
   type AiLogInput,
   type AiLogInputErrors,
-  type AiLogOptions,
 } from "./rules"
 
 export type AiLogFormState = {
@@ -26,8 +24,6 @@ export type AiLogFormState = {
   message?: string
   errors?: AiLogInputErrors
   values?: AiLogInput
-  // 폼에서 고른 선택. 선택 칸이 화면에 있었을 때만 돌려준다.
-  options?: AiLogOptions
   // 저장에 성공했을 때 그 기록의 식별자.
   logId?: string
 }
@@ -96,9 +92,8 @@ export async function saveAiLog(
   }
 
   const values = readAiLogForm(formData)
-  const options = readAiLogOptions(formData)
-  // 다시 그릴 때 적은 값과 고른 선택이 그대로 보이게 함께 돌려준다.
-  const kept = { values, ...(options && { options }) }
+  // 다시 그릴 때 적은 값이 그대로 보이게 함께 돌려준다.
+  const kept = { values }
 
   const validation = validateAiLog(values)
   if (!validation.ok) {
@@ -122,10 +117,6 @@ export async function saveAiLog(
   const fields = {
     session_id: values.sessionId || null,
     ...(withProject && { project_id: values.projectId || null }),
-    ...(options && {
-      exclude_from_insight: options.excludeFromInsight,
-      share_in_presentation: options.shareInPresentation,
-    }),
     title: values.title,
     tools,
     attempt: values.attempt,

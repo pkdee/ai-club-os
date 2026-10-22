@@ -7,7 +7,6 @@ import { isUuid } from "@/lib/uuid"
 
 import { NO_SESSION, type AiLogFilters } from "./filters"
 import type { AiLogRevision } from "./revisions"
-import type { AiLogOptions } from "./rules"
 import type { ToolSpelling } from "./tool-merge"
 import { expandSearch, mergeToolCounts, toolFilterValue } from "./tool-catalog"
 
@@ -37,8 +36,6 @@ export type AiLog = AiLogSummary & {
   learned: string
   nextAction: string
   updatedAt: string
-  // 작성자가 정한 선택. 데이터베이스에 그 열이 아직 없으면 null 이다.
-  options: AiLogOptions | null
 }
 
 export type AiLogListResult =
@@ -83,9 +80,6 @@ type DetailRow = SummaryRow & {
   learned: string
   next_action: string
   updated_at: string
-  // 선택을 담는 열이 아직 없는 데이터베이스에서 읽으면 이 값들이 없다.
-  exclude_from_insight?: boolean
-  share_in_presentation?: boolean
 }
 
 // Session 제목과 작성자 이름을 함께 읽는다. 어느 외래 키를 따라갈지 이름으로 정해 둔다.
@@ -94,9 +88,6 @@ const SUMMARY_COLUMNS =
 const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, result, learned, next_action, updated_at`
 // 묶인 Project 의 이름. ai_logs 에 Project 연결이 생긴 뒤에만 읽을 수 있다.
 const PROJECT_EMBED = ", project:projects!ai_logs_project_fkey(id, name)"
-
-// 작성자가 정한 선택 두 가지. 그 열이 생긴 뒤에만 읽을 수 있다.
-const OPTION_COLUMNS = ", exclude_from_insight, share_in_presentation"
 
 // 나중에 더해진 것이 아직 없을 때 돌아오는 오류. 관계를 찾지 못했거나 열이 없다는 것이다.
 function isMissingAddition(error: { code?: string }) {
@@ -444,7 +435,7 @@ export const getAiLog = cache(
 
     const supabase = await createClient()
     const { data, error } = await readWithAdditions(
-      [PROJECT_EMBED, OPTION_COLUMNS],
+      [PROJECT_EMBED],
       (additions) =>
         supabase
           .from("ai_logs")
@@ -471,30 +462,10 @@ export const getAiLog = cache(
         learned: row.learned,
         nextAction: row.next_action,
         updatedAt: row.updated_at,
-        options:
-          typeof row.exclude_from_insight === "boolean" &&
-          typeof row.share_in_presentation === "boolean"
-            ? {
-                excludeFromInsight: row.exclude_from_insight,
-                shareInPresentation: row.share_in_presentation,
-              }
-            : null,
       },
     }
   }
 )
-
-// ai_logs 에 작성자의 선택을 담는 열이 있는지 본다. 새 기록을 쓰는 화면이 선택 칸을 그릴지 정하는 데 쓴다.
-// 확인하지 못하면 없는 것으로 본다. 칸을 그렸는데 열이 없으면 저장이 실패하기 때문이다.
-export const hasAiLogOptions = cache(async (): Promise<boolean> => {
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from("ai_logs")
-    .select("exclude_from_insight, share_in_presentation")
-    .limit(1)
-
-  return !error
-})
 
 // 고치기 전의 내용을 수정 기록으로 남기는 구조가 있는지 본다. 쓰는 화면이 그 사실을 알릴지 정하는 데 쓴다.
 // 확인하지 못하면 없는 것으로 본다.
