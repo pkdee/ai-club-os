@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 
 import { Logo } from "@/components/logo"
+import { HighlightedMarkdown } from "@/components/markdown/highlighted-markdown"
 import { buttonVariants } from "@/components/ui/button"
 import {
   Empty,
@@ -217,7 +218,8 @@ export const LOG_PARTS: {
   { key: "nextAction", label: "다음 행동", icon: CircleArrowRight },
 ]
 
-function LogArticle({ log }: { log: PublicLog }) {
+// index 는 발표 안에서 이 기록의 차례다. 본문의 각주 id 가 다른 기록과 겹치지 않게 쓴다.
+function LogArticle({ log, index }: { log: PublicLog; index: number }) {
   const date = formatDate(log.createdAt)
 
   return (
@@ -243,7 +245,12 @@ function LogArticle({ log }: { log: PublicLog }) {
                 />
                 {label}
               </h4>
-              <p className="break-words whitespace-pre-wrap">{log[key]}</p>
+              <HighlightedMarkdown
+                headingLevel={5}
+                idPrefix={`log-${index}-${key}-`}
+              >
+                {log[key]}
+              </HighlightedMarkdown>
             </div>
           )
       )}
@@ -359,7 +366,11 @@ export function ProjectPresentationView({
         {logs.length > 0 ? (
           <div className="flex flex-col gap-4">
             {logs.map((log, index) => (
-              <LogArticle key={`${log.createdAt}-${index}`} log={log} />
+              <LogArticle
+                key={`${log.createdAt}-${index}`}
+                log={log}
+                index={index}
+              />
             ))}
           </div>
         ) : (

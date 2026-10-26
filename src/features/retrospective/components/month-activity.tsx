@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { MarkdownText } from "@/components/markdown/markdown"
 import { formatLogDate } from "@/features/ai-log/format"
 
 import type { MonthActivity } from "../queries"
@@ -100,8 +101,8 @@ export function MonthActivityCard({
           <ul className="flex flex-col gap-2">
             {actions.slice(0, SHOWN_LOGS).map((log) => (
               <li key={log.id} className="flex flex-col gap-0.5">
-                <p className="line-clamp-3 text-body-s break-words whitespace-pre-wrap">
-                  {log.nextAction}
+                <p className="line-clamp-3 text-body-s break-words">
+                  <MarkdownText>{log.nextAction}</MarkdownText>
                 </p>
                 <Link
                   href={`/clubs/${clubId}/logs/${log.id}`}

@@ -17,6 +17,7 @@
 | 자동 검증 | Node 내장 test runner, Docker 의 Postgres | 도입. 새 패키지 없음. `npm test` |
 | 디자인 문서 | Google 의 DESIGN.md 형식 | 2026-10-21 도입. `DESIGN.md` 에 디자인 토큰과 그 설명을 함께 둔다. 형식은 `npm run design:lint` 로, `globals.css` 와 같은지는 `npm test` 로 검사한다 |
 | 앱 안내 문서 | MDX, `@next/mdx`, Shiki | 2026-10-21 도입. `src/content/docs/` 의 MDX 를 빌드할 때 화면으로 바꾼다. 코드의 색은 빌드할 때 칠한다 |
+| AI Log 의 Markdown | `react-markdown`, `remark-gfm`, `remark-breaks`, Shiki | 2026-10-26 도입. 사람이 적은 Markdown 을 화면을 그릴 때 바꾼다. HTML 은 그리지 않는다. 저장된 본문은 서버에서 그리고 언어를 적은 코드 블록에만 Shiki 로 색을 칠한다. 쓰는 중의 미리 보기는 브라우저에서 색 없이 그린다 |
 
 ## 도입한 패키지와 근거
 
@@ -36,9 +37,10 @@
 | `@google/design.md` 0.4.0 | 2026-10-21 추가. 개발 도구. DESIGN.md 형식의 lint 와 토큰을 읽는 함수를 준다. Google Labs 가 만들었고 Apache-2.0 이다. 형식이 alpha 라 규칙이 모르는 사이에 바뀌지 않게 버전을 고정한다. 배포되는 코드에는 들어가지 않는다. 근거는 `docs/adr/0030-design-md-format.md`. |
 | `@next/mdx` 16.4.0, `@mdx-js/loader` 3.1.1, `@mdx-js/react` 3.1.1, `@types/mdx` 2.0.14 | 2026-10-21 추가. Next.js 문서가 MDX 에 쓰라고 하는 묶음. `@next/mdx` 는 `next` 와 같은 버전으로 맞춘다. 모두 MIT. |
 | `remark-gfm` 4.0.1, `rehype-slug` 6.0.0 | 2026-10-21 추가. Docs 의 표를 읽고 제목에 목차가 가리킬 id 를 붙인다. 모두 MIT. |
-| `@shikijs/rehype` 4.5.0 | 2026-10-21 추가. Docs 코드 블록의 색을 빌드할 때 칠한다. `shiki` 4.5.0 이 따라 들어온다. 모두 MIT. 빌드 결과에 Shiki 의 실행 코드는 들어가지 않는 것을 확인했다. |
+| `@shikijs/rehype` 4.5.0 | 2026-10-21 추가. Docs 코드 블록의 색을 빌드할 때 칠한다. `shiki` 4.5.0 이 따라 들어온다. 모두 MIT. Docs 만 쓸 때는 빌드 결과에 Shiki 의 실행 코드가 들어가지 않았다. 2026-10-26 부터 AI Log 본문의 코드 블록을 서버가 그릴 때 칠하므로 서버 코드에는 들어가고, 브라우저로 보내는 코드에는 들어가지 않는다. |
+| `react-markdown` 10.1.0, `remark-breaks` 4.0.0 | 2026-10-26 추가. AI Log 본문의 Markdown 을 화면으로 바꾸고, 한 줄을 바꾼 것도 줄바꿈으로 읽는다. 둘 다 MIT. 새로 따라 들어온 것은 `html-url-attributes` 와 `mdast-util-newline-to-break` 둘이고, 나머지(`unified`, `remark-parse`, `remark-rehype` 등)는 Docs 때문에 이미 있던 같은 버전이다. `remark-gfm` 과 `@shikijs/rehype` 는 Docs 와 함께 쓴다. 근거는 `docs/adr/0038-ai-log-markdown.md`. |
 
-Docs 에 쓰는 패키지는 모두 버전을 고정했습니다. 근거는 `docs/adr/0031-docs-as-mdx-at-build-time.md` 에 있습니다.
+Docs 와 AI Log 의 Markdown 에 쓰는 패키지는 모두 버전을 고정했습니다. Docs 의 근거는 `docs/adr/0031-docs-as-mdx-at-build-time.md` 에 있습니다.
 
 Supabase CLI 는 의존성에 넣지 않고 `npx supabase@2.120.0` 으로 실행합니다. 지금은 마이그레이션 파일을 만들 때만 씁니다.
 

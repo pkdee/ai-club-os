@@ -8,10 +8,10 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import { CodeBlock } from "@/components/code-block"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 
-import { CodeBlock } from "./code-block"
 import { Diagram } from "./diagram"
 
 // Docs 본문의 글 요소. 앞 요소와의 간격은 각 요소의 위쪽 여백으로 둔다.

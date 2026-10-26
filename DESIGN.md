@@ -465,14 +465,14 @@ Club 안쪽 화면은 1024px 폭부터 왼쪽에 256px 의 메뉴를 두고, 그
 | 토큰 | 코드 |
 |---|---|
 | `button-*` | `src/components/ui/button.tsx`. `primary` 는 variant `default`, `secondary` 는 `outline`, `ghost` 는 `ghost`, `danger` 는 `destructive`, `button-sm` 은 size `sm` 입니다. |
-| `input-*` | `input.tsx`, `textarea.tsx`, `native-select.tsx`, `time-picker.tsx` 가 함께 쓰는 모양 |
+| `input-*` | `input.tsx`, `textarea.tsx`, `native-select.tsx`, `time-picker.tsx`, `markdown/markdown-editor.tsx` 가 함께 쓰는 모양 |
 | `badge-*` | `badge.tsx` 의 tone |
 | `alert-*` | `alert.tsx` 의 tone |
 | `menu`, `menu-item-*`, `divider` | `menu.tsx`. `time-picker.tsx` 의 시각 목록도 같은 면과 항목 모양을 쓴다 |
 | `dialog`, `dialog-overlay` | `dialog.tsx` |
 | `avatar` | `avatar.tsx` 의 기본 크기 md |
 | `skeleton` | `skeleton.tsx` |
-| `tab-active-indicator` | `link-tabs.tsx` 에서 고른 탭의 밑줄 |
+| `tab-active-indicator` | `link-tabs.tsx` 에서 고른 탭의 밑줄. `markdown/markdown-editor.tsx` 의 쓰기와 미리 보기 탭도 같다 |
 | `card` | 따로 컴포넌트가 없고 `rounded-xl border bg-card p-5` 클래스로 씁니다. |
 | `club-mark` | Club 안쪽 메뉴 위의 Club 이름 첫 글자 상자(`club-shell.tsx`) |
 | `icon-*` | lucide 아이콘. 글자 색을 따르므로 `textColor` 로 적습니다. |
@@ -499,7 +499,7 @@ DESIGN.md 형식의 컴포넌트에는 테두리 속성이 없어서 테두리 �
 ### 색과 토큰
 
 - 계정 지우기처럼 되돌릴 수 없는 일과 로그아웃처럼 지금의 흐름을 끝내는 일은 붉은 계열(`danger`)로 나타냅니다. 메뉴에서는 붉은 글자와 아이콘의 항목으로 맨 아래에 두고, 화면에서는 붉은 테두리와 경고 아이콘을 둔 칸에 붉은 테두리의 버튼으로 둡니다. AI Log, Session, Club 처럼 무언가를 지우는 확인 창을 여는 버튼도 붉은 테두리의 버튼입니다. 붉게 채운 버튼은 확인 창 안의 마지막 결정에만 씁니다.
-- 화면과 컴포넌트에는 의미 색의 클래스만 씁니다. `zinc-500` 같은 원시 색의 클래스나 16진수 값을 직접 쓰지 않습니다. Docs 코드 블록 안의 글자 색만 예외입니다. Shiki 가 GitHub 테마(`github-light-default`, `github-dark-default`)의 색을 빌드할 때 적고, `globals.css` 가 화면 모드에 맞는 쪽을 고릅니다. 이 테마는 가장 흐린 주석도 코드 블록 배경과의 대비가 4.5:1 을 넘습니다.
+- 화면과 컴포넌트에는 의미 색의 클래스만 씁니다. `zinc-500` 같은 원시 색의 클래스나 16진수 값을 직접 쓰지 않습니다. Docs 와 AI Log 본문의 코드 블록 안의 글자 색만 예외입니다. Shiki 가 GitHub 테마(`github-light-default`, `github-dark-default`)의 색을 적고(Docs 는 빌드할 때, AI Log 는 서버가 화면을 그릴 때), `globals.css` 가 화면 모드에 맞는 쪽을 고릅니다. 이 테마는 가장 흐린 주석도 코드 블록 배경과의 대비가 4.5:1 을 넘습니다.
 - 토큰 값을 바꾸면 Figma, `src/app/globals.css`, 이 파일의 세 곳을 함께 고칩니다. `globals.css` 와 이 파일이 어긋나면 `npm test` 가 알려 주고, Figma 와는 손으로 맞춥니다.
 
 ### 접근성 원칙
@@ -624,6 +624,13 @@ Member 목록의 더 보기와 Session 소개 아래의 시간표는 2026-10-11 
   - 목록의 줄은 Menu 항목과 같은 높이 36px, Label M 이고 강조되면 Accent 면입니다. 왼쪽 16px 칸에 고른 시각의 `check`(Brand)를, 가운데에 "오후 7:00" 처럼 오전과 오후를 붙인 시각을 둡니다. 종료 목록은 시작에서 30분씩 더한 시각이고 오른쪽 끝에 걸리는 시간("30분", "1시간 30분", Caption, Muted)을 적습니다. 열면 고른 시각이 목록 가운데에 오고, 고른 것이 없는 시작 칸은 오후 7시 언저리를 보여 줍니다.
   - 칸에 시각을 바로 적으면 목록이 맞는 시각만 남기고 읽은 시각을 맨 위에 강조해 둡니다. 읽지 못하면 목록 자리에 "시각을 읽지 못했습니다. 19:30 이나 오후 7시 30분처럼 적어 주세요."(Caption, Muted)가 나옵니다. 칸에 들어오면 글이 모두 골라져 있어 바로 새로 적습니다.
   - Session 상태에 warning Badge "미정" 을 더했습니다. Session 목록은 "오늘과 예정" 과 "지난 Session" 사이에 "날짜 미정" 묶음(H4 와 수)을 둡니다. 카드의 날짜 자리(Muted 면)에는 위에 "날짜"(Label S, Muted), 아래에 "미정"(H4, Muted)을 두고 시각 줄을 뺍니다. Session 상세의 머리말은 아이콘 `calendar` 옆에 "날짜 미정" 을 적고 시각 줄을 뺍니다.
+- AI Log 의 Markdown. 2026-10-26 에 사용자의 요청으로 본문 네 칸(시도한 내용, 결과, 배운 점, 다음 행동)을 Markdown 으로 쓰게 했습니다.
+  - AI Log 쓰기 화면들(`06-1`, `06-5`, `06-6`, `09-3`)의 본문 칸은 Input 과 같은 테두리의 상자입니다. 위쪽 줄(아래에 `border` 선)의 왼쪽에 "쓰기" 와 "미리 보기" 탭(Label M, 높이 40px, 고른 탭은 `ring` 색 2px 밑줄)을, 오른쪽에 서식 버튼 여섯 개(32px, 16px 아이콘 `bold`, `italic`, `code`, `link`, `list`, `list-ordered`, `icon-subtle`, hover 때 Secondary hover 면)를 둡니다. 자리가 모자라면 서식 버튼이 탭 아래 줄로 내려갑니다. 미리 보기 탭에서는 서식 버튼이 보이지 않습니다.
+  - 칸에 초점이 오면 상자 전체가 Input 의 초점 모양이 되고, 오류가 있으면 상자 테두리가 `border-danger-strong` 입니다. 상자 아래에 "Markdown 을 쓸 수 있습니다."(Caption, Muted)를 둡니다.
+  - 미리 보기는 저장한 뒤 상세에서 보일 모양과 같습니다. 코드 블록의 색만 빠집니다. 적은 것이 없으면 "미리 볼 내용이 없습니다."(Body M, Muted)입니다.
+  - 본문의 글 요소는 Docs 의 본문과 같은 모양을 더 좁은 간격(블록 사이 12px, 제목 위 20px)으로 씁니다. 제목은 모두 본문과 같은 16px 이고 `#`, `##` 는 H4, 그 아래는 Label L 입니다. 큰 제목이 항목 이름(H4)과 겨루지 않게 하려는 것입니다. 할 일 목록은 점 자리에 체크 칸(Brand)을 둡니다. 각주는 본문 아래에 선을 긋고 Body S 로 둡니다. 코드 블록은 Docs 의 macOS 창 모양 그대로이고 블록 위 간격만 12px 입니다.
+  - 바깥 이미지는 본문 폭을 넘지 않고 높이 512px 까지 줄이며 모서리 lg 와 `border` 선을 둡니다. 링크는 Docs 와 같이 Brand 색에 밑줄이고 바깥 주소는 새 탭에서 엽니다.
+  - Project 발표(`12`)와 발표 모드의 AI Log 한 장(`12-4`)도 본문을 같은 모양으로 그립니다. AILogCard 와 한 달 회고의 "적어 둔 다음 행동" 은 Markdown 표시를 벗긴 글만 보여 줍니다. AI Log 수정 기록(`06-8`)은 적은 글 그대로 보여 줍니다.
 
 ### 구현하면서 바꾸고 Figma 에 반영한 것
 

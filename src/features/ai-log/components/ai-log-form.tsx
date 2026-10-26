@@ -13,6 +13,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Calendar, Check, CircleAlert, History } from "lucide-react"
 
+import { MarkdownEditor } from "@/components/markdown/markdown-editor"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -24,7 +25,6 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect } from "@/components/ui/native-select"
-import { Textarea } from "@/components/ui/textarea"
 import { kstTime } from "@/features/session/time"
 
 import {
@@ -475,13 +475,15 @@ export function AiLogForm({
                 <FieldLabel htmlFor={`log-${field.name}`}>
                   {field.label}
                 </FieldLabel>
-                <Textarea
+                <MarkdownEditor
                   id={`log-${field.name}`}
                   name={field.name}
                   required={field.required}
                   maxLength={AI_LOG_TEXT_MAX}
                   placeholder={field.placeholder}
                   defaultValue={values[field.name]}
+                  // 저장한 뒤 상세 화면에서 항목 이름이 h2 라 본문의 제목은 h3 부터다.
+                  headingLevel={3}
                   aria-invalid={invalid(field.name)}
                   aria-describedby={
                     errors[field.name] ? `log-${field.name}-error` : undefined

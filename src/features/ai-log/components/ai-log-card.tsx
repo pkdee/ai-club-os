@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Calendar, FolderKanban } from "lucide-react"
 
+import { MarkdownText } from "@/components/markdown/markdown"
 import { Avatar } from "@/components/ui/avatar"
 
 import { authorName, formatLogDate } from "../format"
@@ -49,7 +50,9 @@ export function AiLogCard({ log, now }: { log: AiLogSummary; now: Date }) {
         )}
       </div>
       <h3 className="text-h4">{log.title}</h3>
-      <p className="line-clamp-2 text-muted-foreground">{log.attempt}</p>
+      <p className="line-clamp-2 break-words text-muted-foreground">
+        <MarkdownText>{log.attempt}</MarkdownText>
+      </p>
       <ToolChips tools={log.tools} />
     </Link>
   )

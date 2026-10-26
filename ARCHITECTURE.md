@@ -101,7 +101,7 @@ src/
 
 불러오는 동안의 자리 표시는 세 `loading.tsx`(루트, Club 안쪽, Session 상세)와 Docs 의 `loading.tsx` 가 그립니다. 한 `loading.tsx` 가 그 아래 여러 화면을 덮고 주소를 받지 못하므로, 앞의 셋은 브라우저의 주소를 읽어 `lib/skeleton-route.ts` 로 화면을 고르고 그 화면을 닮은 자리 표시를 그립니다. 공용 부품은 `components/page-skeleton.tsx`, Club 안쪽 화면들의 조합은 `features/club/components/club-page-skeleton.tsx` 에 있습니다. 화면을 더하거나 주소를 바꾸면 이 둘을 함께 고칩니다. 자세한 이유는 ADR 0034 에 있습니다.
 
-`components/` 는 디자인 시스템 컴포넌트와 여러 기능이 함께 쓰는 부품입니다. 예를 들어 `components/link-controls.tsx` 는 Session 과 Project 를 잇는 화면과 Session 에 참고 자료를 가져오는 화면이 함께 씁니다. `lib/supabase/` 는 Supabase 연결 경계입니다. `lib/supabase/` 에는 서버에서 쓰는 연결과, 브라우저가 파일을 올릴 때만 쓰는 로그인 정보 없는 연결이 있습니다. `lib/theme.ts` 는 화면 모드를 고르고 기억하는 규칙이고, 고르는 토글은 `components/theme-toggle.tsx` 입니다. 이 토글과 내 프로필 메뉴(`features/auth/components/user-menu.tsx`)는 모든 화면의 상단 막대 오른쪽에 둡니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
+`components/` 는 디자인 시스템 컴포넌트와 여러 기능이 함께 쓰는 부품입니다. 예를 들어 `components/link-controls.tsx` 는 Session 과 Project 를 잇는 화면과 Session 에 참고 자료를 가져오는 화면이 함께 씁니다. `components/markdown/` 는 AI Log 본문의 Markdown 을 그리는 부품과 쓰는 칸입니다. 저장된 본문은 서버에서 코드 블록의 색까지 칠하는 `highlighted-markdown.tsx` 가, 쓰는 중의 미리 보기는 `markdown.tsx` 가 그립니다. 읽는 규칙은 `lib/markdown.ts`, 서식 버튼과 단축키가 글을 바꾸는 규칙은 `lib/markdown-edit.ts` 입니다. 코드 블록 `components/code-block.tsx` 는 Docs 와 함께 씁니다. `lib/supabase/` 는 Supabase 연결 경계입니다. `lib/supabase/` 에는 서버에서 쓰는 연결과, 브라우저가 파일을 올릴 때만 쓰는 로그인 정보 없는 연결이 있습니다. `lib/theme.ts` 는 화면 모드를 고르고 기억하는 규칙이고, 고르는 토글은 `components/theme-toggle.tsx` 입니다. 이 토글과 내 프로필 메뉴(`features/auth/components/user-menu.tsx`)는 모든 화면의 상단 막대 오른쪽에 둡니다. `proxy.ts` 는 요청마다 세션을 갱신하고 로그인 여부에 따라 경로를 나눕니다.
 
 각 기능은 자신의 화면, 규칙, 데이터 접근 경계를 소유합니다. 여러 기능이 함께 쓰는 요소는 실제 중복이 확인된 뒤에만 공용 영역으로 이동합니다.
 

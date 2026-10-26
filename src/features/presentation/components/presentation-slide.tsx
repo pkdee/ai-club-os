@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Calendar, Circle, CircleCheck, ExternalLink } from "lucide-react"
 
+import { HighlightedMarkdown } from "@/components/markdown/highlighted-markdown"
 import { ToolChips } from "@/features/ai-log/components/tool-chips"
 import { ProjectStatusBadge } from "@/features/project/components/project-status-badge"
 import { linkHost } from "@/features/project/rules"
@@ -148,7 +149,12 @@ export function PresentationSlide({
                       />
                       {label}
                     </h3>
-                    <p className="break-words whitespace-pre-wrap">{log[key]}</p>
+                    <HighlightedMarkdown
+                      headingLevel={4}
+                      idPrefix={`slide-${slide.position}-${key}-`}
+                    >
+                      {log[key]}
+                    </HighlightedMarkdown>
                   </div>
                 )
             )}

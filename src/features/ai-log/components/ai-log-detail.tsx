@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import { DeleteDialog } from "@/components/delete-dialog"
+import { HighlightedMarkdown } from "@/components/markdown/highlighted-markdown"
 import { Avatar } from "@/components/ui/avatar"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { buttonVariants } from "@/components/ui/button"
@@ -78,11 +79,14 @@ export function AiLogUnavailable({
   )
 }
 
+// 본문은 Markdown 으로 그린다. 항목 이름이 h2 라 본문의 제목은 h3 부터다.
 function Part({
+  name,
   icon: Icon,
   title,
   text,
 }: {
+  name: string
   icon: LucideIcon
   title: string
   text: string
@@ -102,7 +106,13 @@ function Part({
         />
         {title}
       </h2>
-      <p className="text-body-l whitespace-pre-wrap">{text}</p>
+      <HighlightedMarkdown
+        headingLevel={3}
+        idPrefix={`${name}-`}
+        className="text-body-l"
+      >
+        {text}
+      </HighlightedMarkdown>
     </section>
   )
 }
@@ -237,10 +247,21 @@ export function AiLogDetail({
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <article className="flex flex-col gap-8 rounded-xl border bg-card p-6 sm:p-8">
-            <Part icon={FlaskConical} title="시도한 내용" text={log.attempt} />
-            <Part icon={Target} title="결과" text={log.result} />
-            <Part icon={Lightbulb} title="배운 점" text={log.learned} />
             <Part
+              name="attempt"
+              icon={FlaskConical}
+              title="시도한 내용"
+              text={log.attempt}
+            />
+            <Part name="result" icon={Target} title="결과" text={log.result} />
+            <Part
+              name="learned"
+              icon={Lightbulb}
+              title="배운 점"
+              text={log.learned}
+            />
+            <Part
+              name="next-action"
               icon={CircleArrowRight}
               title="다음 행동"
               text={log.nextAction}
