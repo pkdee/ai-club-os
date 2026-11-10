@@ -8,4 +8,5 @@ export const DOC_SLUGS: readonly string[] = [
   "context-engineering",
   "ai-agent",
   "skill-automation",
+  "harness-engineering",
 ]
