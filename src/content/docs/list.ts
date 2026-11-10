@@ -9,4 +9,5 @@ export const DOC_SLUGS: readonly string[] = [
   "ai-agent",
   "skill-automation",
   "harness-engineering",
+  "openmontage",
 ]

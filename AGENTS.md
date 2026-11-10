@@ -51,6 +51,7 @@ AI Club OS는 인공지능 동아리와 스터디 구성원이 학습, 실험, A
 - 2026-10-26 에 사용자가 AI Log 에서 Markdown 을 쓰게 하자고 했다. `react-markdown` 을 설치해 쓰고, 쓰는 칸은 쓰기와 미리 보기 탭에 서식 버튼을 두고, 바깥 이미지는 이미지로 보이고, 코드 블록은 Docs 의 모양에 색을 넣기로 정했다. 본문 네 칸에만 쓰고 데이터베이스는 바꾸지 않았다. Docs 의 코드 블록을 `components/code-block.tsx` 로 옮겨 함께 쓰고, 저장된 본문은 서버에서 Shiki 로 색을 칠한다. 바깥 이미지 때문에 개인 정보 안내를 고쳤다. Figma 에는 아직 반영하지 않았다.
 - 2026-10-29 에 사용자가 Skill 과 Automation 문서를 이 사이트에 맞게 다듬어 달라고 했다. `skill-automation.mdx` 로 Docs 에 더하고, 없는 문서로 가던 링크를 AI Agent 문서의 절과 공식 문서로 바꾸고, `A → B` 로 적은 흐름 두 곳과 Skill 을 불러오는 순서를 그림으로 그렸다. Skill 폴더, 부르는 법, 예약 작업의 실행 위치는 Claude Code 와 Codex 의 공식 문서와 맞췄다. AI Agent 문서의 Skill 질문에서 이 문서로 링크를 걸었다.
 - 2026-11-10 에 사용자가 Harness Engineering 문서를 이 사이트에 맞게 다듬어 달라고 했다. `harness-engineering.mdx` 로 Docs 에 더하고, 없는 문서로 가던 링크(`./automation`, `./agent-configuration`, `./how-agents-work`, `./ai-security`)를 있는 문서와 공식 문서로 바꾸고, 하네스의 구성, 규칙을 불러오는 때, Subagent 에게 넘기는 흐름, 권한 검사, Hook 의 앞뒤, 고쳐 가는 순환을 그림으로 그렸다. Subagent 를 다시 시작해야 하는 때, Codex 의 꼭 적을 항목, Hook 의 종료 코드 2 를 공식 문서와 맞췄다.
+- 2026-11-10 에 사용자가 OpenMontage 문서를 Docs 스타일로 정확하게 써 달라고 했다. 2026-11-08 의 저장소를 직접 받아 README, `AGENT_GUIDE.md`, `pipeline_defs/`, `config.yaml`, `Makefile` 과 맞춰 `openmontage.mdx` 를 더했다. 구조, 단계와 승인, 예산 기본값(`warn` 은 멈추지 않음), Piper 목소리 모델을 따로 받는 것, AGPLv3 를 적고 그림 세 개를 그렸다.
 - 승인된 범위를 넘는 구현은 사용자가 다음 단계를 승인한 뒤에 진행한다.
 - 패키지 설치, 외부 서비스 연결, 데이터베이스 변경, 배포 설정을 임의로 진행하지 않는다.
 - 기존 파일을 삭제하거나 덮어쓰기 전에 반드시 상태와 사용자 변경 사항을 확인한다.
